@@ -89,6 +89,11 @@ pub mod undef {
     pub use crate::dialect::undef::{is_undef_op, undef};
 }
 
+/// Exports LLZK constants.
+pub use llzk_sys::{
+    COMPONENT_NAME_SIGNAL, FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, LANG_ATTR_NAME, MAIN_ATTR_NAME,
+};
+
 /// melior reexports of commonly used types.
 pub use melior::{
     Context, ContextRef, Error as MeliorError, StringRef,
