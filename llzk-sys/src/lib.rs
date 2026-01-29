@@ -84,7 +84,7 @@ c_str_constant!(
 c_str_constant!(
     /// Name of the attribute on the top-level ModuleOp that specifies the type of the main struct.
     /// This attribute can appear zero or one times on the top-level ModuleOp and is associated with
-    /// a `TypeAttr` specifying the `StructType` of the main struct.
+    /// a `TypeAttribute` specifying the `StructType` of the main struct.
     MAIN_ATTR_NAME,
     LLZK_MAIN_ATTR_NAME
 );
