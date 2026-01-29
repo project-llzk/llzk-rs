@@ -43,6 +43,28 @@ fn empty_struct_with_one_param() {
     assert_test!(s, module, @file "expected/empty_struct_with_one_param.mlir");
 }
 
+
+#[test]
+fn struct_with_one_field() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let loc = Location::unknown(&context);
+    let name = "one_field";
+    let typ = StructType::from_str_params(&context, name, &[]);
+    assert_eq!(typ.name().value(), name);
+
+    let mut region_ops = vec![r#struct::field(loc, "foo", Type::index(&context), false, false).map(Into::into)];
+    region_ops.extend(default_funcs(loc, typ));
+
+    let s = r#struct::def(loc, name, &[], region_ops).unwrap();
+    assert!(s.get_field_def("foo").is_some());
+    assert_eq!(s.get_field_defs().len(), 1);
+    let s = module.body().append_operation(s.into());
+
+    assert_test!(s, module, @file "expected/struct_with_one_field.mlir");
+}
+
 #[test]
 fn empty_struct_with_pub_inputs() {
     common::setup();

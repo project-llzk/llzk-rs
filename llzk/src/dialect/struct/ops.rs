@@ -124,15 +124,18 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
     }
 
-    /// Fills the given array with the FieldDefOp operations inside this struct.  
+    /// Fills the given array with the FieldDefOp operations inside this struct.
     ///
     /// # Panics
     ///
     /// If any of the result operations is not a `struct.field` op.
     fn get_field_defs(&self) -> Vec<FieldDefOpRef<'c, '_>> {
-        let num_fields = unsafe { llzkStructDefOpGetNumFieldDefs(self.to_raw()) };
-        let mut raw_ops: Vec<MlirOperation> = Vec::with_capacity(num_fields.try_into().unwrap());
-        unsafe { llzkStructDefOpGetFieldDefs(self.to_raw(), raw_ops.as_mut_ptr()) };
+        let num_fields = usize::try_from(unsafe { llzkStructDefOpGetNumFieldDefs(self.to_raw()) }).unwrap();
+        let mut raw_ops: Vec<MlirOperation> = Vec::with_capacity(num_fields);
+        unsafe {
+            llzkStructDefOpGetFieldDefs(self.to_raw(), raw_ops.as_mut_ptr());
+            raw_ops.set_len(num_fields);
+        };
         raw_ops
             .into_iter()
             .map(|op| {
