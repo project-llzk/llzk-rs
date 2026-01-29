@@ -31,7 +31,7 @@ impl MapOperandsBuilder {
     }
 
     /// Returns the low level representation of the builder.
-    pub unsafe fn to_raw(&self) -> LlzkAffineMapOperandsBuilder {
+    pub fn to_raw(&self) -> LlzkAffineMapOperandsBuilder {
         self.raw
     }
 
@@ -99,8 +99,8 @@ impl MapOperandsBuilder {
     }
 
     /// Returns the dimensions as an attribute.
-    pub fn get_dims_per_map_attr<'ctx, 'slf>(
-        &'slf self,
+    pub fn get_dims_per_map_attr<'ctx>(
+        &self,
         context: &'ctx Context,
     ) -> DenseI32ArrayAttribute<'ctx> {
         DenseI32ArrayAttribute::try_from(unsafe {
@@ -111,6 +111,12 @@ impl MapOperandsBuilder {
             .unwrap()
         })
         .unwrap()
+    }
+}
+
+impl Default for MapOperandsBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

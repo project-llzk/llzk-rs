@@ -76,15 +76,17 @@ c_str_constant!(
 );
 
 c_str_constant!(
-    /// Symbol name for the main entry point struct/component.
-    COMPONENT_NAME_MAIN,
-    LLZK_COMPONENT_NAME_MAIN
-);
-
-c_str_constant!(
     /// Name of the attribute on the top-level ModuleOp that specifies the IR language name.
     LANG_ATTR_NAME,
     LLZK_LANG_ATTR_NAME
+);
+
+c_str_constant!(
+    /// Name of the attribute on the top-level ModuleOp that specifies the type of the main struct.
+    /// This attribute can appear zero or one times on the top-level ModuleOp and is associated with
+    /// a `TypeAttribute` specifying the `StructType` of the main struct.
+    MAIN_ATTR_NAME,
+    LLZK_MAIN_ATTR_NAME
 );
 
 #[cfg(test)]
