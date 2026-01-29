@@ -2,7 +2,6 @@
 
 use llzk_sys::mlirGetDialectHandle__llzk__cast__;
 use melior::dialect::DialectHandle;
-use melior::ir::r#type::IntegerType;
 use melior::ir::{
     Location, Operation, Type, Value,
     operation::{OperationBuilder, OperationLike},

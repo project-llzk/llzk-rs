@@ -102,7 +102,7 @@ pub fn get_single_user<'ctx, 'op>(
         return Err(Error::GeneralError("expected value to have a single use"));
     }
     unsafe { OperationRef::from_option_raw(mlir_sys::mlirOpOperandGetOwner(first_use)) }
-        .ok_or_else(|| Error::GeneralError("invalid OpRef for user of value"))
+        .ok_or(Error::GeneralError("invalid OpRef for user of value"))
 }
 
 /// Replace all uses of `orig` within the given [BlockRef] with `replacement`.
