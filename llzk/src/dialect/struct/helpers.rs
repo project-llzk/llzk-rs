@@ -16,7 +16,7 @@ use crate::{
         function::{self, FuncDefOp},
     },
     error::Error,
-    prelude::{FeltType, FuncDefOpLike as _, StructDefOp},
+    prelude::{FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FeltType, FuncDefOpLike as _, StructDefOp},
 };
 
 use super::r#type::StructType;
@@ -32,7 +32,7 @@ pub fn compute_fn<'c>(
     let input_types: Vec<Type<'c>> = inputs.iter().map(|(t, _)| *t).collect();
     function::def(
         loc,
-        "compute",
+        FUNC_NAME_COMPUTE.as_ref(),
         FunctionType::new(
             unsafe { context.to_ref() },
             &input_types,
@@ -75,7 +75,7 @@ pub fn constrain_fn<'c>(
     });
     function::def(
         loc,
-        "constrain",
+        FUNC_NAME_CONSTRAIN.as_ref(),
         FunctionType::new(unsafe { context.to_ref() }, &input_types, &[]),
         &[],
         all_arg_attrs.as_deref(),
