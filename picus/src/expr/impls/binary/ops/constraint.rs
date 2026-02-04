@@ -1,6 +1,6 @@
 use crate::{
     display::{TextRepresentable, TextRepresentation},
-    expr::{self, impls::BinaryExpr, Expr},
+    expr::{self, Expr, impls::BinaryExpr},
     felt::Felt,
 };
 

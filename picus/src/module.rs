@@ -8,13 +8,12 @@ use std::{
 
 use crate::{
     display::{ListItem, TextRepresentable, TextRepresentation},
-    expr::{self, traits::ConstraintEmitter, Expr},
+    expr::{self, Expr, traits::ConstraintEmitter},
     felt::Felt,
     ident::Ident,
     stmt::{
-        self,
+        self, Stmt,
         traits::{ConstraintLike as _, FreeVars as _, StmtConstantFolding as _},
-        Stmt,
     },
     vars::{VarAllocator, VarKind, VarStr, Vars},
 };

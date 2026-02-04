@@ -1,7 +1,7 @@
 use crate::{
     backend::{
         codegen::CodegenParams,
-        picus::{params::PicusParams, PicusModule, Pipeline, PipelineBuilder},
+        picus::{PicusModule, Pipeline, PipelineBuilder, params::PicusParams},
     },
     ir::expr::Felt,
 };

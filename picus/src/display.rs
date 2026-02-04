@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{vars::VarKind, Program};
+use crate::{Program, vars::VarKind};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ListPunctuation {
@@ -435,7 +435,7 @@ impl<'a> Sum for TextRepresentation<'a> {
     }
 }
 
-pub trait TextRepresentable : std::fmt::Debug {
+pub trait TextRepresentable: std::fmt::Debug {
     fn to_repr(&self) -> TextRepresentation<'_>;
 
     fn width_hint(&self) -> usize;

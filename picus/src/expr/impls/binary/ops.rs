@@ -1,6 +1,6 @@
 use crate::{
     display::TextRepresentable,
-    expr::{traits::ExprLike, Expr, Wrap},
+    expr::{Expr, Wrap, traits::ExprLike},
     felt::Felt,
 };
 

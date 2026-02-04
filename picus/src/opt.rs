@@ -3,10 +3,10 @@ use std::marker::PhantomData;
 use anyhow::Result;
 
 use crate::{
-    expr::{traits::ExprLike, Expr},
+    Module, Program,
+    expr::{Expr, traits::ExprLike},
     stmt::traits::StmtLike,
     vars::VarKind,
-    Module, Program,
 };
 
 pub mod passes;

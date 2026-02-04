@@ -1,11 +1,11 @@
 use anyhow::Result;
 
 use crate::{
-    expr::{traits::ExprLike, Expr},
+    Program,
+    expr::{Expr, traits::ExprLike},
     felt::Felt,
     opt::{MutOptimizer, Optimizer},
     vars::VarKind,
-    Program,
 };
 
 #[derive(Default, Debug)]

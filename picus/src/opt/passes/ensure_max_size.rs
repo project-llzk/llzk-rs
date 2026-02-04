@@ -1,16 +1,14 @@
-
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 use crate::{
+    Module,
     expr::{
-        self,
+        self, Expr,
         traits::{ConstraintEmitter, ExprLike},
-        Expr,
     },
     opt::{MutOptimizer, Optimizer},
     stmt::{self, Stmt},
     vars::{Temp, VarStr},
-    Module,
 };
 
 pub struct EnsureMaxExprSizePass<C> {

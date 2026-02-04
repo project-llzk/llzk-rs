@@ -4,7 +4,7 @@ use std::{
     hash::{DefaultHasher, Hash as _, Hasher as _},
 };
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 
 use crate::{
     display::{TextRepresentable, TextRepresentation},
@@ -14,10 +14,10 @@ use crate::{
 };
 
 use super::{
+    Expr, ExprHash, Wrap,
     traits::{
         ConstantFolding, ConstraintExpr, ExprLike, ExprSize, GetExprHash, MaybeVarLike, WrappedExpr,
     },
-    Expr, ExprHash, Wrap,
 };
 
 macro_rules! hash {
@@ -358,7 +358,7 @@ impl ExprLike for NegExpr {}
 #[cfg(test)]
 mod test_neg_expr {
     use crate::{
-        expr::{traits::ConstantFolding as _, Wrap},
+        expr::{Wrap, traits::ConstantFolding as _},
         felt::Felt,
     };
 

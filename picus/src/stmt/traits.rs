@@ -3,7 +3,7 @@ use std::{any::Any, collections::HashSet};
 use super::Stmt;
 use crate::{
     display::TextRepresentable,
-    expr::{traits::ConstraintExpr, Expr},
+    expr::{Expr, traits::ConstraintExpr},
     felt::Felt,
     vars::VarStr,
 };
@@ -25,7 +25,7 @@ pub trait ConstraintLike {
     fn constraint_expr(&self) -> Option<&dyn ConstraintExpr>;
 }
 
-pub trait CallLike : std::fmt::Debug {
+pub trait CallLike: std::fmt::Debug {
     fn callee(&self) -> &str;
 
     fn with_new_callee(&self, new_name: String) -> Stmt;

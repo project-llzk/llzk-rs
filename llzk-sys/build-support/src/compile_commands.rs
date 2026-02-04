@@ -1,8 +1,8 @@
 //! Configuration for creating a link to compile commands databases.
 
 use super::{config_traits::cmake::CMakeConfig, llzk::LlzkBuild};
-use anyhow::bail;
 use anyhow::Result;
+use anyhow::bail;
 use cmake::Config;
 use std::borrow::Cow;
 use std::fs;

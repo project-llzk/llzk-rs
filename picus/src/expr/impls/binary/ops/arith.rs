@@ -1,15 +1,14 @@
 use crate::{
     display::{TextRepresentable, TextRepresentation},
     expr::{
-        self,
+        self, Expr, Wrap,
         impls::{BinaryExpr, ConstExpr, NegExpr},
         traits::ConstantFolding,
-        Expr, Wrap,
     },
     felt::Felt,
 };
 
-use super::{try_fold, OpFolder, OpLike};
+use super::{OpFolder, OpLike, try_fold};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum BinaryOp {

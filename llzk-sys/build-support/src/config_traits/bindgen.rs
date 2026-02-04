@@ -1,7 +1,7 @@
 //! Traits and implementations for working with bindgen
 
 use anyhow::Result;
-use bindgen::{builder, Bindings, Builder};
+use bindgen::{Bindings, Builder, builder};
 use std::path::Path;
 
 /// Trait for configurators of [`bindgen`] invocations.

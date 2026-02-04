@@ -3,18 +3,18 @@ use std::{
     hash::{DefaultHasher, Hash as _, Hasher as _},
 };
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use ops::{OpFolder as _, OpLike};
 
 use crate::{
     display::{TextRepresentable, TextRepresentation},
     expr::{
+        Expr, ExprHash, Wrap,
         traits::{
             ConstantFolding, ConstraintExpr, ExprLike, ExprSize, GetExprHash, MaybeVarLike,
             WrappedExpr,
         },
         util::{map_cexpr, map_consts},
-        Expr, ExprHash, Wrap,
     },
     felt::Felt,
     stmt::traits::ConstraintLike,
