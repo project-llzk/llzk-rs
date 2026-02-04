@@ -1,8 +1,12 @@
 //! Implementation of `!struct.type` type.
 
+use crate::error::Error;
+use crate::symbol_lookup::SymbolLookupResult;
 use crate::utils::FromRaw;
 use crate::utils::IsA;
 use llzk_sys::{llzkStructTypeGetName, llzkStructTypeGetWithArrayAttr, llzkTypeIsAStructType};
+use melior::ir::Module;
+use melior::ir::operation::OperationLike;
 use melior::{
     Context,
     ir::{
@@ -10,6 +14,7 @@ use melior::{
         attribute::{ArrayAttribute, FlatSymbolRefAttribute},
     },
 };
+use mlir_sys::MlirLogicalResult;
 use mlir_sys::MlirType;
 
 /// Represents the `!struct.type` type.
@@ -54,6 +59,46 @@ impl<'c> StructType<'c> {
             Attribute::from_raw(llzkStructTypeGetName(self.to_raw()))
         })
         .expect("struct type must be constructed from FlatSymbolRefAttribute")
+    }
+
+    /// Actual implementation of the [`get_definition`](Self::get_definition) and
+    /// [`get_definition_from_module`](Self::get_definition_from_module) methods.
+    fn get_definition_impl<O>(
+        &self,
+        o: O,
+        f: unsafe extern "C" fn(
+            MlirType,
+            O,
+            *mut llzk_sys::LlzkSymbolLookupResult,
+        ) -> MlirLogicalResult,
+    ) -> Result<SymbolLookupResult<'c>, Error> {
+        let mut lookup = SymbolLookupResult::new();
+        let result = unsafe { f(self.to_raw(), o, lookup.as_raw_mut()) };
+        (result.value != 0)
+            .then_some(lookup)
+            .ok_or_else(|| Error::SymbolNotFound(self.name().value().to_owned()))
+    }
+
+    /// Looks up the definition of this struct using the given op as root.
+    pub fn get_definition<'o>(
+        &self,
+        root: &impl OperationLike<'c, 'o>,
+    ) -> Result<SymbolLookupResult<'c>, Error>
+    where
+        'c: 'o,
+    {
+        self.get_definition_impl(root.to_raw(), llzk_sys::llzkStructStructTypeGetDefinition)
+    }
+
+    /// Looks up the definition of this struct using the given module as root.
+    pub fn get_definition_from_module(
+        &self,
+        root: &Module<'c>,
+    ) -> Result<SymbolLookupResult<'c>, Error> {
+        self.get_definition_impl(
+            root.to_raw(),
+            llzk_sys::llzkStructStructTypeGetDefinitionFromModule,
+        )
     }
 }
 
