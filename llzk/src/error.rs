@@ -28,6 +28,8 @@ pub enum Error {
     Melior(MeliorError),
     /// Happens when an IR object doesn't have an attribute by that name.
     AttributeNotFound(String),
+    /// Happens when a symbol table doesn't have an operation by that name.
+    SymbolNotFound(String),
     /// Set of diagnostics considered errors.
     Diagnostics(DiagnosticErrors),
     /// Happens when an operation failed to verify.
@@ -126,6 +128,7 @@ impl Display for Error {
                 "expected user-defined function to have name: {expected_name}"
             ),
             Error::GeneralError(msg) => write!(f, "{msg}"),
+            Error::SymbolNotFound(sym) => write!(f, "symbol was not found: {sym}"),
         }
     }
 }

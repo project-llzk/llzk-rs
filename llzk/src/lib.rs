@@ -17,6 +17,7 @@ pub mod map_operands;
 pub mod operation;
 pub mod passes;
 pub mod prelude;
+pub mod symbol_lookup;
 pub mod symbol_ref;
 #[cfg(test)]
 mod test;
