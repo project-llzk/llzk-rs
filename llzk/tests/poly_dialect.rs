@@ -11,7 +11,7 @@ mod common;
 fn get_type() {
     common::setup();
     let context = LlzkContext::new();
-    let t = poly::r#type::TVarType::new(&context, StringRef::new("A"));
+    let t = TVarType::new(&context, StringRef::new("A"));
 
     let ir = format!("{t}");
     let expected = "!poly.tvar<@A>";
@@ -22,7 +22,7 @@ fn get_type() {
 fn get_type_name_ref() {
     common::setup();
     let context = LlzkContext::new();
-    let t = poly::r#type::TVarType::new(&context, StringRef::new("A"));
+    let t = TVarType::new(&context, StringRef::new("A"));
 
     let ir = format!("{:?}", t.name().as_str().unwrap());
     let expected = "\"A\"";

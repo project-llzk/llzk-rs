@@ -8,6 +8,7 @@ pub use crate::dialect::function::prelude::*;
 pub use crate::dialect::llzk::prelude::*;
 pub use crate::dialect::module::llzk_module;
 pub use crate::dialect::pod::prelude::*;
+pub use crate::dialect::poly::prelude::*;
 pub use crate::dialect::r#struct::prelude::*;
 pub use crate::error::Error as LlzkError;
 pub use crate::operation::{replace_uses_of_with, verify_operation, verify_operation_with_diags};
@@ -73,7 +74,6 @@ pub mod pod {
 /// Exports functions from the 'poly' dialect
 pub mod poly {
     pub use crate::dialect::poly::ops::{is_read_const_op, read_const};
-    pub use crate::dialect::poly::r#type::{TVarType, is_type_variable};
 }
 /// Exports functions from the 'struct' dialect
 pub mod r#struct {
