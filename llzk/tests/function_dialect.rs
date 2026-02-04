@@ -77,14 +77,7 @@ fn function_call() {
 
     assert_eq!(f.region_count(), 1);
     let f = module.body().append_operation(f.into());
-    assert!(f.verify());
-    log::info!("Op passed verification");
-    let ir = format!("{f}");
-    let expected = r"function.def @recursive() -> !felt.type {
-  %0 = function.call @recursive() : () -> !felt.type
-  function.return %0 : !felt.type
-}";
-    assert_eq!(ir, expected);
+    assert_test!(f, module, @file "expected/function_call.mlir");
 }
 
 fn make_empty_struct<'c>(context: &'c LlzkContext, name: &str) -> StructDefOp<'c> {
