@@ -86,9 +86,7 @@ pub mod r#struct {
 }
 
 /// Exports LLZK constants.
-pub use llzk_sys::{
-    COMPONENT_NAME_SIGNAL, FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, LANG_ATTR_NAME, MAIN_ATTR_NAME,
-};
+pub use llzk_sys::{FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, LANG_ATTR_NAME, MAIN_ATTR_NAME};
 
 /// melior reexports of commonly used types.
 pub use melior::{

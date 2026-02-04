@@ -71,13 +71,9 @@ c_str_constant!(
 );
 
 c_str_constant!(
-    /// Symbol name for the struct/component representing a signal.
-    COMPONENT_NAME_SIGNAL,
-    LLZK_COMPONENT_NAME_SIGNAL
-);
-
-c_str_constant!(
-    /// Name of the attribute on the top-level ModuleOp that specifies the IR language name.
+    /// Name of the attribute on the top-level ModuleOp that identifies the ModuleOp as the
+    /// root module and specifies the frontend language name that the IR was compiled from,
+    /// if available.
     LANG_ATTR_NAME,
     LLZK_LANG_ATTR_NAME
 );

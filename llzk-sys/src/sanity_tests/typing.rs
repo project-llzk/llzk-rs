@@ -12,7 +12,7 @@ use rstest::{fixture, rstest};
 
 use crate::{
     llzkArrayAttrTypeParamsUnify, llzkAssertValidAttrForParamOfType, llzkForceIntAttrType,
-    llzkHasAffineMapAttr, llzkIsConcreteType, llzkIsMoreConcreteUnification, llzkIsSignalType,
+    llzkHasAffineMapAttr, llzkIsConcreteType, llzkIsMoreConcreteUnification,
     llzkIsValidArrayElemType, llzkIsValidArrayType, llzkIsValidColumnType,
     llzkIsValidConstReadType, llzkIsValidEmitEqType, llzkIsValidGlobalType, llzkIsValidType,
     llzkTypeParamsUnify, llzkTypesUnify,
@@ -108,13 +108,6 @@ fn test_llzk_is_valid_array_type(index_type: IndexType) {
 fn test_llzk_is_concrete_type(index_type: IndexType) {
     unsafe {
         assert!(llzkIsConcreteType(index_type.t, true));
-    }
-}
-
-#[rstest]
-fn test_llzk_is_signal_type(index_type: IndexType) {
-    unsafe {
-        assert!(!llzkIsSignalType(index_type.t));
     }
 }
 
