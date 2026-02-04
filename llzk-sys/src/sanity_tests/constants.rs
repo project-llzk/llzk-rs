@@ -15,6 +15,6 @@ fn unwrap(s: *const c_char) -> String {
 fn test_llzk_constants() {
     assert_eq!(unwrap(unsafe { LLZK_FUNC_NAME_COMPUTE }), "compute");
     assert_eq!(unwrap(unsafe { LLZK_FUNC_NAME_CONSTRAIN }), "constrain");
-    assert_eq!(unwrap(unsafe { LLZK_LANG_ATTR_NAME }), "veridise.lang");
+    assert_eq!(unwrap(unsafe { LLZK_LANG_ATTR_NAME }), "llzk.lang");
     assert_eq!(unwrap(unsafe { LLZK_MAIN_ATTR_NAME }), "llzk.main");
 }

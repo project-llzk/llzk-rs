@@ -1,4 +1,4 @@
-module attributes {veridise.lang = "llzk"} {
+module attributes {llzk.lang} {
   struct.def @Signal<[]> {
     struct.member @reg : !felt.type {llzk.pub}
     function.def @compute(%arg0: !felt.type) -> !struct.type<@Signal<[]>> attributes {function.allow_non_native_field_ops, function.allow_witness} {

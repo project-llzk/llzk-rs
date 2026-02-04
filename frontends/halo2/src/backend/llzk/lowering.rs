@@ -993,7 +993,7 @@ mod tests {
 
     fn expected_fragment(cfg: &FragmentCfg, frag: &str) -> String {
         format!(
-            r#"module attributes {{veridise.lang = "llzk"}} {{
+            r#"module attributes {{llzk.lang}} {{
   {signal}
   struct.def @{name}<[]> {{
     {fields}

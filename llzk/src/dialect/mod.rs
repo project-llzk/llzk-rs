@@ -17,7 +17,7 @@ pub mod module {
     use std::ffi::CStr;
 
     use llzk_sys::LLZK_LANG_ATTR_NAME;
-    use melior::ir::{Location, Module, attribute::StringAttribute, operation::OperationMutLike};
+    use melior::ir::{Location, Module, attribute::Attribute, operation::OperationMutLike};
 
     /// Creates a new `builtin.module` operation preconfigured to meet LLZK's specifications.
     pub fn llzk_module<'c>(location: Location<'c>) -> Module<'c> {
@@ -27,10 +27,7 @@ pub mod module {
         let attr_name = unsafe { CStr::from_ptr(LLZK_LANG_ATTR_NAME) }
             .to_str()
             .unwrap();
-        op.set_attribute(
-            attr_name,
-            StringAttribute::new(unsafe { ctx.to_ref() }, "llzk").into(),
-        );
+        op.set_attribute(attr_name, Attribute::unit(unsafe { ctx.to_ref() }).into());
         module
     }
 }

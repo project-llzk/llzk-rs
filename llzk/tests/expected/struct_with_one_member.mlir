@@ -1,4 +1,4 @@
-module attributes { veridise.lang = "llzk" } {
+module attributes { llzk.lang } {
   struct.def @one_member<[]> {
     struct.member @foo : index
     function.def @compute() -> !struct.type<@one_member<[]>> attributes {function.allow_non_native_field_ops, function.allow_witness} {

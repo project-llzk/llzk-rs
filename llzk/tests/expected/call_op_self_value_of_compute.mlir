@@ -1,4 +1,4 @@
-module attributes {veridise.lang = "llzk"} {
+module attributes {llzk.lang} {
   struct.def @StructA<[]> {
     function.def @compute() -> !struct.type<@StructA<[]>> attributes {function.allow_non_native_field_ops, function.allow_witness} {
       %self = struct.new : <@StructA<[]>>
