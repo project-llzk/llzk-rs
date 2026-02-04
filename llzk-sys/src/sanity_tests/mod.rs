@@ -130,5 +130,6 @@ fn test_location(context: TestContext, registry: TestRegistry) {
 }
 
 // [`LlzkAffineMapOperandsBuilder`] MUST implement Copy.
+#[allow(dead_code)]
 trait AssertCopy: Copy {}
 impl AssertCopy for LlzkAffineMapOperandsBuilder {}
