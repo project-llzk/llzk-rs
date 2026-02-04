@@ -27,7 +27,7 @@ pub mod module {
         let attr_name = unsafe { CStr::from_ptr(LLZK_LANG_ATTR_NAME) }
             .to_str()
             .unwrap();
-        op.set_attribute(attr_name, Attribute::unit(unsafe { ctx.to_ref() }).into());
+        op.set_attribute(attr_name, Attribute::unit(unsafe { ctx.to_ref() }));
         module
     }
 }

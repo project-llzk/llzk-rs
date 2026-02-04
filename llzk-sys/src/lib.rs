@@ -18,7 +18,8 @@ mod sys {
         non_snake_case,
         non_upper_case_globals,
         dead_code,
-        unsafe_op_in_unsafe_fn
+        unsafe_op_in_unsafe_fn,
+        clippy::missing_safety_doc
     )]
 
     use mlir_sys::{
@@ -34,10 +35,7 @@ mod sys {
     impl Copy for LlzkRecordValue {}
     impl Clone for LlzkRecordValue {
         fn clone(&self) -> Self {
-            LlzkRecordValue {
-                name: self.name.clone(),
-                value: self.value.clone(),
-            }
+            *self
         }
     }
 }

@@ -38,7 +38,7 @@ impl<'ctx> SymbolLookupResult<'ctx> {
 
 impl Drop for SymbolLookupResult<'_> {
     fn drop(&mut self) {
-        if self.raw.ptr != std::ptr::null_mut() {
+        if !self.raw.ptr.is_null() {
             unsafe {
                 llzk_sys::llzkSymbolLookupResultDestroy(self.raw);
             }
