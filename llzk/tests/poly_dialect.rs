@@ -1,5 +1,5 @@
 use llzk::builder::OpBuilder;
-use llzk::dialect::poly::{self, applymap, is_applymap_op, is_unifiable_cast_op, unifiable_cast};
+use llzk::dialect::poly::{applymap, is_applymap_op, is_unifiable_cast_op, unifiable_cast};
 use llzk::prelude::*;
 use melior::dialect::arith;
 use melior::ir::Location;
