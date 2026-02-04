@@ -13,7 +13,7 @@ use melior::{
 use mlir_sys::{MlirAttribute, MlirType};
 
 /// Represents the `!pod.type` type.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct PodType<'c> {
     r#type: Type<'c>,
 }
@@ -37,7 +37,7 @@ impl<'c> PodType<'c> {
         }
     }
 
-    /// Get the list of `PodRecordAttribute` that make up this pod type.  
+    /// Get the list of `PodRecordAttribute` that make up this pod type.
     ///
     /// # Panics
     ///
