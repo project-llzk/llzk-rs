@@ -38,8 +38,10 @@ impl<'ctx> SymbolLookupResult<'ctx> {
 
 impl Drop for SymbolLookupResult<'_> {
     fn drop(&mut self) {
-        unsafe {
-            llzk_sys::llzkSymbolLookupResultDestroy(self.raw);
+        if self.raw.ptr != std::ptr::null_mut() {
+            unsafe {
+                llzk_sys::llzkSymbolLookupResultDestroy(self.raw);
+            }
         }
     }
 }
