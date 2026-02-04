@@ -32,7 +32,10 @@ fn main() -> Result<()> {
     // We need to create this struct to generate properly constructed IR.
     let signal_st: StructDefOpRef = module
         .body()
-        .insert_operation(0, dialect::r#struct::helpers::define_signal_struct(&context)?.into())
+        .insert_operation(
+            0,
+            dialect::r#struct::helpers::define_signal_struct(&context)?.into(),
+        )
         .try_into()?;
 
     // We store the output of the division in a data field.

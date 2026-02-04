@@ -21,8 +21,8 @@ pub fn handle() -> DialectHandle {
 /// Exports the common types of the struct dialect.
 pub mod prelude {
     pub use super::ops::{
-        MemberDefOp, MemberDefOpLike, MemberDefOpRef, MemberDefOpRefMut, StructDefOp, StructDefOpLike,
-        StructDefOpMutLike, StructDefOpRef, StructDefOpRefMut,
+        MemberDefOp, MemberDefOpLike, MemberDefOpRef, MemberDefOpRefMut, StructDefOp,
+        StructDefOpLike, StructDefOpMutLike, StructDefOpRef, StructDefOpRefMut,
     };
     pub use super::r#type::{StructType, is_struct_type};
 }

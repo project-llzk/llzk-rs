@@ -37,7 +37,10 @@ fn f_eq() {
             )
             .unwrap(),
         );
-        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[felt.result(0).unwrap().into()],
+        ));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -82,7 +85,10 @@ fn f_ne() {
             )
             .unwrap(),
         );
-        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[felt.result(0).unwrap().into()],
+        ));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -127,7 +133,10 @@ fn f_lt() {
             )
             .unwrap(),
         );
-        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[felt.result(0).unwrap().into()],
+        ));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -172,7 +181,10 @@ fn f_le() {
             )
             .unwrap(),
         );
-        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[felt.result(0).unwrap().into()],
+        ));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -217,7 +229,10 @@ fn f_gt() {
             )
             .unwrap(),
         );
-        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[felt.result(0).unwrap().into()],
+        ));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -262,7 +277,10 @@ fn f_ge() {
             )
             .unwrap(),
         );
-        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[felt.result(0).unwrap().into()],
+        ));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);

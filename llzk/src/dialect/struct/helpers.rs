@@ -13,7 +13,10 @@ use crate::{
     builder::OpBuilder,
     dialect,
     error::Error,
-    prelude::{FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FeltType, FuncDefOp, FuncDefOpLike as _, StructDefOp},
+    prelude::{
+        FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FeltType, FuncDefOp, FuncDefOpLike as _,
+        StructDefOp,
+    },
 };
 
 use super::r#type::StructType;
@@ -41,7 +44,10 @@ pub fn compute_fn<'c>(
     .and_then(|f| {
         let block = Block::new(inputs);
         let new_struct = block.append_operation(super::new(loc, struct_type));
-        block.append_operation(dialect::function::r#return(loc, &[new_struct.result(0)?.into()]));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[new_struct.result(0)?.into()],
+        ));
         f.set_allow_witness_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
         f.region(0)?.append_block(block);
@@ -142,7 +148,11 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
                     );
                     block.insert_operation_after(
                         reg,
-                        dialect::constrain::eq(loc, reg.result(0)?.into(), block.argument(1)?.into()),
+                        dialect::constrain::eq(
+                            loc,
+                            reg.result(0)?.into(),
+                            block.argument(1)?.into(),
+                        ),
                     );
                     Ok(constrain)
                 })

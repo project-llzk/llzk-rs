@@ -17,89 +17,88 @@ pub use crate::symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute};
 pub use crate::utils::IntoRef;
 
 /// Exports from the various llzk dialects.
-pub mod dialect{
+pub mod dialect {
 
-/// Exports functions from the 'array' dialect
-pub mod array {
-    pub use crate::dialect::array::{extract, insert, len, new, read, write};
-    pub use crate::dialect::array::{
-        is_array_extract, is_array_insert, is_array_len, is_array_new, is_array_read,
-        is_array_type, is_array_write,
-    };
-}
+    /// Exports functions from the 'array' dialect
+    pub mod array {
+        pub use crate::dialect::array::{extract, insert, len, new, read, write};
+        pub use crate::dialect::array::{
+            is_array_extract, is_array_insert, is_array_len, is_array_new, is_array_read,
+            is_array_type, is_array_write,
+        };
+    }
 
-/// Exports functions from the 'bool' dialect
-pub mod bool {
-    pub use crate::dialect::bool::{and, assert, eq, ge, gt, le, lt, ne, not, or, xor};
-    pub use crate::dialect::bool::{
-        is_bool_and, is_bool_assert, is_bool_cmp, is_bool_not, is_bool_or, is_bool_xor,
-    };
-}
+    /// Exports functions from the 'bool' dialect
+    pub mod bool {
+        pub use crate::dialect::bool::{and, assert, eq, ge, gt, le, lt, ne, not, or, xor};
+        pub use crate::dialect::bool::{
+            is_bool_and, is_bool_assert, is_bool_cmp, is_bool_not, is_bool_or, is_bool_xor,
+        };
+    }
 
-/// Exports functions from the 'cast' dialect
-pub mod cast {
-    pub use crate::dialect::cast::{is_cast_tofelt, is_cast_toindex};
-    pub use crate::dialect::cast::{tofelt, toindex};
-}
+    /// Exports functions from the 'cast' dialect
+    pub mod cast {
+        pub use crate::dialect::cast::{is_cast_tofelt, is_cast_toindex};
+        pub use crate::dialect::cast::{tofelt, toindex};
+    }
 
-/// Exports functions from the 'constrain' dialect
-pub mod constrain {
-    pub use crate::dialect::constrain::{eq, r#in};
-    pub use crate::dialect::constrain::{is_constrain_eq, is_constrain_in};
-}
+    /// Exports functions from the 'constrain' dialect
+    pub mod constrain {
+        pub use crate::dialect::constrain::{eq, r#in};
+        pub use crate::dialect::constrain::{is_constrain_eq, is_constrain_in};
+    }
 
-/// Exports functions from the 'felt' dialect
-pub mod felt {
-    pub use crate::dialect::felt::{
-        add, bit_and, bit_not, bit_or, bit_xor, constant, div, inv, mul, neg, pow, shl, shr,
-        sintdiv, smod, sub, uintdiv, umod,
-    };
-    pub use crate::dialect::felt::{
-        is_felt_add, is_felt_bit_and, is_felt_bit_not, is_felt_bit_or, is_felt_bit_xor,
-        is_felt_const, is_felt_div, is_felt_inv, is_felt_mul, is_felt_neg, is_felt_pow,
-        is_felt_shl, is_felt_shr, is_felt_sintdiv, is_felt_smod, is_felt_sub, is_felt_type,
-        is_felt_uintdiv, is_felt_umod,
-    };
-}
+    /// Exports functions from the 'felt' dialect
+    pub mod felt {
+        pub use crate::dialect::felt::{
+            add, bit_and, bit_not, bit_or, bit_xor, constant, div, inv, mul, neg, pow, shl, shr,
+            sintdiv, smod, sub, uintdiv, umod,
+        };
+        pub use crate::dialect::felt::{
+            is_felt_add, is_felt_bit_and, is_felt_bit_not, is_felt_bit_or, is_felt_bit_xor,
+            is_felt_const, is_felt_div, is_felt_inv, is_felt_mul, is_felt_neg, is_felt_pow,
+            is_felt_shl, is_felt_shr, is_felt_sintdiv, is_felt_smod, is_felt_sub, is_felt_type,
+            is_felt_uintdiv, is_felt_umod,
+        };
+    }
 
-/// Exports functions from the 'function' dialect
-pub mod function {
-    pub use crate::dialect::function::{call, def, r#return};
-    pub use crate::dialect::function::{is_func_call, is_func_def, is_func_return};
-}
+    /// Exports functions from the 'function' dialect
+    pub mod function {
+        pub use crate::dialect::function::{call, def, r#return};
+        pub use crate::dialect::function::{is_func_call, is_func_def, is_func_return};
+    }
 
-/// Exports functions from the 'global' dialect
-pub mod global {
-    pub use crate::dialect::global::{def, read, write};
-    pub use crate::dialect::global::{is_global_def, is_global_read, is_global_write};
-}
+    /// Exports functions from the 'global' dialect
+    pub mod global {
+        pub use crate::dialect::global::{def, read, write};
+        pub use crate::dialect::global::{is_global_def, is_global_read, is_global_write};
+    }
 
-/// Exports functions from the 'llzk' dialect
-pub mod llzk {
-    pub use crate::dialect::llzk::{is_nondet, nondet};
-}
+    /// Exports functions from the 'llzk' dialect
+    pub mod llzk {
+        pub use crate::dialect::llzk::{is_nondet, nondet};
+    }
 
-/// Exports functions from the 'pod' dialect
-pub mod pod {
-    pub use crate::dialect::pod::ops::{is_pod_new, is_pod_read, is_pod_write};
-    pub use crate::dialect::pod::ops::{new, new_with_affine_init, read, write};
-}
+    /// Exports functions from the 'pod' dialect
+    pub mod pod {
+        pub use crate::dialect::pod::ops::{is_pod_new, is_pod_read, is_pod_write};
+        pub use crate::dialect::pod::ops::{new, new_with_affine_init, read, write};
+    }
 
-/// Exports functions from the 'poly' dialect
-pub mod poly {
-    pub use crate::dialect::poly::ops::{is_read_const_op, read_const};
-}
+    /// Exports functions from the 'poly' dialect
+    pub mod poly {
+        pub use crate::dialect::poly::ops::{is_read_const_op, read_const};
+    }
 
-/// Exports functions from the 'struct' dialect
-pub mod r#struct {
-    pub use crate::dialect::r#struct::helpers;
-    pub use crate::dialect::r#struct::{def, member, new, readm, readm_with_offset, writem};
-    pub use crate::dialect::r#struct::{
-        is_struct_def, is_struct_member, is_struct_new, is_struct_readm, is_struct_type,
-        is_struct_writem,
-    };
-}
-
+    /// Exports functions from the 'struct' dialect
+    pub mod r#struct {
+        pub use crate::dialect::r#struct::helpers;
+        pub use crate::dialect::r#struct::{def, member, new, readm, readm_with_offset, writem};
+        pub use crate::dialect::r#struct::{
+            is_struct_def, is_struct_member, is_struct_new, is_struct_readm, is_struct_type,
+            is_struct_writem,
+        };
+    }
 }
 
 /// Exports LLZK constants.

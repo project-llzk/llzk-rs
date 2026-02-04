@@ -2,9 +2,9 @@ use llzk_sys::{
     llzkMemberDefOpGetHasPublicAttr, llzkMemberDefOpSetPublicAttr, llzkMemberReadOpBuild,
     llzkOperationIsAMemberDefOp, llzkOperationIsAStructDefOp, llzkStructDefOpGetBody,
     llzkStructDefOpGetBodyRegion, llzkStructDefOpGetComputeFuncOp,
-    llzkStructDefOpGetConstrainFuncOp, llzkStructDefOpGetMemberDef, llzkStructDefOpGetMemberDefs,
-    llzkStructDefOpGetHasColumns, llzkStructDefOpGetHasParamName,
-    llzkStructDefOpGetIsMainComponent, llzkStructDefOpGetNumMemberDefs, llzkStructDefOpGetType,
+    llzkStructDefOpGetConstrainFuncOp, llzkStructDefOpGetHasColumns,
+    llzkStructDefOpGetHasParamName, llzkStructDefOpGetIsMainComponent, llzkStructDefOpGetMemberDef,
+    llzkStructDefOpGetMemberDefs, llzkStructDefOpGetNumMemberDefs, llzkStructDefOpGetType,
     llzkStructDefOpGetTypeWithParams,
 };
 use melior::{

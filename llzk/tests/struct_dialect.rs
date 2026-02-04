@@ -53,8 +53,9 @@ fn struct_with_one_member() {
     let typ = StructType::from_str_params(&context, name, &[]);
     assert_eq!(typ.name().value(), name);
 
-    let mut region_ops =
-        vec![dialect::r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into)];
+    let mut region_ops = vec![
+        dialect::r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into),
+    ];
     region_ops.extend(default_funcs(loc, typ));
 
     let s = dialect::r#struct::def(loc, name, &[], region_ops).unwrap();
@@ -78,8 +79,13 @@ fn empty_struct_with_pub_inputs() {
     let arg_attrs = vec![vec![PublicAttribute::new_named_attr(&context)]];
     let s = dialect::r#struct::def(loc, "empty", &[], {
         [
-            dialect::r#struct::helpers::compute_fn(loc, typ, inputs.as_slice(), Some(arg_attrs.as_slice()))
-                .map(Into::into),
+            dialect::r#struct::helpers::compute_fn(
+                loc,
+                typ,
+                inputs.as_slice(),
+                Some(arg_attrs.as_slice()),
+            )
+            .map(Into::into),
             dialect::r#struct::helpers::constrain_fn(
                 loc,
                 typ,

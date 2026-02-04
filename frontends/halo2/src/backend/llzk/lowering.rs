@@ -402,7 +402,10 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_not(&self, value: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(dialect::bool::not(Location::unknown(self.context()), value.into(),)?))
+        wrap!(self.append_expr(dialect::bool::not(
+            Location::unknown(self.context()),
+            value.into(),
+        )?))
     }
 
     fn lower_true(&self) -> Result<Self::CellOutput> {
@@ -446,7 +449,11 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
             );
         }
         let lhs = self.append_expr(dialect::bool::not(Location::unknown(self.context()), lhs)?)?;
-        wrap!(self.append_expr(dialect::bool::or(Location::unknown(self.context()), lhs, rhs)?))
+        wrap!(self.append_expr(dialect::bool::or(
+            Location::unknown(self.context()),
+            lhs,
+            rhs
+        )?))
     }
 
     fn lower_iff(
