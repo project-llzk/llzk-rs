@@ -84,10 +84,6 @@ pub mod r#struct {
         is_struct_writef,
     };
 }
-/// Exports functions from the 'undef' dialect
-pub mod undef {
-    pub use crate::dialect::undef::{is_undef_op, undef};
-}
 
 /// Exports LLZK constants.
 pub use llzk_sys::{

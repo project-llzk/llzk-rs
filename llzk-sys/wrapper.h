@@ -13,7 +13,6 @@
 #include "llzk-c/Dialect/Poly.h"
 #include "llzk-c/Dialect/String.h"
 #include "llzk-c/Dialect/Struct.h"
-#include "llzk-c/Dialect/Undef.h"
 #include "llzk-c/InitDialects.h"
 #include "llzk-c/Support.h"
 #include "llzk-c/Transforms.h"

@@ -11,7 +11,6 @@ pub mod llzk;
 pub mod pod;
 pub mod poly;
 pub mod r#struct;
-pub mod undef;
 
 /// Functions for working with `builtin.module` in LLZK.
 pub mod module {
