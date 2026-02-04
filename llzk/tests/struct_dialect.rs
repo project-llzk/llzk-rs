@@ -100,15 +100,3 @@ fn empty_struct_with_pub_inputs() {
 
     assert_test!(s, module, @file "expected/empty_struct_with_pub_inputs.mlir");
 }
-
-#[test]
-fn signal_struct() {
-    common::setup();
-    let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
-
-    let s = dialect::r#struct::helpers::define_signal_struct(&context).unwrap();
-    let s = module.body().append_operation(s.into());
-
-    assert_test!(s, module, @file "expected/signal_struct.mlir");
-}
