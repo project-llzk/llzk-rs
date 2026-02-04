@@ -54,7 +54,7 @@ impl<'c, 's> LlzkStructLowering<'c, 's> {
         Ok(self.struct_op.get_or_create_member_def(&name, || {
             let filename = filename(self.struct_name(), Some("advice cell"));
             let loc = Location::new(self.context(), &filename, col, row);
-            r#struct::member(loc, &name, FeltType::new(self.context()), false, false)
+            dialect::r#struct::member(loc, &name, FeltType::new(self.context()), false, false)
         })?)
     }
 
@@ -124,7 +124,7 @@ impl<'c, 's> LlzkStructLowering<'c, 's> {
         let signal_typ = StructType::from_str(self.context(), "Signal");
         if val.r#type() == signal_typ.into() {
             let builder = OpBuilder::new(self.context());
-            return self.append_expr(r#struct::readm(
+            return self.append_expr(dialect::r#struct::readm(
                 &builder,
                 Location::unknown(self.context()),
                 FeltType::new(self.context()).into(),
@@ -142,7 +142,7 @@ impl<'c, 's> LlzkStructLowering<'c, 's> {
     fn read_field(&self, field: MemberDefOpRef<'c, '_>) -> Result<Value<'c, '_>> {
         let builder = OpBuilder::new(self.context());
 
-        self.append_expr(r#struct::readm(
+        self.append_expr(dialect::r#struct::readm(
             &builder,
             Location::unknown(self.context()),
             field.member_type(),
@@ -153,7 +153,7 @@ impl<'c, 's> LlzkStructLowering<'c, 's> {
 
     fn lower_constant_impl(&self, f: Felt) -> Result<Value<'c, '_>> {
         let const_attr = FeltConstAttribute::from_biguint(self.context(), f.as_ref());
-        self.append_expr(felt::constant(
+        self.append_expr(dialect::felt::constant(
             Location::unknown(self.context()),
             const_attr,
         )?)
@@ -197,7 +197,7 @@ impl<'c> Lowering for LlzkStructLowering<'c, '_> {
         );
         let cond = match op {
             CmpOp::Eq => {
-                self.append_op(constrain::eq(loc, lhs.into(), rhs.into()))?;
+                self.append_op(dialect::constrain::eq(loc, lhs.into(), rhs.into()))?;
                 return Ok(());
             }
             CmpOp::Lt => self.lower_lt(lhs, rhs),
@@ -253,7 +253,7 @@ impl<'c> Lowering for LlzkStructLowering<'c, '_> {
     }
 
     fn generate_assert(&self, expr: &Self::CellOutput) -> Result<()> {
-        self.append_op(bool::assert(
+        self.append_op(dialect::bool::assert(
             Location::unknown(self.context()),
             expr.into(),
             None,
@@ -275,7 +275,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
         rhs: &Self::CellOutput,
     ) -> Result<Self::CellOutput> {
         wrap! {
-            self.append_expr(felt::add(
+            self.append_expr(dialect::felt::add(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into(),
@@ -289,7 +289,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
         rhs: &Self::CellOutput,
     ) -> Result<Self::CellOutput> {
         wrap! {
-            self.append_expr(felt::mul(
+            self.append_expr(dialect::felt::mul(
                 Location::unknown(self.context()),
                 lhs.into(),
                 rhs.into(),
@@ -298,7 +298,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_neg(&self, expr: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap! { self.append_expr(felt::neg(Location::unknown(self.context()), expr.into())?) }
+        wrap! { self.append_expr(dialect::felt::neg(Location::unknown(self.context()), expr.into())?) }
     }
 
     fn lower_constant(&self, f: Felt) -> Result<Self::CellOutput> {
@@ -306,7 +306,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_eq(&self, lhs: &Self::CellOutput, rhs: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::eq(
+        wrap!(self.append_expr(dialect::bool::eq(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into()
@@ -318,7 +318,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
         lhs: &Self::CellOutput,
         rhs: &Self::CellOutput,
     ) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::and(
+        wrap!(self.append_expr(dialect::bool::and(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into()
@@ -326,7 +326,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_or(&self, lhs: &Self::CellOutput, rhs: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::or(
+        wrap!(self.append_expr(dialect::bool::or(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into()
@@ -362,7 +362,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_lt(&self, lhs: &Self::CellOutput, rhs: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::lt(
+        wrap!(self.append_expr(dialect::bool::lt(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into()
@@ -370,7 +370,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_le(&self, lhs: &Self::CellOutput, rhs: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::le(
+        wrap!(self.append_expr(dialect::bool::le(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into()
@@ -378,7 +378,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_gt(&self, lhs: &Self::CellOutput, rhs: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::gt(
+        wrap!(self.append_expr(dialect::bool::gt(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into()
@@ -386,7 +386,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_ge(&self, lhs: &Self::CellOutput, rhs: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::ge(
+        wrap!(self.append_expr(dialect::bool::ge(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into()
@@ -394,7 +394,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_ne(&self, lhs: &Self::CellOutput, rhs: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::ne(
+        wrap!(self.append_expr(dialect::bool::ne(
             Location::unknown(self.context()),
             lhs.into(),
             rhs.into()
@@ -402,7 +402,7 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
     }
 
     fn lower_not(&self, value: &Self::CellOutput) -> Result<Self::CellOutput> {
-        wrap!(self.append_expr(bool::not(Location::unknown(self.context()), value.into(),)?))
+        wrap!(self.append_expr(dialect::bool::not(Location::unknown(self.context()), value.into(),)?))
     }
 
     fn lower_true(&self) -> Result<Self::CellOutput> {
@@ -445,8 +445,8 @@ impl<'c> ExprLowering for LlzkStructLowering<'c, '_> {
                 rhs.r#type()
             );
         }
-        let lhs = self.append_expr(bool::not(Location::unknown(self.context()), lhs)?)?;
-        wrap!(self.append_expr(bool::or(Location::unknown(self.context()), lhs, rhs)?))
+        let lhs = self.append_expr(dialect::bool::not(Location::unknown(self.context()), lhs)?)?;
+        wrap!(self.append_expr(dialect::bool::or(Location::unknown(self.context()), lhs, rhs)?))
     }
 
     fn lower_iff(

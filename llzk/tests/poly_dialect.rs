@@ -34,7 +34,7 @@ fn create_read_const() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let op = poly::read_const(loc, "A", FeltType::new(&context).into());
+    let op = dialect::poly::read_const(loc, "A", FeltType::new(&context).into());
 
     let ir = format!("{op}");
     let expected = "%0 = poly.read_const @A : !felt.type\n";
@@ -47,10 +47,10 @@ fn is_read_const() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let op = poly::read_const(loc, "C", IntegerType::new(&context, 64).into());
+    let op = dialect::poly::read_const(loc, "C", IntegerType::new(&context, 64).into());
 
     let op_ref = unsafe { OperationRef::from_raw(op.to_raw()) };
-    assert!(poly::is_read_const_op(&op_ref));
+    assert!(dialect::poly::is_read_const_op(&op_ref));
 }
 
 fn create_index_constant<'c>(
@@ -125,7 +125,7 @@ fn create_unifiable_cast() {
         FeltType::new(&context).into(),
         &[FlatSymbolRefAttribute::new(&context, "N").into()],
     );
-    let array_op = array::new(
+    let array_op = dialect::array::new(
         &OpBuilder::new(&context),
         location,
         array_ty,

@@ -132,7 +132,7 @@ fn pod_new_empty_and_inferred() {
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
     let builder = OpBuilder::new(&context);
-    let op = pod::new(&builder, location, &[], None);
+    let op = dialect::pod::new(&builder, location, &[], None);
 
     let ir = format!("{op}");
     let expected = "%pod = pod.new : <[]>\n";
@@ -156,7 +156,7 @@ fn pod_new_nonempty_and_inferred() {
         StringRef::new("field1"),
         arith_op.result(0).unwrap().into(),
     )];
-    let op = pod::new(&builder, location, &values, None);
+    let op = dialect::pod::new(&builder, location, &values, None);
 
     let ir = format!("{op}");
     let expected = "%pod = pod.new { @field1 = <<UNKNOWN SSA VALUE>> }  : <[@field1: index]>\n";
@@ -172,7 +172,7 @@ fn pod_new_empty_with_empty_affine() {
 
     let ty = PodType::new(&context, &[]);
     let map_operands = MapOperandsBuilder::new();
-    let op = pod::new_with_affine_init(&builder, location, &[], ty, map_operands);
+    let op = dialect::pod::new_with_affine_init(&builder, location, &[], ty, map_operands);
 
     let ir = format!("{op}");
     let expected = "%pod = pod.new : <[]>\n";
@@ -219,7 +219,7 @@ fn pod_new_empty_with_nonempty_affine() {
     );
     map_operands.append_operands_with_dim_count(ValueRange::try_from(&owning_vr).unwrap(), 0);
     map_operands.append_operands_with_dim_count(ValueRange::try_from(&owning_vr).unwrap(), 0);
-    let op = pod::new_with_affine_init(&builder, location, &[], ty, map_operands);
+    let op = dialect::pod::new_with_affine_init(&builder, location, &[], ty, map_operands);
 
     let ir = format!("{op}");
     let expected = r"#map = affine_map<()[s0, s1] -> (s0 + s1)>

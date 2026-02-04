@@ -9,7 +9,7 @@ fn f_constant() {
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_constant",
         FunctionType::new(&context, &[], &[FeltType::new(&context).into()]),
@@ -20,8 +20,8 @@ fn f_constant() {
     {
         let block = Block::new(&[]);
         let felt = block
-            .append_operation(felt::constant(loc, FeltConstAttribute::new(&context, 42)).unwrap());
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+            .append_operation(dialect::felt::constant(loc, FeltConstAttribute::new(&context, 42)).unwrap());
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -46,7 +46,7 @@ fn f_add() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_add",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -57,14 +57,14 @@ fn f_add() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::add(
+            dialect::felt::add(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -89,7 +89,7 @@ fn f_sub() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_sub",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -100,14 +100,14 @@ fn f_sub() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::sub(
+            dialect::felt::sub(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -132,7 +132,7 @@ fn f_mul() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_mul",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -143,14 +143,14 @@ fn f_mul() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::mul(
+            dialect::felt::mul(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -175,7 +175,7 @@ fn f_div() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_div",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -186,14 +186,14 @@ fn f_div() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::div(
+            dialect::felt::div(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -218,7 +218,7 @@ fn f_uintdiv() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_uintdiv",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -230,14 +230,14 @@ fn f_uintdiv() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::uintdiv(
+            dialect::felt::uintdiv(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -262,7 +262,7 @@ fn f_sintdiv() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_sintdiv",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -274,14 +274,14 @@ fn f_sintdiv() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::sintdiv(
+            dialect::felt::sintdiv(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -306,7 +306,7 @@ fn f_umod() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_umod",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -318,14 +318,14 @@ fn f_umod() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::umod(
+            dialect::felt::umod(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -350,7 +350,7 @@ fn f_smod() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_smod",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -362,14 +362,14 @@ fn f_smod() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::smod(
+            dialect::felt::smod(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -394,7 +394,7 @@ fn f_neg() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_neg",
         FunctionType::new(&context, &[felt_type], &[felt_type]),
@@ -405,8 +405,8 @@ fn f_neg() {
     {
         let block = Block::new(&[(felt_type, loc)]);
         let felt =
-            block.append_operation(felt::neg(loc, block.argument(0).unwrap().into()).unwrap());
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+            block.append_operation(dialect::felt::neg(loc, block.argument(0).unwrap().into()).unwrap());
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -431,7 +431,7 @@ fn f_inv() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_inv",
         FunctionType::new(&context, &[felt_type], &[felt_type]),
@@ -443,8 +443,8 @@ fn f_inv() {
     {
         let block = Block::new(&[(felt_type, loc)]);
         let felt =
-            block.append_operation(felt::inv(loc, block.argument(0).unwrap().into()).unwrap());
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+            block.append_operation(dialect::felt::inv(loc, block.argument(0).unwrap().into()).unwrap());
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -469,7 +469,7 @@ fn f_bit_not() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_bit_not",
         FunctionType::new(&context, &[felt_type], &[felt_type]),
@@ -481,8 +481,8 @@ fn f_bit_not() {
     {
         let block = Block::new(&[(felt_type, loc)]);
         let felt =
-            block.append_operation(felt::bit_not(loc, block.argument(0).unwrap().into()).unwrap());
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+            block.append_operation(dialect::felt::bit_not(loc, block.argument(0).unwrap().into()).unwrap());
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -507,7 +507,7 @@ fn f_shl() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_shl",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -519,14 +519,14 @@ fn f_shl() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::shl(
+            dialect::felt::shl(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -551,7 +551,7 @@ fn f_shr() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_shr",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -563,14 +563,14 @@ fn f_shr() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::shr(
+            dialect::felt::shr(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -595,7 +595,7 @@ fn f_bit_and() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_bit_and",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -607,14 +607,14 @@ fn f_bit_and() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::bit_and(
+            dialect::felt::bit_and(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -639,7 +639,7 @@ fn f_bit_or() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_bit_or",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -651,14 +651,14 @@ fn f_bit_or() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::bit_or(
+            dialect::felt::bit_or(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -683,7 +683,7 @@ fn f_bit_xor() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_bit_xor",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -695,14 +695,14 @@ fn f_bit_xor() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            felt::bit_xor(
+            dialect::felt::bit_xor(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);

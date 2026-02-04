@@ -8,8 +8,8 @@ fn default_funcs<'c>(
     typ: StructType<'c>,
 ) -> [Result<Operation<'c>, LlzkError>; 2] {
     [
-        r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
-        r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
+        dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
+        dialect::r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
     ]
 }
 
@@ -22,7 +22,7 @@ fn empty_struct() {
     let typ = StructType::from_str(&context, "empty");
     assert_eq!(typ.name().value(), "empty");
 
-    let s = r#struct::def(loc, "empty", &[], default_funcs(loc, typ)).unwrap();
+    let s = dialect::r#struct::def(loc, "empty", &[], default_funcs(loc, typ)).unwrap();
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/empty_struct.mlir" );
@@ -37,7 +37,7 @@ fn empty_struct_with_one_param() {
     let typ = StructType::from_str_params(&context, "empty", &["T"]);
     assert_eq!(typ.name().value(), "empty");
 
-    let s = r#struct::def(loc, "empty", &["T"], default_funcs(loc, typ)).unwrap();
+    let s = dialect::r#struct::def(loc, "empty", &["T"], default_funcs(loc, typ)).unwrap();
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/empty_struct_with_one_param.mlir");
@@ -54,10 +54,10 @@ fn struct_with_one_member() {
     assert_eq!(typ.name().value(), name);
 
     let mut region_ops =
-        vec![r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into)];
+        vec![dialect::r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into)];
     region_ops.extend(default_funcs(loc, typ));
 
-    let s = r#struct::def(loc, name, &[], region_ops).unwrap();
+    let s = dialect::r#struct::def(loc, name, &[], region_ops).unwrap();
     assert!(s.get_member_def("foo").is_some());
     assert_eq!(s.get_member_defs().len(), 1);
     let s = module.body().append_operation(s.into());
@@ -76,11 +76,11 @@ fn empty_struct_with_pub_inputs() {
 
     let inputs = vec![(FeltType::new(&context).into(), Location::unknown(&context))];
     let arg_attrs = vec![vec![PublicAttribute::new_named_attr(&context)]];
-    let s = r#struct::def(loc, "empty", &[], {
+    let s = dialect::r#struct::def(loc, "empty", &[], {
         [
-            r#struct::helpers::compute_fn(loc, typ, inputs.as_slice(), Some(arg_attrs.as_slice()))
+            dialect::r#struct::helpers::compute_fn(loc, typ, inputs.as_slice(), Some(arg_attrs.as_slice()))
                 .map(Into::into),
-            r#struct::helpers::constrain_fn(
+            dialect::r#struct::helpers::constrain_fn(
                 loc,
                 typ,
                 inputs.as_slice(),
@@ -101,7 +101,7 @@ fn signal_struct() {
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
 
-    let s = r#struct::helpers::define_signal_struct(&context).unwrap();
+    let s = dialect::r#struct::helpers::define_signal_struct(&context).unwrap();
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/signal_struct.mlir");

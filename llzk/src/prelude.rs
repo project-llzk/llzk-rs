@@ -16,6 +16,9 @@ pub use crate::passes as llzk_passes;
 pub use crate::symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute};
 pub use crate::utils::IntoRef;
 
+/// Exports from the various llzk dialects.
+pub mod dialect{
+
 /// Exports functions from the 'array' dialect
 pub mod array {
     pub use crate::dialect::array::{extract, insert, len, new, read, write};
@@ -24,6 +27,7 @@ pub mod array {
         is_array_type, is_array_write,
     };
 }
+
 /// Exports functions from the 'bool' dialect
 pub mod bool {
     pub use crate::dialect::bool::{and, assert, eq, ge, gt, le, lt, ne, not, or, xor};
@@ -43,6 +47,7 @@ pub mod constrain {
     pub use crate::dialect::constrain::{eq, r#in};
     pub use crate::dialect::constrain::{is_constrain_eq, is_constrain_in};
 }
+
 /// Exports functions from the 'felt' dialect
 pub mod felt {
     pub use crate::dialect::felt::{
@@ -56,29 +61,35 @@ pub mod felt {
         is_felt_uintdiv, is_felt_umod,
     };
 }
+
 /// Exports functions from the 'function' dialect
 pub mod function {
     pub use crate::dialect::function::{call, def, r#return};
     pub use crate::dialect::function::{is_func_call, is_func_def, is_func_return};
 }
+
 /// Exports functions from the 'global' dialect
 pub mod global {
     pub use crate::dialect::global::{def, read, write};
     pub use crate::dialect::global::{is_global_def, is_global_read, is_global_write};
 }
+
 /// Exports functions from the 'llzk' dialect
 pub mod llzk {
     pub use crate::dialect::llzk::{is_nondet, nondet};
 }
+
 /// Exports functions from the 'pod' dialect
 pub mod pod {
     pub use crate::dialect::pod::ops::{is_pod_new, is_pod_read, is_pod_write};
     pub use crate::dialect::pod::ops::{new, new_with_affine_init, read, write};
 }
+
 /// Exports functions from the 'poly' dialect
 pub mod poly {
     pub use crate::dialect::poly::ops::{is_read_const_op, read_const};
 }
+
 /// Exports functions from the 'struct' dialect
 pub mod r#struct {
     pub use crate::dialect::r#struct::helpers;
@@ -87,6 +98,8 @@ pub mod r#struct {
         is_struct_def, is_struct_member, is_struct_new, is_struct_readm, is_struct_type,
         is_struct_writem,
     };
+}
+
 }
 
 /// Exports LLZK constants.

@@ -26,13 +26,13 @@ fn main() -> Result<()> {
     // The entry point of the circuit is always a struct named `@Main`.
     // Operations can be created with factory methods with the same name as the op they create,
     // mimicking its mnemonic (struct.def in this case).
-    let main_st = r#struct::def(location, "Main", &[], [])?;
+    let main_st = dialect::r#struct::def(location, "Main", &[], [])?;
 
     // The inputs of `@Main` must be of type !struct.type<@Signal>.
     // We need to create this struct to generate properly constructed IR.
     let signal_st: StructDefOpRef = module
         .body()
-        .insert_operation(0, r#struct::helpers::define_signal_struct(&context)?.into())
+        .insert_operation(0, dialect::r#struct::helpers::define_signal_struct(&context)?.into())
         .try_into()?;
 
     // We store the output of the division in a data field.
@@ -41,7 +41,7 @@ fn main() -> Result<()> {
     let out_field = {
         let is_column = false;
         let is_public = true;
-        r#struct::member(location, "c", FeltType::new(&context), is_column, is_public)?
+        dialect::r#struct::member(location, "c", FeltType::new(&context), is_column, is_public)?
     };
     let compute_fn = witness(&context, location, signal_st.r#type().into(), &out_field)?;
     let constrain_fn = constraints(&context, location, signal_st.r#type().into(), &out_field)?;
@@ -80,7 +80,7 @@ fn witness<'c>(
 
     // The functions inside a struct need to have a particular structure. This helper creates the
     // `@compute` function with its proper structure.
-    let compute_fn = r#struct::helpers::compute_fn(
+    let compute_fn = dialect::r#struct::helpers::compute_fn(
         location,
         main_ty,
         &inputs,
@@ -106,7 +106,7 @@ fn witness<'c>(
     let a = block
         .insert_operation_before(
             ret_op,
-            r#struct::readm(
+            dialect::r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -118,7 +118,7 @@ fn witness<'c>(
     let b = block
         .insert_operation_before(
             ret_op,
-            r#struct::readm(
+            dialect::r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -130,7 +130,7 @@ fn witness<'c>(
 
     // The witness computes c = a / b
     let c = block
-        .insert_operation_before(ret_op, felt::div(location, a.into(), b.into())?)
+        .insert_operation_before(ret_op, dialect::felt::div(location, a.into(), b.into())?)
         .result(0)?;
     // The result needs to be written into the output field. For that we need to get the value
     // created by `struct.new` first.
@@ -138,7 +138,7 @@ fn witness<'c>(
     // Then use the `struct.writem` operation to commit the value into the signal.
     block.insert_operation_before(
         ret_op,
-        r#struct::writem(
+        dialect::r#struct::writem(
             location,
             self_value.into(),
             out_field.member_name(),
@@ -162,7 +162,7 @@ fn constraints<'c>(
 
     // The functions inside a struct need to have a particular structure. This helper creates the
     // `@constrain` function with its proper structure.
-    let constrain_fn = r#struct::helpers::constrain_fn(
+    let constrain_fn = dialect::r#struct::helpers::constrain_fn(
         location,
         main_ty,
         &inputs,
@@ -188,7 +188,7 @@ fn constraints<'c>(
     let a = block
         .insert_operation_before(
             ret_op,
-            r#struct::readm(
+            dialect::r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -200,7 +200,7 @@ fn constraints<'c>(
     let b = block
         .insert_operation_before(
             ret_op,
-            r#struct::readm(
+            dialect::r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -215,7 +215,7 @@ fn constraints<'c>(
     let c = block
         .insert_operation_before(
             ret_op,
-            r#struct::readm(
+            dialect::r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -228,9 +228,9 @@ fn constraints<'c>(
     // The constraint is  c * b = a
     // We can use the `constrain.eq` operation for emitting equality constraints.
     let t = block
-        .insert_operation_before(ret_op, felt::mul(location, c.into(), b.into())?)
+        .insert_operation_before(ret_op, dialect::felt::mul(location, c.into(), b.into())?)
         .result(0)?;
-    block.insert_operation_before(ret_op, constrain::eq(location, t.into(), a.into()));
+    block.insert_operation_before(ret_op, dialect::constrain::eq(location, t.into(), a.into()));
 
     Ok(constrain_fn.into())
 }

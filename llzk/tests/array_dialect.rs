@@ -16,7 +16,7 @@ fn array_new_affine_map() {
     let location = Location::unknown(&context);
     let module = llzk_module(location);
     let index_type = Type::index(&context);
-    let f = function::def(
+    let f = dialect::function::def(
         location,
         "array_new",
         FunctionType::new(&context, &[index_type, index_type], &[]),
@@ -35,13 +35,13 @@ fn array_new_affine_map() {
         let array_type = ArrayType::new(index_type, &[affine_map]);
         let owning_value_range = OwningValueRange::from([arg0, arg1].as_slice());
         let value_range = ValueRange::try_from(&owning_value_range).unwrap();
-        let _array = block.append_operation(array::new(
+        let _array = block.append_operation(dialect::array::new(
             &builder,
             location,
             array_type,
             ArrayCtor::MapDimSlice(&[value_range], &[0]),
         ));
-        block.append_operation(function::r#return(location, &[]));
+        block.append_operation(dialect::function::r#return(location, &[]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -70,7 +70,7 @@ fn array_len() {
     let unknown = Location::unknown(&ctx);
     let index_ty = Type::index(&ctx);
     let ty = ArrayType::new_with_dims(index_ty, &[dim]);
-    let op = array::new(&OpBuilder::new(&ctx), unknown, ty, ArrayCtor::Values(&[]));
+    let op = dialect::array::new(&OpBuilder::new(&ctx), unknown, ty, ArrayCtor::Values(&[]));
     assert_eq!(1, op.result_count(), "op {op} must only have one result");
     let arr_ref = op.result(0).unwrap();
     let arr_dim_op = arith::constant(&ctx, IntegerAttribute::new(index_ty, 0).into(), unknown);
@@ -80,7 +80,7 @@ fn array_len() {
         "op {arr_dim_op} must only have one result"
     );
     let arr_dim = arr_dim_op.result(0).unwrap();
-    let len = array::len(unknown, arr_ref.into(), arr_dim.into());
+    let len = dialect::array::len(unknown, arr_ref.into(), arr_dim.into());
     assert!(len.verify(), "op {len} failed to verify");
-    assert!(array::is_array_len(&len));
+    assert!(dialect::array::is_array_len(&len));
 }

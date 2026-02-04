@@ -18,7 +18,7 @@ fn f_eq() {
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let bool_type: Type = IntegerType::new(&context, 1).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_eq",
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
@@ -30,14 +30,14 @@ fn f_eq() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            bool::eq(
+            dialect::bool::eq(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -63,7 +63,7 @@ fn f_ne() {
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let bool_type: Type = IntegerType::new(&context, 1).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_ne",
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
@@ -75,14 +75,14 @@ fn f_ne() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            bool::ne(
+            dialect::bool::ne(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -108,7 +108,7 @@ fn f_lt() {
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let bool_type: Type = IntegerType::new(&context, 1).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_lt",
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
@@ -120,14 +120,14 @@ fn f_lt() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            bool::lt(
+            dialect::bool::lt(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -153,7 +153,7 @@ fn f_le() {
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let bool_type: Type = IntegerType::new(&context, 1).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_le",
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
@@ -165,14 +165,14 @@ fn f_le() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            bool::le(
+            dialect::bool::le(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -198,7 +198,7 @@ fn f_gt() {
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let bool_type: Type = IntegerType::new(&context, 1).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_gt",
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
@@ -210,14 +210,14 @@ fn f_gt() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            bool::gt(
+            dialect::bool::gt(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -243,7 +243,7 @@ fn f_ge() {
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let bool_type: Type = IntegerType::new(&context, 1).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "f_ge",
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
@@ -255,14 +255,14 @@ fn f_ge() {
     {
         let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
         let felt = block.append_operation(
-            bool::ge(
+            dialect::bool::ge(
                 loc,
                 block.argument(0).unwrap().into(),
                 block.argument(1).unwrap().into(),
             )
             .unwrap(),
         );
-        block.append_operation(function::r#return(loc, &[felt.result(0).unwrap().into()]));
+        block.append_operation(dialect::function::r#return(loc, &[felt.result(0).unwrap().into()]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);

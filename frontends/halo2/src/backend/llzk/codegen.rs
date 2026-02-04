@@ -82,7 +82,7 @@ impl<'c: 's, 's> Codegen<'c, 's> for LlzkCodegen<'c, 's> {
     }
 
     fn generate_output(mut self) -> Result<Self::Output> {
-        let signal = r#struct::helpers::define_signal_struct(self.context())?;
+        let signal = dialect::r#struct::helpers::define_signal_struct(self.context())?;
         self.module.body().insert_operation(0, signal.into());
         verify_operation_with_diags(&self.module.as_operation()).with_context(|| {
             format!(
