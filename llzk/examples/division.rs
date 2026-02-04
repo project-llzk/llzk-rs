@@ -36,12 +36,12 @@ fn main() -> Result<()> {
         .try_into()?;
 
     // We store the output of the division in a data field.
-    // Fields can have two extra annotations; column and public.
+    // Members can have two extra annotations; column and public.
     // The public annotation makes the field an output of the circuit.
     let out_field = {
         let is_column = false;
         let is_public = true;
-        r#struct::field(location, "c", FeltType::new(&context), is_column, is_public)?
+        r#struct::member(location, "c", FeltType::new(&context), is_column, is_public)?
     };
     let compute_fn = witness(&context, location, signal_st.r#type().into(), &out_field)?;
     let constrain_fn = constraints(&context, location, signal_st.r#type().into(), &out_field)?;
@@ -71,7 +71,7 @@ fn witness<'c>(
     context: &'c Context,
     location: Location<'c>,
     signal_ty: Type<'c>,
-    out_field: &FieldDefOp<'c>,
+    out_field: &MemberDefOp<'c>,
 ) -> Result<Operation<'c>> {
     // The inputs to the functions are public circuit inputs.
     let inputs = vec![(signal_ty, location); 2];
@@ -106,7 +106,7 @@ fn witness<'c>(
     let a = block
         .insert_operation_before(
             ret_op,
-            r#struct::readf(
+            r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -118,7 +118,7 @@ fn witness<'c>(
     let b = block
         .insert_operation_before(
             ret_op,
-            r#struct::readf(
+            r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -135,13 +135,13 @@ fn witness<'c>(
     // The result needs to be written into the output field. For that we need to get the value
     // created by `struct.new` first.
     let self_value = block.first_operation().unwrap().result(0)?;
-    // Then use the `struct.writef` operation to commit the value into the signal.
+    // Then use the `struct.writem` operation to commit the value into the signal.
     block.insert_operation_before(
         ret_op,
-        r#struct::writef(
+        r#struct::writem(
             location,
             self_value.into(),
-            out_field.field_name(),
+            out_field.member_name(),
             c.into(),
         )?,
     );
@@ -153,7 +153,7 @@ fn constraints<'c>(
     context: &'c Context,
     location: Location<'c>,
     signal_ty: Type<'c>,
-    out_field: &FieldDefOp<'c>,
+    out_field: &MemberDefOp<'c>,
 ) -> Result<Operation<'c>> {
     // The inputs to the functions are public circuit inputs.
     let inputs = vec![(signal_ty, location); 2];
@@ -188,7 +188,7 @@ fn constraints<'c>(
     let a = block
         .insert_operation_before(
             ret_op,
-            r#struct::readf(
+            r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -200,7 +200,7 @@ fn constraints<'c>(
     let b = block
         .insert_operation_before(
             ret_op,
-            r#struct::readf(
+            r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
@@ -215,12 +215,12 @@ fn constraints<'c>(
     let c = block
         .insert_operation_before(
             ret_op,
-            r#struct::readf(
+            r#struct::readm(
                 &builder,
                 location,
                 FeltType::new(context).into(),
                 self_value.into(),
-                out_field.field_name(),
+                out_field.member_name(),
             )?,
         )
         .result(0)?;

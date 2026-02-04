@@ -1,10 +1,10 @@
 use llzk_sys::{
-    llzkFieldDefOpGetHasPublicAttr, llzkFieldDefOpSetPublicAttr, llzkFieldReadOpBuild,
-    llzkOperationIsAFieldDefOp, llzkOperationIsAStructDefOp, llzkStructDefOpGetBody,
+    llzkMemberDefOpGetHasPublicAttr, llzkMemberDefOpSetPublicAttr, llzkMemberReadOpBuild,
+    llzkOperationIsAMemberDefOp, llzkOperationIsAStructDefOp, llzkStructDefOpGetBody,
     llzkStructDefOpGetBodyRegion, llzkStructDefOpGetComputeFuncOp,
-    llzkStructDefOpGetConstrainFuncOp, llzkStructDefOpGetFieldDef, llzkStructDefOpGetFieldDefs,
+    llzkStructDefOpGetConstrainFuncOp, llzkStructDefOpGetMemberDef, llzkStructDefOpGetMemberDefs,
     llzkStructDefOpGetHasColumns, llzkStructDefOpGetHasParamName,
-    llzkStructDefOpGetIsMainComponent, llzkStructDefOpGetNumFieldDefs, llzkStructDefOpGetType,
+    llzkStructDefOpGetIsMainComponent, llzkStructDefOpGetNumMemberDefs, llzkStructDefOpGetType,
     llzkStructDefOpGetTypeWithParams,
 };
 use melior::{
@@ -84,31 +84,31 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         .expect("StructDefOpLike::type error")
     }
 
-    /// Returns the operation that defines the field with the given name, if present.
+    /// Returns the operation that defines the member with the given name, if present.
     ///
     /// # Panics
     ///
-    /// If the nested symbol operation with the given name is not a `struct.field`.
-    fn get_field_def(&self, name: &str) -> Option<FieldDefOpRef<'c, 'a>> {
+    /// If the nested symbol operation with the given name is not a `struct.member`.
+    fn get_member_def(&self, name: &str) -> Option<MemberDefOpRef<'c, 'a>> {
         let name = StringRef::new(name);
-        let raw_op = unsafe { llzkStructDefOpGetFieldDef(self.to_raw(), name.to_raw()) };
+        let raw_op = unsafe { llzkStructDefOpGetMemberDef(self.to_raw(), name.to_raw()) };
         if raw_op.ptr.is_null() {
             return None;
         }
         Some(
             unsafe { OperationRef::from_raw(raw_op) }
                 .try_into()
-                .expect("op of type 'struct.field'"),
+                .expect("op of type 'struct.member'"),
         )
     }
 
-    /// Returns the operation that defines the field with the given name, creating a new operation
+    /// Returns the operation that defines the member with the given name, creating a new operation
     /// if not present.
-    fn get_or_create_field_def<F>(&self, name: &str, f: F) -> Result<FieldDefOpRef<'c, 'a>, Error>
+    fn get_or_create_member_def<F>(&self, name: &str, f: F) -> Result<MemberDefOpRef<'c, 'a>, Error>
     where
-        F: FnOnce() -> Result<FieldDefOp<'c>, Error>,
+        F: FnOnce() -> Result<MemberDefOp<'c>, Error>,
     {
-        match self.get_field_def(name) {
+        match self.get_member_def(name) {
             Some(f) => Ok(f),
             None => {
                 let op = f()?;
@@ -117,37 +117,37 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
                     .first_block()
                     .unwrap_or_else(|| region.append_block(Block::new(&[])));
 
-                let field_ref = block.append_operation(op.into());
+                let member_ref = block.append_operation(op.into());
 
-                Ok(field_ref.try_into()?)
+                Ok(member_ref.try_into()?)
             }
         }
     }
 
-    /// Fills the given array with the FieldDefOp operations inside this struct.
+    /// Fills the given array with the MemberDefOp operations inside this struct.
     ///
     /// # Panics
     ///
-    /// If any of the result operations is not a `struct.field` op.
-    fn get_field_defs(&self) -> Vec<FieldDefOpRef<'c, '_>> {
-        let num_fields =
-            usize::try_from(unsafe { llzkStructDefOpGetNumFieldDefs(self.to_raw()) }).unwrap();
-        let mut raw_ops: Vec<MlirOperation> = Vec::with_capacity(num_fields);
+    /// If any of the result operations is not a `struct.member` op.
+    fn get_member_defs(&self) -> Vec<MemberDefOpRef<'c, '_>> {
+        let num_members =
+            usize::try_from(unsafe { llzkStructDefOpGetNumMemberDefs(self.to_raw()) }).unwrap();
+        let mut raw_ops: Vec<MlirOperation> = Vec::with_capacity(num_members);
         unsafe {
-            llzkStructDefOpGetFieldDefs(self.to_raw(), raw_ops.as_mut_ptr());
-            raw_ops.set_len(num_fields);
+            llzkStructDefOpGetMemberDefs(self.to_raw(), raw_ops.as_mut_ptr());
+            raw_ops.set_len(num_members);
         };
         raw_ops
             .into_iter()
             .map(|op| {
                 unsafe { OperationRef::from_raw(op) }
                     .try_into()
-                    .expect("op of type 'struct.field")
+                    .expect("op of type 'struct.member'")
             })
             .collect()
     }
 
-    /// Returns true if the struct has fields marked as columns.
+    /// Returns true if the struct has members marked as columns.
     fn has_columns(&self) -> bool {
         unsafe { llzkStructDefOpGetHasColumns(self.to_raw()) }.value != 0
     }
@@ -228,59 +228,59 @@ impl<'a, 'c: 'a> StructDefOpMutLike<'c, 'a> for StructDefOp<'c> {}
 impl<'a, 'c: 'a> StructDefOpMutLike<'c, 'a> for StructDefOpRefMut<'c, 'a> {}
 
 //===----------------------------------------------------------------------===//
-// FieldDefOpLike
+// MemberDefOpLike
 //===----------------------------------------------------------------------===//
 
-/// Defines the public API of the 'struct.field' op.
-pub trait FieldDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
-    /// Returns true if the field op has a `llzk.pub` attribute.
+/// Defines the public API of the 'struct.member' op.
+pub trait MemberDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+    /// Returns true if the member op has a `llzk.pub` attribute.
     fn has_public_attr(&self) -> bool {
-        unsafe { llzkFieldDefOpGetHasPublicAttr(self.to_raw()) }
+        unsafe { llzkMemberDefOpGetHasPublicAttr(self.to_raw()) }
     }
 
     /// Sets or unsets the `llzk.pub` attribute.
     fn set_public_attr(&self, value: bool) {
         unsafe {
-            llzkFieldDefOpSetPublicAttr(self.to_raw(), value);
+            llzkMemberDefOpSetPublicAttr(self.to_raw(), value);
         }
     }
 
-    /// Returns the name of the field.
+    /// Returns the name of the member.
     ///
     /// # Panics
     ///
-    /// If the 'struct.field' op doesn't have an attribute named `sym_name`.
-    fn field_name(&self) -> &'c str {
+    /// If the 'struct.member' op doesn't have an attribute named `sym_name`.
+    fn member_name(&self) -> &'c str {
         self.attribute("sym_name")
             .and_then(StringAttribute::try_from)
-            .expect("malformed 'struct.field' op")
+            .expect("malformed 'struct.member' op")
             .value()
     }
 
-    /// Returns the type of the field.
+    /// Returns the type of the member.
     ///
     /// # Panics
     ///
-    /// If the 'struct.field' op doesn't have a attribute named `type`.
-    fn field_type(&self) -> Type<'c> {
+    /// If the 'struct.member' op doesn't have a attribute named `type`.
+    fn member_type(&self) -> Type<'c> {
         self.attribute("type")
             .and_then(TypeAttribute::try_from)
-            .expect("malformed 'struct.field' op")
+            .expect("malformed 'struct.member' op")
             .value()
     }
 }
 
 //===----------------------------------------------------------------------===//
-// FieldDefOp, FieldDefOpRef, FieldDefOpRefMut
+// MemberDefOp, MemberDefOpRef, MemberDefOpRefMut
 //===----------------------------------------------------------------------===//
 
-llzk_op_type!(FieldDefOp, llzkOperationIsAFieldDefOp, "struct.field");
+llzk_op_type!(MemberDefOp, llzkOperationIsAMemberDefOp, "struct.member");
 
-impl<'a, 'c: 'a> FieldDefOpLike<'c, 'a> for FieldDefOp<'c> {}
+impl<'a, 'c: 'a> MemberDefOpLike<'c, 'a> for MemberDefOp<'c> {}
 
-impl<'a, 'c: 'a> FieldDefOpLike<'c, 'a> for FieldDefOpRef<'c, 'a> {}
+impl<'a, 'c: 'a> MemberDefOpLike<'c, 'a> for MemberDefOpRef<'c, 'a> {}
 
-impl<'a, 'c: 'a> FieldDefOpLike<'c, 'a> for FieldDefOpRefMut<'c, 'a> {}
+impl<'a, 'c: 'a> MemberDefOpLike<'c, 'a> for MemberDefOpRefMut<'c, 'a> {}
 
 //===----------------------------------------------------------------------===//
 // Operation factories
@@ -331,20 +331,20 @@ pub fn is_struct_def<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
     crate::operation::isa(op, "struct.def")
 }
 
-/// Creates a 'struct.field' op
-pub fn field<'c, T>(
+/// Creates a 'struct.member' op
+pub fn member<'c, T>(
     location: Location<'c>,
     name: &str,
     r#type: T,
     is_column: bool,
     is_public: bool,
-) -> Result<FieldDefOp<'c>, Error>
+) -> Result<MemberDefOp<'c>, Error>
 where
     T: Into<Type<'c>>,
 {
     let ctx = location.context();
     let r#type = TypeAttribute::new(r#type.into());
-    let mut builder = OperationBuilder::new("struct.field", location).add_attributes(&[
+    let mut builder = OperationBuilder::new("struct.member", location).add_attributes(&[
         (
             ident!(ctx, "sym_name"),
             StringAttribute::new(unsafe { ctx.to_ref() }, name).into(),
@@ -365,74 +365,74 @@ where
         .build()
         .map_err(Into::into)
         .and_then(TryInto::try_into)
-        .inspect(|op: &FieldDefOp<'c>| op.set_public_attr(is_public))
+        .inspect(|op: &MemberDefOp<'c>| op.set_public_attr(is_public))
 }
 
-/// Return `true` iff the given op is `struct.field`.
+/// Return `true` iff the given op is `struct.member`.
 #[inline]
-pub fn is_struct_field<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "struct.field")
+pub fn is_struct_member<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
+    crate::operation::isa(op, "struct.member")
 }
 
-/// Creates a 'struct.readf' op
-pub fn readf<'c>(
+/// Creates a 'struct.readm' op
+pub fn readm<'c>(
     builder: &OpBuilder<'c>,
     location: Location<'c>,
     result_type: Type<'c>,
     component: Value<'c, '_>,
-    field_name: &str,
+    member_name: &str,
 ) -> Result<Operation<'c>, Error> {
-    let field_name = StringRef::new(field_name);
+    let member_name = StringRef::new(member_name);
     unsafe {
-        let raw = llzkFieldReadOpBuild(
+        let raw = llzkMemberReadOpBuild(
             builder.to_raw(),
             location.to_raw(),
             result_type.to_raw(),
             component.to_raw(),
-            field_name.to_raw(),
+            member_name.to_raw(),
         );
         if raw.ptr.is_null() {
-            Err(Error::BuildMethodFailed("readf"))
+            Err(Error::BuildMethodFailed("readm"))
         } else {
             Ok(Operation::from_raw(raw))
         }
     }
 }
 
-/// Creates a 'struct.readf' op.
+/// Creates a 'struct.readm' op.
 ///
 /// This factory method is not implemented yet.
-pub fn readf_with_offset<'c>() -> Operation<'c> {
+pub fn readm_with_offset<'c>() -> Operation<'c> {
     todo!()
 }
 
-/// Return `true` iff the given op is `struct.readf`.
+/// Return `true` iff the given op is `struct.readm`.
 #[inline]
-pub fn is_struct_readf<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "struct.readf")
+pub fn is_struct_readm<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
+    crate::operation::isa(op, "struct.readm")
 }
 
-/// Creates a 'struct.writef' op.
-pub fn writef<'c>(
+/// Creates a 'struct.writem' op.
+pub fn writem<'c>(
     location: Location<'c>,
     component: Value<'c, '_>,
-    field_name: &str,
+    member_name: &str,
     value: Value<'c, '_>,
 ) -> Result<Operation<'c>, Error> {
     let context = location.context();
-    let field_name = FlatSymbolRefAttribute::new(unsafe { context.to_ref() }, field_name);
-    let attrs = [(ident!(context, "field_name"), field_name.into())];
-    OperationBuilder::new("struct.writef", location)
+    let member_name = FlatSymbolRefAttribute::new(unsafe { context.to_ref() }, member_name);
+    let attrs = [(ident!(context, "member_name"), member_name.into())];
+    OperationBuilder::new("struct.writem", location)
         .add_operands(&[component, value])
         .add_attributes(&attrs)
         .build()
         .map_err(Into::into)
 }
 
-/// Return `true` iff the given op is `struct.writef`.
+/// Return `true` iff the given op is `struct.writem`.
 #[inline]
-pub fn is_struct_writef<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "struct.writef")
+pub fn is_struct_writem<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
+    crate::operation::isa(op, "struct.writem")
 }
 
 /// Creates a 'struct.new' op

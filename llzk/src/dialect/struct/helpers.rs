@@ -99,7 +99,7 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
     let reg = "reg";
     super::def(loc, "Signal", &[], {
         [
-            super::field(loc, reg, FeltType::new(context), false, true).map(Into::into),
+            super::member(loc, reg, FeltType::new(context), false, true).map(Into::into),
             compute_fn(loc, typ, &[(FeltType::new(context).into(), loc)], None)
                 .and_then(|compute| {
                     let block = compute
@@ -115,7 +115,7 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
                     }
                     block.insert_operation_after(
                         fst,
-                        super::writef(loc, fst.result(0)?.into(), reg, block.argument(0)?.into())?,
+                        super::writem(loc, fst.result(0)?.into(), reg, block.argument(0)?.into())?,
                     );
                     Ok(compute)
                 })
@@ -135,7 +135,7 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
                     }
                     let reg = block.insert_operation_before(
                         fst,
-                        super::readf(
+                        super::readm(
                             &OpBuilder::new(context),
                             loc,
                             FeltType::new(context).into(),

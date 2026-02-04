@@ -49,32 +49,32 @@ impl<'c, 's> LlzkStructLowering<'c, 's> {
         StructDefOpLike::name(&self.struct_op)
     }
 
-    fn get_cell_field(&self, kind: &str, col: usize, row: usize) -> Result<FieldDefOpRef<'c, '_>> {
+    fn get_cell_field(&self, kind: &str, col: usize, row: usize) -> Result<MemberDefOpRef<'c, '_>> {
         let name = format!("{kind}_{col}_{row}");
-        Ok(self.struct_op.get_or_create_field_def(&name, || {
+        Ok(self.struct_op.get_or_create_member_def(&name, || {
             let filename = filename(self.struct_name(), Some("advice cell"));
             let loc = Location::new(self.context(), &filename, col, row);
-            r#struct::field(loc, &name, FeltType::new(self.context()), false, false)
+            r#struct::member(loc, &name, FeltType::new(self.context()), false, false)
         })?)
     }
 
     /// Tries to fetch an advice cell field, if it doesn't exist creates a field that represents
     /// it.
     #[inline]
-    fn get_adv_cell(&self, col: usize, row: usize) -> Result<FieldDefOpRef<'c, '_>> {
+    fn get_adv_cell(&self, col: usize, row: usize) -> Result<MemberDefOpRef<'c, '_>> {
         self.get_cell_field("adv", col, row)
     }
 
     /// Tries to fetch a fixed cell field, if it doesn't exist creates a field that represents
     /// it.
     #[inline]
-    fn get_fix_cell(&self, col: usize, row: usize) -> Result<FieldDefOpRef<'c, '_>> {
+    fn get_fix_cell(&self, col: usize, row: usize) -> Result<MemberDefOpRef<'c, '_>> {
         self.get_cell_field("fix", col, row)
     }
 
-    fn get_output(&self, field: FieldId) -> Result<FieldDefOpRef<'c, '_>> {
+    fn get_output(&self, field: FieldId) -> Result<MemberDefOpRef<'c, '_>> {
         self.struct_op
-            .get_field_def(format!("out_{field}").as_str())
+            .get_member_def(format!("out_{field}").as_str())
             .ok_or_else(|| anyhow!("Struct is missing output #{field}"))
     }
 
@@ -124,7 +124,7 @@ impl<'c, 's> LlzkStructLowering<'c, 's> {
         let signal_typ = StructType::from_str(self.context(), "Signal");
         if val.r#type() == signal_typ.into() {
             let builder = OpBuilder::new(self.context());
-            return self.append_expr(r#struct::readf(
+            return self.append_expr(r#struct::readm(
                 &builder,
                 Location::unknown(self.context()),
                 FeltType::new(self.context()).into(),
@@ -139,15 +139,15 @@ impl<'c, 's> LlzkStructLowering<'c, 's> {
         self.get_arg_impl(0)
     }
 
-    fn read_field(&self, field: FieldDefOpRef<'c, '_>) -> Result<Value<'c, '_>> {
+    fn read_field(&self, field: MemberDefOpRef<'c, '_>) -> Result<Value<'c, '_>> {
         let builder = OpBuilder::new(self.context());
 
-        self.append_expr(r#struct::readf(
+        self.append_expr(r#struct::readm(
             &builder,
             Location::unknown(self.context()),
-            field.field_type(),
+            field.member_type(),
             self.get_component()?,
-            field.field_name(),
+            field.member_name(),
         )?)
     }
 
@@ -535,8 +535,8 @@ mod tests {
     fn lower_reading_cells(fragment_main_with_cells: FragmentCfg) {
         fragment_test(
             fragment_main_with_cells,
-            r"%0 = struct.readf %self[@adv_1_5] : <@Main<[]>>, !felt.type
-              %1 = struct.readf %self[@fix_2_3] : <@Main<[]>>, !felt.type",
+            r"%0 = struct.readm %self[@adv_1_5] : <@Main<[]>>, !felt.type
+              %1 = struct.readm %self[@fix_2_3] : <@Main<[]>>, !felt.type",
             |l| {
                 l.lower_funcio(FuncIO::advice_abs(1, 5))?;
                 l.lower_funcio(FuncIO::fixed_abs(2, 3))?;
@@ -549,7 +549,7 @@ mod tests {
     fn lower_sum(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = felt.add %0, %0",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -563,10 +563,10 @@ mod tests {
     fn lower_sum_with_io(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
-              %1 = struct.readf %arg2[@reg] : <@Signal<[]>>, !felt.type
-              %2 = struct.readf %self[@out_0] : <@Main<[]>>, !felt.type
-              %3 = struct.readf %self[@out_1] : <@Main<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
+              %1 = struct.readm %arg2[@reg] : <@Signal<[]>>, !felt.type
+              %2 = struct.readm %self[@out_0] : <@Main<[]>>, !felt.type
+              %3 = struct.readm %self[@out_1] : <@Main<[]>>, !felt.type
               %4 = felt.add %0, %2
               %5 = felt.add %1, %3",
             |l| {
@@ -585,7 +585,7 @@ mod tests {
     fn lower_product(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = felt.mul %0, %0",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -599,7 +599,7 @@ mod tests {
     fn lower_neg(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = felt.neg %0",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -613,7 +613,7 @@ mod tests {
     fn lower_eq(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = bool.cmp eq(%0, %0)",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -627,7 +627,7 @@ mod tests {
     fn lower_lt(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = bool.cmp lt(%0, %0)",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -641,7 +641,7 @@ mod tests {
     fn lower_le(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = bool.cmp le(%0, %0)",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -655,7 +655,7 @@ mod tests {
     fn lower_gt(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = bool.cmp gt(%0, %0)",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -669,7 +669,7 @@ mod tests {
     fn lower_ge(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = bool.cmp ge(%0, %0)",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -683,7 +683,7 @@ mod tests {
     fn lower_ne(fragment_main: FragmentCfg) {
         fragment_test(
             fragment_main,
-            r"%0 = struct.readf %arg1[@reg] : <@Signal<[]>>, !felt.type
+            r"%0 = struct.readm %arg1[@reg] : <@Signal<[]>>, !felt.type
               %1 = bool.cmp ne(%0, %0)",
             |l| {
                 let arg = l.lower_funcio(l.lower_function_input(0))?;
@@ -959,11 +959,11 @@ mod tests {
         fn cells(&self) -> String {
             self.advice_cells
                 .iter()
-                .map(|(col, row)| format!("struct.field @adv_{col}_{row} : !felt.type\n"))
+                .map(|(col, row)| format!("struct.member @adv_{col}_{row} : !felt.type\n"))
                 .chain(
                     self.fixed_cells
                         .iter()
-                        .map(|(col, row)| format!("struct.field @fix_{col}_{row} : !felt.type\n")),
+                        .map(|(col, row)| format!("struct.member @fix_{col}_{row} : !felt.type\n")),
                 )
                 .collect()
         }
@@ -972,7 +972,7 @@ mod tests {
             (0..self.n_outputs)
                 .map(|n| {
                     format!(
-                        "struct.field @out_{n} : !felt.type{}\n",
+                        "struct.member @out_{n} : !felt.type{}\n",
                         if n < self.n_public_outputs {
                             " {llzk.pub}"
                         } else {

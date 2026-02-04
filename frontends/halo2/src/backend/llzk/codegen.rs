@@ -108,13 +108,13 @@ fn create_pipeline<'c>(context: &'c Context) -> PassManager<'c> {
     let pm = PassManager::new(context);
     pm.nested_under("builtin.module")
         .nested_under("struct.def")
-        .add_pass(llzk_passes::create_field_write_validator_pass());
+        .add_pass(llzk_passes::create_member_write_validator_pass());
     pm.add_pass(melior_passes::create_canonicalizer());
     pm.add_pass(melior_passes::create_cse());
     pm.add_pass(llzk_passes::create_redundant_read_and_write_elimination_pass());
     pm.nested_under("builtin.module")
         .nested_under("struct.def")
-        .add_pass(llzk_passes::create_field_write_validator_pass());
+        .add_pass(llzk_passes::create_member_write_validator_pass());
 
     let opm = pm.as_operation_pass_manager();
     log::debug!("Optimization pipeline: {opm}");

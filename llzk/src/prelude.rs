@@ -82,10 +82,10 @@ pub mod poly {
 /// Exports functions from the 'struct' dialect
 pub mod r#struct {
     pub use crate::dialect::r#struct::helpers;
-    pub use crate::dialect::r#struct::{def, field, new, readf, readf_with_offset, writef};
+    pub use crate::dialect::r#struct::{def, member, new, readm, readm_with_offset, writem};
     pub use crate::dialect::r#struct::{
-        is_struct_def, is_struct_field, is_struct_new, is_struct_readf, is_struct_type,
-        is_struct_writef,
+        is_struct_def, is_struct_member, is_struct_new, is_struct_readm, is_struct_type,
+        is_struct_writem,
     };
 }
 
