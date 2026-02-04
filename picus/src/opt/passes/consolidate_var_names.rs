@@ -4,11 +4,11 @@ use anyhow::Result;
 use disjoint::DisjointSetVec;
 
 use crate::{
+    Module,
     expr::traits::ConstraintExpr,
     opt::MutOptimizer,
     stmt::traits::{ConstraintLike as _, ExprArgs as _},
     vars::{VarKind, VarStr},
-    Module,
 };
 
 #[derive(Default, Debug)]

@@ -1,8 +1,8 @@
 //! Structs for handling boolean expressions.
 
-use super::super::{equivalency::EqvRelation, CmpOp};
+use super::super::{CmpOp, equivalency::EqvRelation};
 use crate::{
-    backend::lowering::{lowerable::LowerableExpr, ExprLowering},
+    backend::lowering::{ExprLowering, lowerable::LowerableExpr},
     ir::{
         canon::canonicalize_constraint,
         expr::{Felt, IRAexpr},
@@ -359,11 +359,7 @@ impl IRBexpr<IRAexpr> {
 
 impl<T> From<bool> for IRBexpr<T> {
     fn from(value: bool) -> Self {
-        if value {
-            IRBexpr::True
-        } else {
-            IRBexpr::False
-        }
+        if value { IRBexpr::True } else { IRBexpr::False }
     }
 }
 

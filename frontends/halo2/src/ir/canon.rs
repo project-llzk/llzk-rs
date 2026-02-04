@@ -1,6 +1,6 @@
 //! Functions related to canonicalization of the IR.
 
-use crate::ir::{expr::IRAexpr, CmpOp};
+use crate::ir::{CmpOp, expr::IRAexpr};
 
 pub fn canonicalize_constraint(
     op: CmpOp,
@@ -45,7 +45,7 @@ mod tests {
     use super::*;
     use crate::{
         backend::func::FuncIO,
-        ir::{expr::IRAexpr, CmpOp},
+        ir::{CmpOp, expr::IRAexpr},
     };
 
     #[test]

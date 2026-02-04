@@ -5,7 +5,7 @@ use std::{
 
 use crate::{display::TextRepresentable, felt::Felt, stmt::traits::ConstraintLike, vars::VarStr};
 
-use super::{util::map_consts, Expr, ExprHash};
+use super::{Expr, ExprHash, util::map_consts};
 use anyhow::Result;
 
 pub trait MaybeVarLike {

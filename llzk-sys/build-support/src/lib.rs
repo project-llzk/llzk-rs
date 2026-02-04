@@ -9,7 +9,7 @@ use std::{io::stdout, path::Path};
 use crate::{
     compile_commands::CompileCommands,
     config_traits::cmake::CMakeConfig,
-    llzk::{whole_archive_config, LlzkBuild},
+    llzk::{LlzkBuild, whole_archive_config},
 };
 use anyhow::Result;
 

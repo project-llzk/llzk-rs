@@ -1,7 +1,7 @@
 //! Configuration for building static functions found by [`bindgen`].
 
 use super::config_traits::{bindgen::BindgenConfig, cc::CCConfig};
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use bindgen::Builder;
 use cc::Build;
 use std::{

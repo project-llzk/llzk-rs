@@ -3,12 +3,12 @@ use std::collections::{HashMap, HashSet};
 use anyhow::Result;
 
 use crate::{
-    expr::{traits::ConstraintExpr, Expr},
+    Module,
+    expr::{Expr, traits::ConstraintExpr},
     felt::Felt,
     opt::MutOptimizer,
     stmt::traits::{CallLike as _, ConstraintLike as _, ExprArgs as _, MaybeCallLike as _},
     vars::{VarKind, VarStr},
-    Module,
 };
 
 #[derive(Default, Debug)]

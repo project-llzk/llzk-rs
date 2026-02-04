@@ -1,6 +1,6 @@
 use crate::felt::Felt;
 
-use super::{traits::ConstraintExpr, Expr};
+use super::{Expr, traits::ConstraintExpr};
 
 #[inline]
 pub fn map_consts<O: Default>(lhs: &Expr, rhs: &Expr, f: impl Fn(Felt, Felt) -> O) -> O {

@@ -130,7 +130,8 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     ///
     /// If any of the result operations is not a `struct.field` op.
     fn get_field_defs(&self) -> Vec<FieldDefOpRef<'c, '_>> {
-        let num_fields = usize::try_from(unsafe { llzkStructDefOpGetNumFieldDefs(self.to_raw()) }).unwrap();
+        let num_fields =
+            usize::try_from(unsafe { llzkStructDefOpGetNumFieldDefs(self.to_raw()) }).unwrap();
         let mut raw_ops: Vec<MlirOperation> = Vec::with_capacity(num_fields);
         unsafe {
             llzkStructDefOpGetFieldDefs(self.to_raw(), raw_ops.as_mut_ptr());
