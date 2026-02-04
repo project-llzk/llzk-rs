@@ -4,6 +4,8 @@
 //! the divisor.
 //!
 //! Creates a single struct with two inputs and one output.
+//!
+//! Run with: `cargo run --package llzk --example division`
 
 use std::error::Error as StdError;
 use std::result::Result as StdResult;
@@ -13,6 +15,8 @@ use llzk::{builder::OpBuilder, prelude::*};
 
 type Result<T> = StdResult<T, Box<dyn StdError>>;
 
+const MAIN_STRUCT_NAME: &'static str = "Entry";
+
 fn main() -> Result<()> {
     // The context preloads the LLZK dialects for convenience.
     let context = LlzkContext::new();
@@ -21,22 +25,21 @@ fn main() -> Result<()> {
     let location = Location::unknown(&context);
     // LLZK top-level modules require some additional attributes.
     // This function creates a module preconfigured with these attributes.
-    let module = llzk_module(location);
+    let mut module = llzk_module(location);
+    module.as_operation_mut().set_attribute(
+        MAIN_ATTR_NAME.as_ref(),
+        TypeAttribute::new(
+            StructType::new(FlatSymbolRefAttribute::new(&context, MAIN_STRUCT_NAME), &[]).into(),
+        )
+        .into(),
+    );
 
-    // The entry point of the circuit is always a struct named `@Main`.
     // Operations can be created with factory methods with the same name as the op they create,
     // mimicking its mnemonic (struct.def in this case).
-    let main_st = dialect::r#struct::def(location, "Main", &[], [])?;
+    let main_st = dialect::r#struct::def(location, MAIN_STRUCT_NAME, &[], [])?;
 
-    // The inputs of `@Main` must be of type !struct.type<@Signal>.
-    // We need to create this struct to generate properly constructed IR.
-    let signal_st: StructDefOpRef = module
-        .body()
-        .insert_operation(
-            0,
-            dialect::r#struct::helpers::define_signal_struct(&context)?.into(),
-        )
-        .try_into()?;
+    // The inputs of the main struct must be of type !felt.type (or array thereof).
+    let felt_type = FeltType::new(&context);
 
     // We store the output of the division in a data field.
     // Members can have two extra annotations; column and public.
@@ -44,10 +47,10 @@ fn main() -> Result<()> {
     let out_field = {
         let is_column = false;
         let is_public = true;
-        dialect::r#struct::member(location, "c", FeltType::new(&context), is_column, is_public)?
+        dialect::r#struct::member(location, "c", felt_type.clone(), is_column, is_public)?
     };
-    let compute_fn = witness(&context, location, signal_st.r#type().into(), &out_field)?;
-    let constrain_fn = constraints(&context, location, signal_st.r#type().into(), &out_field)?;
+    let compute_fn = witness(&context, location, felt_type.into(), &out_field)?;
+    let constrain_fn = constraints(&context, location, felt_type.into(), &out_field)?;
 
     main_st.body().append_operation(out_field.into());
     main_st.body().append_operation(compute_fn.into());
@@ -73,13 +76,13 @@ fn witness<'c>(
     // A reference to a LlzkContext can be used as a reference to a Context.
     context: &'c Context,
     location: Location<'c>,
-    signal_ty: Type<'c>,
+    input_type: Type<'c>,
     out_field: &MemberDefOp<'c>,
 ) -> Result<Operation<'c>> {
     // The inputs to the functions are public circuit inputs.
-    let inputs = vec![(signal_ty, location); 2];
+    let inputs = vec![(input_type, location); 2];
     let pub_attr = [PublicAttribute::new_named_attr(context)];
-    let main_ty = StructType::from_str(context, "Main");
+    let main_ty = StructType::from_str(context, MAIN_STRUCT_NAME);
 
     // The functions inside a struct need to have a particular structure. This helper creates the
     // `@compute` function with its proper structure.
@@ -102,34 +105,9 @@ fn witness<'c>(
         .and_then(|b| Some((b, b.terminator()?)))
         .unwrap();
 
-    let builder = OpBuilder::new(context);
-
-    // To get the inputs we get the arguments and then read the inner value of the signal struct
-    // for performing the arithmetic.
-    let a = block
-        .insert_operation_before(
-            ret_op,
-            dialect::r#struct::readm(
-                &builder,
-                location,
-                FeltType::new(context).into(),
-                block.argument(0)?.into(),
-                "reg",
-            )?,
-        )
-        .result(0)?;
-    let b = block
-        .insert_operation_before(
-            ret_op,
-            dialect::r#struct::readm(
-                &builder,
-                location,
-                FeltType::new(context).into(),
-                block.argument(1)?.into(),
-                "reg",
-            )?,
-        )
-        .result(0)?;
+    // Get the two inputs from the block arguments.
+    let a = block.argument(0)?;
+    let b = block.argument(1)?;
 
     // The witness computes c = a / b
     let c = block
@@ -138,7 +116,7 @@ fn witness<'c>(
     // The result needs to be written into the output field. For that we need to get the value
     // created by `struct.new` first.
     let self_value = block.first_operation().unwrap().result(0)?;
-    // Then use the `struct.writem` operation to commit the value into the signal.
+    // Then use the `struct.writem` operation to commit the value into the field.
     block.insert_operation_before(
         ret_op,
         dialect::r#struct::writem(
@@ -155,13 +133,13 @@ fn witness<'c>(
 fn constraints<'c>(
     context: &'c Context,
     location: Location<'c>,
-    signal_ty: Type<'c>,
+    input_type: Type<'c>,
     out_field: &MemberDefOp<'c>,
 ) -> Result<Operation<'c>> {
     // The inputs to the functions are public circuit inputs.
-    let inputs = vec![(signal_ty, location); 2];
+    let inputs = vec![(input_type, location); 2];
     let pub_attr = [PublicAttribute::new_named_attr(context)];
-    let main_ty = StructType::from_str(context, "Main");
+    let main_ty = StructType::from_str(context, MAIN_STRUCT_NAME);
 
     // The functions inside a struct need to have a particular structure. This helper creates the
     // `@constrain` function with its proper structure.
@@ -187,31 +165,10 @@ fn constraints<'c>(
 
     let builder = OpBuilder::new(context);
 
-    // We follow the same steps for obtaining the inputs but with the offsets increased by 1.
-    let a = block
-        .insert_operation_before(
-            ret_op,
-            dialect::r#struct::readm(
-                &builder,
-                location,
-                FeltType::new(context).into(),
-                block.argument(1)?.into(),
-                "reg",
-            )?,
-        )
-        .result(0)?;
-    let b = block
-        .insert_operation_before(
-            ret_op,
-            dialect::r#struct::readm(
-                &builder,
-                location,
-                FeltType::new(context).into(),
-                block.argument(2)?.into(),
-                "reg",
-            )?,
-        )
-        .result(0)?;
+    // Obtain the inputs same as before but with the offsets increased by 1.
+    let a = block.argument(1)?;
+    let b = block.argument(2)?;
+
     // The instance that we are constraining is passed as the first argument.
     let self_value = block.argument(0)?;
     // And then read the witness output from the instance.
