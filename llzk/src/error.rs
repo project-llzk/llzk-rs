@@ -128,7 +128,7 @@ impl Display for Error {
                 "expected user-defined function to have name: {expected_name}"
             ),
             Error::GeneralError(msg) => write!(f, "{msg}"),
-            Error::SymbolNotFound(sym) => write!(f, "attribute was not found: {sym}"),
+            Error::SymbolNotFound(sym) => write!(f, "symbol was not found: {sym}"),
         }
     }
 }
