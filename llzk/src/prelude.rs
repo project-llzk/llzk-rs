@@ -66,6 +66,10 @@ pub mod global {
     pub use crate::dialect::global::{def, read, write};
     pub use crate::dialect::global::{is_global_def, is_global_read, is_global_write};
 }
+/// Exports functions from the 'llzk' dialect
+pub mod llzk {
+    pub use crate::dialect::llzk::{is_nondet, nondet};
+}
 /// Exports functions from the 'pod' dialect
 pub mod pod {
     pub use crate::dialect::pod::ops::{is_pod_new, is_pod_read, is_pod_write};
