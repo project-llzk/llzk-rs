@@ -96,6 +96,7 @@ pub fn constrain_fn<'c>(
 /// Creates the `@Signal` struct.
 ///
 /// The `@Main` struct's inputs must be of this type or arrays of this type.
+#[deprecated]
 pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>, Error> {
     let loc = Location::new(context, "Signal struct", 0, 0);
     let typ = StructType::from_str(context, "Signal");
