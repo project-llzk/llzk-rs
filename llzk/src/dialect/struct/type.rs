@@ -1,5 +1,6 @@
 //! Implementation of `!struct.type` type.
 
+use crate::attributes::array::ArrayAttribute;
 use crate::error::Error;
 use crate::symbol_lookup::SymbolLookupResult;
 use crate::utils::FromRaw;
@@ -10,10 +11,7 @@ use melior::ir::Module;
 use melior::ir::operation::OperationLike;
 use melior::{
     Context,
-    ir::{
-        Attribute, AttributeLike as _, Type, TypeLike,
-        attribute::{ArrayAttribute, FlatSymbolRefAttribute},
-    },
+    ir::{Attribute, AttributeLike as _, Type, TypeLike, attribute::FlatSymbolRefAttribute},
 };
 use mlir_sys::MlirLogicalResult;
 use mlir_sys::MlirType;
@@ -72,10 +70,7 @@ impl<'c> StructType<'c> {
 
     /// Get the struct's params as a vector of attributes.
     pub fn params_vec(&self) -> Vec<Attribute<'c>> {
-        let params = self.params();
-        (0..params.len())
-            .map(|idx| params.element(idx).unwrap())
-            .collect()
+        self.params().into_iter().collect()
     }
 
     /// Actual implementation of the [`get_definition`](Self::get_definition) and
