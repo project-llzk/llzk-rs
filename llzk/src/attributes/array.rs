@@ -74,12 +74,6 @@ impl<'c> PartialEq<Attribute<'c>> for ArrayAttribute<'c> {
     }
 }
 
-impl<'c> PartialEq<ArrayAttribute<'c>> for Attribute<'c> {
-    fn eq(&self, other: &ArrayAttribute<'c>) -> bool {
-        *self == other.inner
-    }
-}
-
 impl<'c> AttributeLike<'c> for ArrayAttribute<'c> {
     fn to_raw(&self) -> MlirAttribute {
         self.inner.to_raw()
