@@ -47,7 +47,7 @@ fn main() -> Result<()> {
     let out_field = {
         let is_column = false;
         let is_public = true;
-        dialect::r#struct::member(location, "c", felt_type.clone(), is_column, is_public)?
+        dialect::r#struct::member(location, "c", felt_type, is_column, is_public)?
     };
     let compute_fn = witness(&context, location, felt_type.into(), &out_field)?;
     let constrain_fn = constraints(&context, location, felt_type.into(), &out_field)?;
