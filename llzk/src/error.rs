@@ -20,6 +20,8 @@ pub enum Error {
     OutOfBoundsArgument(Option<String>, usize),
     /// Happens when attempting to cast a type erased operation into the wrong type.
     OperationExpected(&'static str, String),
+    /// Happens when attempting to cast a type erased attribute into the wrong type.
+    AttributeExpected(&'static str, String),
     /// Happens when accessing a block in a region by an index out of bounds.
     BlockExpected(usize),
     /// Happens when attempting to get an operation from a block but the block is empty.
@@ -129,6 +131,7 @@ impl Display for Error {
             ),
             Error::GeneralError(msg) => write!(f, "{msg}"),
             Error::SymbolNotFound(sym) => write!(f, "symbol was not found: {sym}"),
+            Error::AttributeExpected(attr, actual) => write!(f, "{attr} attr expected: {actual}"),
         }
     }
 }
