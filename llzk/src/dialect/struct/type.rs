@@ -4,6 +4,7 @@ use crate::error::Error;
 use crate::symbol_lookup::SymbolLookupResult;
 use crate::utils::FromRaw;
 use crate::utils::IsA;
+use llzk_sys::llzkStructTypeGetParams;
 use llzk_sys::{llzkStructTypeGetName, llzkStructTypeGetWithArrayAttr, llzkTypeIsAStructType};
 use melior::ir::Module;
 use melior::ir::operation::OperationLike;
@@ -59,6 +60,22 @@ impl<'c> StructType<'c> {
             Attribute::from_raw(llzkStructTypeGetName(self.to_raw()))
         })
         .expect("struct type must be constructed from FlatSymbolRefAttribute")
+    }
+
+    /// Get the struct's params.
+    pub fn params(&self) -> ArrayAttribute<'c> {
+        ArrayAttribute::try_from(unsafe {
+            Attribute::from_raw(llzkStructTypeGetParams(self.to_raw()))
+        })
+        .expect("struct type's params must be an array attribute")
+    }
+
+    /// Get the struct's params as a vector of attributes.
+    pub fn params_vec(&self) -> Vec<Attribute<'c>> {
+        let params = self.params();
+        (0..params.len())
+            .map(|idx| params.element(idx).unwrap())
+            .collect()
     }
 
     /// Actual implementation of the [`get_definition`](Self::get_definition) and
