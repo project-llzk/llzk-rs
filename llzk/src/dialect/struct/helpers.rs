@@ -11,12 +11,12 @@ use melior::{
 use crate::{
     attributes::NamedAttribute,
     builder::OpBuilder,
-    dialect::{
-        constrain,
-        function::{self, FuncDefOp},
-    },
+    dialect,
     error::Error,
-    prelude::{FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FeltType, FuncDefOpLike as _, StructDefOp},
+    prelude::{
+        FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FeltType, FuncDefOp, FuncDefOpLike as _,
+        StructDefOp,
+    },
 };
 
 use super::r#type::StructType;
@@ -30,7 +30,7 @@ pub fn compute_fn<'c>(
 ) -> Result<FuncDefOp<'c>, Error> {
     let context = loc.context();
     let input_types: Vec<Type<'c>> = inputs.iter().map(|(t, _)| *t).collect();
-    function::def(
+    dialect::function::def(
         loc,
         FUNC_NAME_COMPUTE.as_ref(),
         FunctionType::new(
@@ -44,7 +44,10 @@ pub fn compute_fn<'c>(
     .and_then(|f| {
         let block = Block::new(inputs);
         let new_struct = block.append_operation(super::new(loc, struct_type));
-        block.append_operation(function::r#return(loc, &[new_struct.result(0)?.into()]));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[new_struct.result(0)?.into()],
+        ));
         f.set_allow_witness_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
         f.region(0)?.append_block(block);
@@ -73,7 +76,7 @@ pub fn constrain_fn<'c>(
         result.extend(original.iter().cloned());
         result
     });
-    function::def(
+    dialect::function::def(
         loc,
         FUNC_NAME_CONSTRAIN.as_ref(),
         FunctionType::new(unsafe { context.to_ref() }, &input_types, &[]),
@@ -82,7 +85,7 @@ pub fn constrain_fn<'c>(
     )
     .and_then(|f| {
         let block = Block::new(&all_inputs);
-        block.append_operation(function::r#return(loc, &[]));
+        block.append_operation(dialect::function::r#return(loc, &[]));
         f.set_allow_constraint_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
         f.region(0)?.append_block(block);
@@ -93,13 +96,14 @@ pub fn constrain_fn<'c>(
 /// Creates the `@Signal` struct.
 ///
 /// The `@Main` struct's inputs must be of this type or arrays of this type.
+#[deprecated]
 pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>, Error> {
     let loc = Location::new(context, "Signal struct", 0, 0);
     let typ = StructType::from_str(context, "Signal");
     let reg = "reg";
     super::def(loc, "Signal", &[], {
         [
-            super::field(loc, reg, FeltType::new(context), false, true).map(Into::into),
+            super::member(loc, reg, FeltType::new(context), false, true).map(Into::into),
             compute_fn(loc, typ, &[(FeltType::new(context).into(), loc)], None)
                 .and_then(|compute| {
                     let block = compute
@@ -115,7 +119,7 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
                     }
                     block.insert_operation_after(
                         fst,
-                        super::writef(loc, fst.result(0)?.into(), reg, block.argument(0)?.into())?,
+                        super::writem(loc, fst.result(0)?.into(), reg, block.argument(0)?.into())?,
                     );
                     Ok(compute)
                 })
@@ -135,7 +139,7 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
                     }
                     let reg = block.insert_operation_before(
                         fst,
-                        super::readf(
+                        super::readm(
                             &OpBuilder::new(context),
                             loc,
                             FeltType::new(context).into(),
@@ -145,7 +149,11 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
                     );
                     block.insert_operation_after(
                         reg,
-                        constrain::eq(loc, reg.result(0)?.into(), block.argument(1)?.into()),
+                        dialect::constrain::eq(
+                            loc,
+                            reg.result(0)?.into(),
+                            block.argument(1)?.into(),
+                        ),
                     );
                     Ok(constrain)
                 })

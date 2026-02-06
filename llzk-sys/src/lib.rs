@@ -18,7 +18,8 @@ mod sys {
         non_snake_case,
         non_upper_case_globals,
         dead_code,
-        unsafe_op_in_unsafe_fn
+        unsafe_op_in_unsafe_fn,
+        clippy::missing_safety_doc
     )]
 
     use mlir_sys::{
@@ -34,10 +35,7 @@ mod sys {
     impl Copy for LlzkRecordValue {}
     impl Clone for LlzkRecordValue {
         fn clone(&self) -> Self {
-            LlzkRecordValue {
-                name: self.name.clone(),
-                value: self.value.clone(),
-            }
+            *self
         }
     }
 }
@@ -71,13 +69,9 @@ c_str_constant!(
 );
 
 c_str_constant!(
-    /// Symbol name for the struct/component representing a signal.
-    COMPONENT_NAME_SIGNAL,
-    LLZK_COMPONENT_NAME_SIGNAL
-);
-
-c_str_constant!(
-    /// Name of the attribute on the top-level ModuleOp that specifies the IR language name.
+    /// Name of the attribute on the top-level ModuleOp that identifies the ModuleOp as the
+    /// root module and specifies the frontend language name that the IR was compiled from,
+    /// if available.
     LANG_ATTR_NAME,
     LLZK_LANG_ATTR_NAME
 );

@@ -10,7 +10,7 @@ fn empty_function() {
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "empty",
         FunctionType::new(&context, &[], &[]),
@@ -20,7 +20,7 @@ fn empty_function() {
     .unwrap();
     {
         let block = Block::new(&[]);
-        block.append_operation(function::r#return(loc, &[]));
+        block.append_operation(dialect::function::r#return(loc, &[]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
@@ -44,7 +44,7 @@ fn function_call() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let f = function::def(
+    let f = dialect::function::def(
         loc,
         "recursive",
         FunctionType::new(&context, &[], &[felt_type]),
@@ -60,7 +60,7 @@ fn function_call() {
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
         let v = block
             .append_operation(
-                function::call(&builder, loc, name, &[], &[felt_type])
+                dialect::function::call(&builder, loc, name, &[], &[felt_type])
                     .unwrap()
                     .into(),
             )
@@ -68,7 +68,7 @@ fn function_call() {
             .map(Value::from)
             .unwrap();
         // Build return operation
-        block.append_operation(function::r#return(loc, &[v]));
+        block.append_operation(dialect::function::r#return(loc, &[v]));
         // Add Block to function
         f.region(0)
             .expect("function.def must have at least 1 region")
@@ -77,23 +77,16 @@ fn function_call() {
 
     assert_eq!(f.region_count(), 1);
     let f = module.body().append_operation(f.into());
-    assert!(f.verify());
-    log::info!("Op passed verification");
-    let ir = format!("{f}");
-    let expected = r"function.def @recursive() -> !felt.type {
-  %0 = function.call @recursive() : () -> !felt.type 
-  function.return %0 : !felt.type
-}";
-    assert_eq!(ir, expected);
+    assert_test!(f, module, @file "expected/function_call.mlir");
 }
 
 fn make_empty_struct<'c>(context: &'c LlzkContext, name: &str) -> StructDefOp<'c> {
     let loc = Location::unknown(&context);
     let typ = StructType::from_str(&context, name);
-    r#struct::def(loc, name, &[], {
+    dialect::r#struct::def(loc, name, &[], {
         [
-            r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
-            r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
+            dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
+            dialect::r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
         ]
     })
     .unwrap()
@@ -182,7 +175,7 @@ fn call_op_self_value_of_compute() {
     let loc = Location::unknown(&context);
     let call = builder.insert(loc, |_, loc| {
         let name = SymbolRefAttribute::new(&context, "StructA", &["compute"]);
-        function::call(&builder, loc, name, &[], &[s1.r#type()])
+        dialect::function::call(&builder, loc, name, &[], &[s1.r#type()])
             .unwrap()
             .into()
     });

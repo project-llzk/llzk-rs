@@ -32,7 +32,7 @@ const DEFAULT_CFG: DefaultConfig<'static> = DefaultConfig::new(
         "RedundantOperationElimination",
         "RedundantReadAndWriteElimination",
         "UnusedDeclarationElimination",
-        "FieldWriteValidator",
+        "MemberWriteValidator",
     ],
     &[
         "GetDialectHandle__llzk__.*",

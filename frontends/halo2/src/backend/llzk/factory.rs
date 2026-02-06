@@ -36,7 +36,7 @@ impl StructIO {
         &self,
         context: &'c Context,
         header: &str,
-    ) -> impl Iterator<Item = Result<FieldDefOp<'c>, LlzkError>> {
+    ) -> impl Iterator<Item = Result<MemberDefOp<'c>, LlzkError>> {
         let public_filename = filename(header, Some("public outputs"));
         let private_filename = filename(header, Some("private outputs"));
         std::iter::repeat_n(true, self.public_outputs)
@@ -53,7 +53,7 @@ impl StructIO {
             .enumerate()
             .map(|(n, (public, loc))| {
                 let name = format!("out_{n}");
-                r#struct::field(loc, &name, FeltType::new(context), false, public)
+                dialect::r#struct::member(loc, &name, FeltType::new(context), false, public)
             })
     }
 
@@ -135,14 +135,14 @@ pub fn create_struct<'c>(
     log::debug!("Creating function with arguments: {func_args:?}");
 
     let funcs = [
-        r#struct::helpers::compute_fn(
+        dialect::r#struct::helpers::compute_fn(
             loc,
             StructType::from_str(context, struct_name),
             &func_args,
             Some(&arg_attrs),
         )
         .map(Operation::from),
-        r#struct::helpers::constrain_fn(
+        dialect::r#struct::helpers::constrain_fn(
             loc,
             StructType::from_str(context, struct_name),
             &func_args,
@@ -151,5 +151,5 @@ pub fn create_struct<'c>(
         .map(Operation::from),
     ];
 
-    r#struct::def(loc, struct_name, &[], fields.chain(funcs))
+    dialect::r#struct::def(loc, struct_name, &[], fields.chain(funcs))
 }

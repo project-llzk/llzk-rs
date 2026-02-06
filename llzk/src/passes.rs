@@ -28,7 +28,7 @@ passes!(
 
 passes!(
     "LLZKValidation",
-    [mlirCreateLLZKValidationFieldWriteValidatorPass]
+    [mlirCreateLLZKValidationMemberWriteValidatorPass]
 );
 
 /// Registers all the available LLZK passes.
@@ -72,7 +72,7 @@ mod tests {
         pm.add_pass(super::create_flattening_pass());
 
         super::register_llzk_validation_passes();
-        super::register_field_write_validator_pass();
-        pm.add_pass(super::create_field_write_validator_pass());
+        super::register_member_write_validator_pass();
+        pm.add_pass(super::create_member_write_validator_pass());
     }
 }

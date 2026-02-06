@@ -9,7 +9,7 @@ use melior::{
 use mlir_sys::MlirType;
 
 /// Represents the `!poly.tvar` type.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct TVarType<'c> {
     r#type: Type<'c>,
 }

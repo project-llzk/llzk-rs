@@ -15,19 +15,18 @@ use rstest::{fixture, rstest};
 use std::alloc::{Layout, alloc, dealloc};
 
 use crate::{
-    MlirValueRange, llzkFieldDefOpGetHasPublicAttr, llzkFieldDefOpSetPublicAttr,
-    llzkFieldReadOpBuild, llzkFieldReadOpBuildWithAffineMapDistance,
-    llzkFieldReadOpBuildWithConstParamDistance, llzkFieldReadOpBuildWithLiteralDistance,
-    llzkOperationIsAFieldDefOp, llzkOperationIsAStructDefOp, llzkStructDefOpGetBody,
+    MlirValueRange, llzkMemberDefOpGetHasPublicAttr, llzkMemberDefOpSetPublicAttr,
+    llzkMemberReadOpBuild, llzkMemberReadOpBuildWithAffineMapDistance,
+    llzkMemberReadOpBuildWithConstParamDistance, llzkMemberReadOpBuildWithLiteralDistance,
+    llzkOperationIsAMemberDefOp, llzkOperationIsAStructDefOp, llzkStructDefOpGetBody,
     llzkStructDefOpGetBodyRegion, llzkStructDefOpGetComputeFuncOp,
-    llzkStructDefOpGetConstrainFuncOp, llzkStructDefOpGetFieldDef, llzkStructDefOpGetFieldDefs,
-    llzkStructDefOpGetFullyQualifiedName, llzkStructDefOpGetHasColumns,
-    llzkStructDefOpGetHasParamName, llzkStructDefOpGetHeaderString,
-    llzkStructDefOpGetIsMainComponent, llzkStructDefOpGetNumFieldDefs, llzkStructDefOpGetType,
-    llzkStructDefOpGetTypeWithParams, llzkStructTypeGet, llzkStructTypeGetName,
-    llzkStructTypeGetParams, llzkStructTypeGetWithArrayAttr, llzkStructTypeGetWithAttrs,
-    llzkTypeIsAStructType, mlirGetDialectHandle__llzk__component__, mlirOpBuilderCreate,
-    mlirOpBuilderDestroy,
+    llzkStructDefOpGetConstrainFuncOp, llzkStructDefOpGetFullyQualifiedName,
+    llzkStructDefOpGetHasColumns, llzkStructDefOpGetHasParamName, llzkStructDefOpGetHeaderString,
+    llzkStructDefOpGetIsMainComponent, llzkStructDefOpGetMemberDef, llzkStructDefOpGetMemberDefs,
+    llzkStructDefOpGetNumMemberDefs, llzkStructDefOpGetType, llzkStructDefOpGetTypeWithParams,
+    llzkStructTypeGet, llzkStructTypeGetName, llzkStructTypeGetParams,
+    llzkStructTypeGetWithArrayAttr, llzkStructTypeGetWithAttrs, llzkTypeIsAStructType,
+    mlirGetDialectHandle__llzk__component__, mlirOpBuilderCreate, mlirOpBuilderDestroy,
     sanity_tests::{TestContext, context, str_ref},
 };
 
@@ -190,7 +189,7 @@ fn test_llzk_struct_def_op_get_field_def(test_op: TestOp) {
     unsafe {
         if llzkOperationIsAStructDefOp(test_op.op) {
             let name = str_ref("p");
-            llzkStructDefOpGetFieldDef(test_op.op, name);
+            llzkStructDefOpGetMemberDef(test_op.op, name);
         }
     }
 }
@@ -199,7 +198,7 @@ fn test_llzk_struct_def_op_get_field_def(test_op: TestOp) {
 fn test_llzk_struct_def_op_get_field_defs(test_op: TestOp) {
     unsafe {
         if llzkOperationIsAStructDefOp(test_op.op) {
-            llzkStructDefOpGetFieldDefs(test_op.op, null_mut());
+            llzkStructDefOpGetMemberDefs(test_op.op, null_mut());
         }
     }
 }
@@ -208,7 +207,7 @@ fn test_llzk_struct_def_op_get_field_defs(test_op: TestOp) {
 fn test_llzk_struct_def_op_get_num_field_defs(test_op: TestOp) {
     unsafe {
         if llzkOperationIsAStructDefOp(test_op.op) {
-            llzkStructDefOpGetNumFieldDefs(test_op.op);
+            llzkStructDefOpGetNumMemberDefs(test_op.op);
         }
     }
 }
@@ -290,15 +289,15 @@ fn test_llzk_struct_def_op_get_is_main_component(test_op: TestOp) {
 #[rstest]
 fn test_llzk_operation_is_a_field_def_op(test_op: TestOp) {
     unsafe {
-        assert!(!llzkOperationIsAFieldDefOp(test_op.op));
+        assert!(!llzkOperationIsAMemberDefOp(test_op.op));
     }
 }
 
 #[rstest]
 fn test_llzk_field_def_op_get_has_public_attr(test_op: TestOp) {
     unsafe {
-        if llzkOperationIsAFieldDefOp(test_op.op) {
-            llzkFieldDefOpGetHasPublicAttr(test_op.op);
+        if llzkOperationIsAMemberDefOp(test_op.op) {
+            llzkMemberDefOpGetHasPublicAttr(test_op.op);
         }
     }
 }
@@ -306,8 +305,8 @@ fn test_llzk_field_def_op_get_has_public_attr(test_op: TestOp) {
 #[rstest]
 fn test_llzk_field_def_op_set_public_attr(test_op: TestOp) {
     unsafe {
-        if llzkOperationIsAFieldDefOp(test_op.op) {
-            llzkFieldDefOpSetPublicAttr(test_op.op, true);
+        if llzkOperationIsAMemberDefOp(test_op.op) {
+            llzkMemberDefOpSetPublicAttr(test_op.op, true);
         }
     }
 }
@@ -334,7 +333,7 @@ fn test_llzk_field_read_op_build(context: TestContext) {
         let index_type = mlirIndexTypeGet(context.ctx);
         let r#struct = new_struct(&context);
         let struct_value = mlirOperationGetResult(r#struct, 0);
-        let op = llzkFieldReadOpBuild(builder, location, index_type, struct_value, str_ref("f"));
+        let op = llzkMemberReadOpBuild(builder, location, index_type, struct_value, str_ref("f"));
 
         mlirOperationDestroy(op);
         mlirOperationDestroy(r#struct);
@@ -355,7 +354,7 @@ fn test_llzk_field_read_op_build_with_affine_map_distance(context: TestContext) 
         let affine_map =
             mlirAffineMapGet(context.ctx, 0, 0, exprs.len() as isize, exprs.as_mut_ptr());
         let values = &[];
-        let op = llzkFieldReadOpBuildWithAffineMapDistance(
+        let op = llzkMemberReadOpBuildWithAffineMapDistance(
             builder,
             location,
             index_type,
@@ -383,7 +382,7 @@ fn test_llzk_field_read_op_builder_with_const_param_distance(context: TestContex
         let r#struct = new_struct(&context);
         let struct_value = mlirOperationGetResult(r#struct, 0);
 
-        let op = llzkFieldReadOpBuildWithConstParamDistance(
+        let op = llzkMemberReadOpBuildWithConstParamDistance(
             builder,
             location,
             index_type,
@@ -407,7 +406,7 @@ fn test_llzk_field_read_op_build_with_literal_distance(context: TestContext) {
         let r#struct = new_struct(&context);
         let struct_value = mlirOperationGetResult(r#struct, 0);
 
-        let op = llzkFieldReadOpBuildWithLiteralDistance(
+        let op = llzkMemberReadOpBuildWithLiteralDistance(
             builder,
             location,
             index_type,

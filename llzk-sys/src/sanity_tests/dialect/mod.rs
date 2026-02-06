@@ -10,4 +10,3 @@ mod pod;
 mod polymorphic;
 mod string;
 mod r#struct;
-mod undef;
