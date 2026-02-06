@@ -19,10 +19,10 @@ use super::ArrayType;
 /// Possible constructors for creating `array.new` operations.
 #[derive(Debug)]
 pub enum ArrayCtor<'c, 'a, 'b, 'd> {
-    /// Creates the array from a list of values.
-    ///
-    /// The list length must be either zero or equal to the length of the flattened/linearized
-    /// result ArrayType.
+    /// Creates an empty array of the given type. Alias for `Values(&[])`.
+    Empty,
+    /// Creates the array from a list of values. The list length must be either
+    /// zero or equal to the length of the flattened/linearized result ArrayType.
     Values(&'a [Value<'c, 'b>]),
     /// Creates an empty array by specifying the values needed to instantiate
     /// AffineMap attributes used as dimension sizes in the result ArrayType.
@@ -40,6 +40,16 @@ impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
         r#type: ArrayType<'c>,
     ) -> MlirOperation {
         match self {
+            Self::Empty => unsafe {
+                llzkCreateArrayOpBuildWithValues(
+                    builder.to_raw(),
+                    location.to_raw(),
+                    r#type.to_raw(),
+                    0,
+                    std::ptr::null(),
+                )
+            },
+
             Self::Values(values) => unsafe {
                 let raw_values = values.iter().map(|v| v.to_raw()).collect::<Vec<_>>();
                 llzkCreateArrayOpBuildWithValues(
