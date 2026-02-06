@@ -16,7 +16,7 @@ fn array_new_empty() {
     let location = Location::unknown(&context);
     let module = llzk_module(location);
     let index_type = Type::index(&context);
-    let f = function::def(
+    let f = dialect::function::def(
         location,
         "array_new",
         FunctionType::new(&context, &[], &[]),
@@ -28,9 +28,13 @@ fn array_new_empty() {
         let block = Block::new(&[]);
         let builder = OpBuilder::new(&context);
         let array_type = ArrayType::new(index_type, &[IntegerAttribute::new(index_type, 2).into()]);
-        let _array =
-            block.append_operation(array::new(&builder, location, array_type, ArrayCtor::Empty));
-        block.append_operation(function::r#return(location, &[]));
+        let _array = block.append_operation(dialect::array::new(
+            &builder,
+            location,
+            array_type,
+            ArrayCtor::Empty,
+        ));
+        block.append_operation(dialect::function::r#return(location, &[]));
         f.region(0)
             .expect("function.def must have at least 1 region")
             .append_block(block);
