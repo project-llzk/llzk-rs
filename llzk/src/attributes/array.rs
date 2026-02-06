@@ -3,8 +3,6 @@
 //! [Melior's version](melior::ir::attribute::array::ArrayAttribute) only wraps
 //! dense arrays of i64. The version in this file wraps a type erased attribute.
 
-use std::ops::Index;
-
 use melior::{
     Context,
     ir::{Attribute, AttributeLike},
