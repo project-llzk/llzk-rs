@@ -10,6 +10,51 @@ use melior::ir::{Location, Type, r#type::FunctionType};
 mod common;
 
 #[test]
+fn array_new_empty() {
+    common::setup();
+    let context = LlzkContext::new();
+    let location = Location::unknown(&context);
+    let module = llzk_module(location);
+    let index_type = Type::index(&context);
+    let f = dialect::function::def(
+        location,
+        "array_new",
+        FunctionType::new(&context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    {
+        let block = Block::new(&[]);
+        let builder = OpBuilder::new(&context);
+        let array_type = ArrayType::new(index_type, &[IntegerAttribute::new(index_type, 2).into()]);
+        let _array = block.append_operation(dialect::array::new(
+            &builder,
+            location,
+            array_type,
+            ArrayCtor::Empty,
+        ));
+        block.append_operation(dialect::function::r#return(location, &[]));
+        f.region(0)
+            .expect("function.def must have at least 1 region")
+            .append_block(block);
+    }
+
+    assert_eq!(f.region_count(), 1);
+    let f = module.body().append_operation(f.into());
+    assert!(f.verify());
+    log::info!("Op passed verification");
+    let ir = format!("{f}");
+    let expected = concat!(
+        "function.def @array_new() {\n",
+        "  %array = array.new  : <2 x index> \n",
+        "  function.return\n",
+        "}"
+    );
+    assert_eq!(ir, expected);
+}
+
+#[test]
 fn array_new_affine_map() {
     common::setup();
     let context = LlzkContext::new();
