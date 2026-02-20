@@ -34,6 +34,12 @@ pub trait BindgenConfig {
     }
 }
 
+impl<T: BindgenConfig> BindgenConfig for &T {
+    fn apply(&self, bindgen: Builder) -> Result<Builder> {
+        (*self).apply(bindgen)
+    }
+}
+
 impl<T1: BindgenConfig, T2: BindgenConfig, T3: BindgenConfig> BindgenConfig for (T1, T2, T3) {
     fn apply(&self, bindgen: Builder) -> Result<Builder> {
         self.2.apply(self.1.apply(self.0.apply(bindgen)?)?)

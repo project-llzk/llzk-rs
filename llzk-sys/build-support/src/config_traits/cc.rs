@@ -31,6 +31,12 @@ pub trait CCConfig {
     }
 }
 
+impl<T: CCConfig> CCConfig for &T {
+    fn apply(&self, cc: &mut Build) -> Result<()> {
+        (*self).apply(cc)
+    }
+}
+
 impl<T1: CCConfig, T2: CCConfig, T3: CCConfig> CCConfig for (T1, T2, T3) {
     fn apply(&self, cc: &mut Build) -> Result<()> {
         self.0.apply(cc)?;

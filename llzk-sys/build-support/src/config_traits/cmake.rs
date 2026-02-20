@@ -42,6 +42,12 @@ impl<T: CMakeConfig> CMakeConfig for Option<T> {
     }
 }
 
+impl<T: CMakeConfig> CMakeConfig for &T {
+    fn apply(&self, cmake: &mut Config) -> Result<()> {
+        (*self).apply(cmake)
+    }
+}
+
 impl<T1: CMakeConfig, T2: CMakeConfig> CMakeConfig for (T1, T2) {
     fn apply(&self, cmake: &mut Config) -> Result<()> {
         self.0.apply(cmake)?;
