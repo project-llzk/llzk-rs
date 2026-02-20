@@ -7,7 +7,9 @@ passes!(
     [
         mlirCreateLLZKTransformationRedundantOperationEliminationPass,
         mlirCreateLLZKTransformationRedundantReadAndWriteEliminationPass,
-        mlirCreateLLZKTransformationUnusedDeclarationEliminationPass
+        mlirCreateLLZKTransformationUnusedDeclarationEliminationPass,
+        #[cfg(feature = "pcl-backend")]
+        mlirCreateLLZKTransformationPCLLoweringPass,
     ]
 );
 
@@ -55,9 +57,13 @@ mod tests {
         super::register_redundant_operation_elimination_pass();
         super::register_redundant_read_and_write_elimination_pass();
         super::register_unused_declaration_elimination_pass();
+        #[cfg(feature = "pcl-backend")]
+        super::register_pcl_lowering_pass();
         pm.add_pass(super::create_redundant_operation_elimination_pass());
         pm.add_pass(super::create_redundant_read_and_write_elimination_pass());
         pm.add_pass(super::create_unused_declaration_elimination_pass());
+        #[cfg(feature = "pcl-backend")]
+        pm.add_pass(super::create_pcl_lowering_pass());
 
         super::register_llzk_array_transformation_passes();
         super::register_array_to_scalar_pass();

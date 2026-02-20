@@ -2,6 +2,8 @@
 //!
 //! [melior]: https://github.com/mlir-rs/melior/blob/main/macro/src/parse/pass_set.rs.
 
+use crate::Identifier;
+
 use super::IdentifierList;
 use proc_macro2::Ident;
 use syn::{
@@ -23,7 +25,7 @@ impl PassSet {
         &self.prefix
     }
 
-    pub fn identifiers(&self) -> &[Ident] {
+    pub fn identifiers(&self) -> &[Identifier] {
         self.identifiers.identifiers()
     }
 }
