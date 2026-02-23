@@ -66,6 +66,7 @@ impl<W: Write> CargoCommands<W> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::LlzkBuild;
     use crate::llzk::LIBDIR;
     use std::io::Cursor;
     use tempfile::TempDir;
