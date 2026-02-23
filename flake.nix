@@ -127,7 +127,7 @@
               MLIR_SYS_200_PREFIX = "${mlir-with-llvm}";
               TABLEGEN_200_PREFIX = "${mlir-with-llvm}";
               LLZK_PCL_ROOT = "${pcl-mlir-pkg}";
-              LLZK_PCL_PREFIX = "${pcl-mlir-pkg}";
+              LLZK_PCL_PREFIX = "${final.pcl-mlir}";
               LIBCLANG_PATH = "${final.llzk-llvmPackages.libclang.lib}/lib";
               RUST_BACKTRACE = "1";
             };

@@ -64,6 +64,6 @@ jobs:
           echo "Prefix"
           ls $LLZK_PCL_PREFIX
           echo "Prefix/cmake"
-          ls $LLZK_PCL_PREFIX/cmake
+          ls $LLZK_PCL_PREFIX/lib
       - name: Run clippy
         run: cargo clippy --all-features -- --no-deps
