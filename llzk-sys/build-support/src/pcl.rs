@@ -30,12 +30,22 @@ impl PclConfig {
         Ok(path)
     }
 
-    fn pcl_cmake_path(&self) -> Result<PathBuf> {
+    fn pcl_prefix_path(&self) -> Result<PathBuf> {
         let path = PathBuf::from(env::var("LLZK_PCL_PREFIX")?);
         if !path.is_dir() {
             bail!("PCL prefix path {} is not a directory", path.display());
         }
         Ok(path)
+    }
+
+    fn pcl_cmake_path(&self) -> Result<PathBuf> {
+        let prefix = self.pcl_prefix_path()?;
+        let cmake_path = prefix.join("cmake");
+        if cmake_path.is_dir() {
+            Ok(cmake_path)
+        } else {
+            Ok(prefix)
+        }
     }
 
     /// Returns CMake flags that configure the pcl backend, if enabled.
@@ -50,7 +60,7 @@ impl PclConfig {
     }
 
     fn lib_path(&self) -> Result<PathBuf> {
-        let root = self.pcl_cmake_path()?;
+        let root = self.pcl_prefix_path()?;
         let candidates = ["lib", "lib64", "lib32"];
         candidates
             .iter()
