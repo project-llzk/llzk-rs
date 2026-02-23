@@ -1,0 +1,57 @@
+name: "Install PCL MLIR"
+description: "Downloads and installs the PCL MLIR dialect"
+inputs:
+  ref:
+    description: "Commit used for building"
+    required: true
+  root:
+    description: "Where is the library going to be downloaded"
+    default: "./pcl-mlir"
+  type:
+    description: "Build type"
+    default: "Debug"
+  mlir-dir:
+    description: "Directory where MLIR is installed"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        repository: Veridise/pcl-mlir
+        ref: ${{ inputs.ref }}
+        path: ${{ inputs.root }}
+        fetch-depth: 1
+    - name: "Set environment variables"
+      shell: bash
+      run: |
+        echo LLZK_PCL_ROOT=$(realpath $_ROOT) >> $GITHUB_ENV
+        echo LLZK_PCL_PREFIX=$(realpath $_BUILD) >> $GITHUB_ENV
+      env:
+        _ROOT: ${{ inputs.root }}
+        _BUILD: ${{ inputs.root }}/build
+    - name: "Configure CMake"
+      shell: bash 
+      run: |
+        echo "Configuring CMake..."
+        export PATH="$PATH:$_MLIR_DIR/bin"
+        export CMAKE_PREFIX_PATH=$(llvm-config --cmakedir)
+        export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH:$CMAKE_PREFIX_PATH/../mlir"
+        mkdir -p $LLZK_PCL_PREFIX
+
+        cmake \
+          -S $LLZK_PCL_ROOT \
+          -B $LLZK_PCL_PREFIX \
+          -DCMAKE_BUILD_TYPE=$_BUILD_TYPE \
+          -DBUILD_TESTING=OFF \
+          -DCMAKE_CXX_COMPILER=clang++ \
+          -DCMAKE_C_COMPILER=clang
+      env:
+        _MLIR_DIR: ${{ inputs.mlir-dir }}
+        _BUILD_TYPE: ${{ inputs.type }}
+    - name: "Build project"
+      shell: bash 
+      run: |
+        echo "Building project..."
+        cmake --build $LLZK_PCL_PREFIX
+
