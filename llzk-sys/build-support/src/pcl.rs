@@ -40,12 +40,15 @@ impl PclConfig {
 
     fn pcl_cmake_path(&self) -> Result<PathBuf> {
         let prefix = self.pcl_prefix_path()?;
-        let cmake_path = prefix.join("cmake");
-        if cmake_path.is_dir() {
-            Ok(cmake_path)
-        } else {
-            Ok(prefix)
-        }
+        let lib_path = self.lib_path()?;
+        // Priority order
+        // 1. $prefix/lib/cmake
+        // 2. $prefix/cmake
+        // 3. $prefix
+        [lib_path.join("cmake"), prefix.join("cmake"), prefix]
+            .into_iter()
+            .find(|p| p.is_dir())
+            .ok_or_else(|| anyhow::anyhow!("Failed to locate cmake directory"))
     }
 
     /// Returns CMake flags that configure the pcl backend, if enabled.
