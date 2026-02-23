@@ -9,9 +9,20 @@
         nixpkgs.follows = "llzk-pkgs/nixpkgs";
         flake-utils.follows = "llzk-pkgs/flake-utils";
         llzk-pkgs.follows = "llzk-pkgs";
+        pcl-mlir-pkg.follows = "pcl-mlir-pkg";
       };
     };
     release-helpers.follows = "llzk-lib/release-helpers";
+    pcl-mlir-pkg = {
+      url = "github:Veridise/pcl-mlir";
+      inputs = {
+        shared-pkgs.follows = "llzk-pkgs";
+        nixpkgs.follows = "llzk-pkgs/nixpkgs";
+        flake-utils.follows = "llzk-pkgs/flake-utils";
+        release-helpers.follows = "release-helpers";
+      };
+    };
+
   };
 
   # Custom colored bash prompt
@@ -25,6 +36,7 @@
       release-helpers,
       llzk-pkgs,
       llzk-lib,
+      pcl-mlir-pkg,
     }:
     {
       # Overlay for downstream consumption
@@ -114,6 +126,8 @@
               CXX = "clang++";
               MLIR_SYS_200_PREFIX = "${mlir-with-llvm}";
               TABLEGEN_200_PREFIX = "${mlir-with-llvm}";
+              LLZK_PCL_ROOT = "${pcl-mlir-pkg}";
+              LLZK_PCL_PREFIX = "${pcl-mlir-pkg}";
               LIBCLANG_PATH = "${final.llzk-llvmPackages.libclang.lib}/lib";
               RUST_BACKTRACE = "1";
             };
