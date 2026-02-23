@@ -62,8 +62,6 @@ jobs:
       - name: Debug prints 
         run: |
           echo "Prefix"
-          ls $LLZK_PCL_PREFIX
-          echo "Prefix/cmake"
-          ls $LLZK_PCL_PREFIX/lib/cmake
+          tree $LLZK_PCL_PREFIX
       - name: Run clippy
         run: cargo clippy --all-features -- --no-deps
