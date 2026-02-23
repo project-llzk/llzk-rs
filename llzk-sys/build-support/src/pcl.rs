@@ -42,13 +42,19 @@ impl PclConfig {
         let prefix = self.pcl_prefix_path()?;
         let lib_path = self.lib_path()?;
         // Priority order
-        // 1. $prefix/lib/cmake
-        // 2. $prefix/cmake
-        // 3. $prefix
-        [lib_path.join("cmake"), prefix.join("cmake"), prefix]
-            .into_iter()
-            .find(|p| p.is_dir())
-            .ok_or_else(|| anyhow::anyhow!("Failed to locate cmake directory"))
+        // 1. $prefix/lib/cmake/PCL
+        // 2. $prefix/lib/cmake
+        // 3. $prefix/cmake
+        // 4. $prefix
+        [
+            lib_path.join("cmake").join("PCL"),
+            lib_path.join("cmake"),
+            prefix.join("cmake"),
+            prefix,
+        ]
+        .into_iter()
+        .find(|p| p.is_dir())
+        .ok_or_else(|| anyhow::anyhow!("Failed to locate cmake directory"))
     }
 
     /// Returns CMake flags that configure the pcl backend, if enabled.
