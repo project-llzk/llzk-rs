@@ -61,6 +61,9 @@ jobs:
           CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
       - name: Debug prints 
         run: |
+          echo "Prefix"
           ls $LLZK_PCL_PREFIX
+          echo "Prefix/cmake"
+          ls $LLZK_PCL_PREFIX/cmake
       - name: Run clippy
         run: cargo clippy --all-features -- --no-deps
