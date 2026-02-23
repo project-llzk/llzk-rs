@@ -77,7 +77,7 @@ impl PclConfig {
             })
     }
 
-    fn expanded_lib_path(&self) -> Result<[PathBuf; 3]> {
+    fn expanded_lib_path(&self) -> Result<Vec<PathBuf>> {
         // PCL could leave it's libraries in the inner directories instead of everything on the
         // root. This function looks in either place.
         let lib_path = self.lib_path()?;
@@ -85,7 +85,10 @@ impl PclConfig {
             lib_path.join("Dialect"),
             lib_path.join("Transforms"),
             lib_path,
-        ])
+        ]
+        .into_iter()
+        .filter(|p| p.is_dir())
+        .collect())
     }
 
     /// Emits cargo commands required for linking PCL against a cargo project.
@@ -128,6 +131,9 @@ impl PclConfig {
                 all.extend(lib?);
                 Ok(())
             })?;
+        if all.is_empty() {
+            bail!("Did not find any library for PCL!");
+        }
         Ok(all)
     }
 
