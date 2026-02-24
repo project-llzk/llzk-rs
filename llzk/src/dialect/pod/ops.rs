@@ -8,8 +8,8 @@ use crate::{
     prelude::FlatSymbolRefAttribute,
 };
 use llzk_sys::{
-    LlzkRecordValue, llzkNewPodOpBuild, llzkNewPodOpBuildInferredFromInitialValues,
-    llzkNewPodOpBuildWithMapOperands,
+    LlzkRecordValue, llzkPod_NewPodOpBuild, llzkPod_NewPodOpBuildInferredFromInitialValues,
+    llzkPod_NewPodOpBuildWithMapOperands,
 };
 use melior::StringRef;
 use melior::ir::{
@@ -62,7 +62,7 @@ pub fn new<'c, 'a>(
     let raw_values: Vec<_> = values.iter().map(RecordValue::to_raw).collect();
     if let Some(r#type) = r#type {
         unsafe {
-            Operation::from_raw(llzkNewPodOpBuild(
+            Operation::from_raw(llzkPod_NewPodOpBuild(
                 builder.to_raw(),
                 location.to_raw(),
                 r#type.to_raw(),
@@ -72,7 +72,7 @@ pub fn new<'c, 'a>(
         }
     } else {
         unsafe {
-            Operation::from_raw(llzkNewPodOpBuildInferredFromInitialValues(
+            Operation::from_raw(llzkPod_NewPodOpBuildInferredFromInitialValues(
                 builder.to_raw(),
                 location.to_raw(),
                 raw_values.len() as isize,
@@ -93,7 +93,7 @@ pub fn new_with_affine_init<'c, 'a>(
 ) -> Operation<'c> {
     let raw_values: Vec<_> = values.iter().map(RecordValue::to_raw).collect();
     unsafe {
-        Operation::from_raw(llzkNewPodOpBuildWithMapOperands(
+        Operation::from_raw(llzkPod_NewPodOpBuildWithMapOperands(
             builder.to_raw(),
             location.to_raw(),
             r#type.to_raw(),

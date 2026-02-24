@@ -4,7 +4,7 @@ use mlir_sys::mlirIndexTypeGet;
 use rstest::rstest;
 
 use crate::{
-    llzkStringTypeGet, llzkTypeIsAStringType, mlirGetDialectHandle__llzk__string__,
+    llzkString_StringTypeGet, llzkTypeIsA_String_StringType, mlirGetDialectHandle__llzk__string__,
     sanity_tests::{TestContext, context},
 };
 
@@ -18,7 +18,7 @@ fn test_mlir_get_dialect_handle_llzk_string() {
 #[rstest]
 fn test_llzk_string_type_get(context: TestContext) {
     unsafe {
-        let r#type = llzkStringTypeGet(context.ctx);
+        let r#type = llzkString_StringTypeGet(context.ctx);
         assert_ne!(r#type.ptr, null());
     };
 }
@@ -26,8 +26,8 @@ fn test_llzk_string_type_get(context: TestContext) {
 #[rstest]
 fn test_llzk_type_is_a_string_type_pass(context: TestContext) {
     unsafe {
-        let r#type = llzkStringTypeGet(context.ctx);
-        assert!(llzkTypeIsAStringType(r#type));
+        let r#type = llzkString_StringTypeGet(context.ctx);
+        assert!(llzkTypeIsA_String_StringType(r#type));
     };
 }
 
@@ -35,6 +35,6 @@ fn test_llzk_type_is_a_string_type_pass(context: TestContext) {
 fn test_llzk_type_is_a_string_type_fail(context: TestContext) {
     unsafe {
         let r#type = mlirIndexTypeGet(context.ctx);
-        assert!(!llzkTypeIsAStringType(r#type));
+        assert!(!llzkTypeIsA_String_StringType(r#type));
     };
 }

@@ -1,5 +1,7 @@
 //! `array` dialect operations and helper functions.
-use llzk_sys::{llzkCreateArrayOpBuildWithMapOperands, llzkCreateArrayOpBuildWithValues};
+use llzk_sys::{
+    llzkArray_CreateArrayOpBuildWithMapOperands, llzkArray_CreateArrayOpBuildWithValues,
+};
 use melior::ir::TypeLike;
 use melior::ir::operation::OperationBuilder;
 use melior::ir::{
@@ -41,7 +43,7 @@ impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
     ) -> MlirOperation {
         match self {
             Self::Empty => unsafe {
-                llzkCreateArrayOpBuildWithValues(
+                llzkArray_CreateArrayOpBuildWithValues(
                     builder.to_raw(),
                     location.to_raw(),
                     r#type.to_raw(),
@@ -52,7 +54,7 @@ impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
 
             Self::Values(values) => unsafe {
                 let raw_values = values.iter().map(|v| v.to_raw()).collect::<Vec<_>>();
-                llzkCreateArrayOpBuildWithValues(
+                llzkArray_CreateArrayOpBuildWithValues(
                     builder.to_raw(),
                     location.to_raw(),
                     r#type.to_raw(),
@@ -70,7 +72,7 @@ impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
 
                 map_operands_builder.set_dims_per_map_from_attr(*num_dims_per_map);
 
-                llzkCreateArrayOpBuildWithMapOperands(
+                llzkArray_CreateArrayOpBuildWithMapOperands(
                     builder.to_raw(),
                     location.to_raw(),
                     r#type.to_raw(),
@@ -84,7 +86,7 @@ impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
                 for (operands, dim) in std::iter::zip(*map_operands, *num_dims_per_map) {
                     map_operands_builder.append_operands_with_dim_count(*operands, *dim);
                 }
-                llzkCreateArrayOpBuildWithMapOperands(
+                llzkArray_CreateArrayOpBuildWithMapOperands(
                     builder.to_raw(),
                     location.to_raw(),
                     r#type.to_raw(),

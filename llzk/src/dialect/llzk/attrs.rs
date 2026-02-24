@@ -1,7 +1,7 @@
 use crate::attributes::NamedAttribute;
 use llzk_sys::{
-    llzkAttributeIsALoopBoundsAttr, llzkAttributeIsAPublicAttr, llzkLoopBoundsAttrGet,
-    llzkPublicAttrGet,
+    llzkAttributeIsA_Llzk_LoopBoundsAttr, llzkAttributeIsA_Llzk_PublicAttr,
+    llzkLlzk_LoopBoundsAttrGet, llzkLlzk_PublicAttrGet,
 };
 use melior::{
     Context,
@@ -31,7 +31,7 @@ impl<'c> PublicAttribute<'c> {
 
     /// Creates a new attribute.
     pub fn new(ctx: &'c Context) -> Self {
-        unsafe { Self::from_raw(llzkPublicAttrGet(ctx.to_raw())) }
+        unsafe { Self::from_raw(llzkLlzk_PublicAttrGet(ctx.to_raw())) }
     }
 
     /// Creates a new `llzk.pub` NamedAttribute.
@@ -50,7 +50,7 @@ impl<'c> TryFrom<Attribute<'c>> for PublicAttribute<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Attribute<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkAttributeIsAPublicAttr(t.to_raw()) } {
+        if unsafe { llzkAttributeIsA_Llzk_PublicAttr(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::AttributeExpected("llzk pub", t.to_string()))
@@ -92,7 +92,7 @@ impl<'c> LoopBoundsAttribute<'c> {
 
     /// Creates a new attribute.
     pub fn new(ctx: &'c Context, begin: i64, end: i64, step: i64) -> Self {
-        unsafe { Self::from_raw(llzkLoopBoundsAttrGet(ctx.to_raw(), begin, end, step)) }
+        unsafe { Self::from_raw(llzkLlzk_LoopBoundsAttrGet(ctx.to_raw(), begin, end, step)) }
     }
 }
 
@@ -106,7 +106,7 @@ impl<'c> TryFrom<Attribute<'c>> for LoopBoundsAttribute<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Attribute<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkAttributeIsALoopBoundsAttr(t.to_raw()) } {
+        if unsafe { llzkAttributeIsA_Llzk_LoopBoundsAttr(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::AttributeExpected(

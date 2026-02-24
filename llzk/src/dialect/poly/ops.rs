@@ -5,7 +5,7 @@ use crate::{
     ident,
     value_ext::{OwningValueRange, ValueRange},
 };
-use llzk_sys::llzkApplyMapOpBuildWithAffineMap;
+use llzk_sys::llzkPoly_ApplyMapOpBuildWithAffineMap;
 use melior::ir::{
     Attribute, AttributeLike, Location, Operation, Type, Value,
     attribute::FlatSymbolRefAttribute,
@@ -23,7 +23,7 @@ pub fn applymap<'c>(
     let value_range = OwningValueRange::from(map_operands);
     assert!(unsafe { mlir_sys::mlirAttributeIsAAffineMap(map.to_raw()) });
     unsafe {
-        Operation::from_raw(llzkApplyMapOpBuildWithAffineMap(
+        Operation::from_raw(llzkPoly_ApplyMapOpBuildWithAffineMap(
             builder.to_raw(),
             location.to_raw(),
             mlir_sys::mlirAffineMapAttrGetValue(map.to_raw()),

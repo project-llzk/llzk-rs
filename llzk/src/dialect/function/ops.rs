@@ -8,18 +8,21 @@ use crate::{
 };
 
 use llzk_sys::{
-    llzkCallOpBuild, llzkCallOpGetCalleeIsCompute, llzkCallOpGetCalleeIsConstrain,
-    llzkCallOpGetCalleeIsStructCompute, llzkCallOpGetCalleeIsStructConstrain,
-    llzkCallOpGetSelfValueFromCompute, llzkCallOpGetSelfValueFromConstrain,
-    llzkFuncDefOpCreateWithAttrsAndArgAttrs, llzkFuncDefOpGetFullyQualifiedName,
-    llzkFuncDefOpGetHasAllowConstraintAttr, llzkFuncDefOpGetHasAllowNonNativeFieldOpsAttr,
-    llzkFuncDefOpGetHasAllowWitnessAttr, llzkFuncDefOpGetHasArgIsPub, llzkFuncDefOpGetIsInStruct,
-    llzkFuncDefOpGetIsStructCompute, llzkFuncDefOpGetIsStructConstrain,
-    llzkFuncDefOpGetNameIsCompute, llzkFuncDefOpGetNameIsConstrain,
-    llzkFuncDefOpGetSelfValueFromCompute, llzkFuncDefOpGetSelfValueFromConstrain,
-    llzkFuncDefOpGetSingleResultTypeOfCompute, llzkFuncDefOpSetAllowConstraintAttr,
-    llzkFuncDefOpSetAllowNonNativeFieldOpsAttr, llzkFuncDefOpSetAllowWitnessAttr,
-    llzkOperationIsACallOp, llzkOperationIsAFuncDefOp,
+    llzkFunction_CallOpBuild, llzkFunction_CallOpCalleeIsCompute,
+    llzkFunction_CallOpCalleeIsConstrain, llzkFunction_CallOpCalleeIsStructCompute,
+    llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpGetSelfValueFromCompute,
+    llzkFunction_CallOpGetSelfValueFromConstrain, llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs,
+    llzkFunction_FuncDefOpGetFullyQualifiedName, llzkFunction_FuncDefOpGetSelfValueFromCompute,
+    llzkFunction_FuncDefOpGetSelfValueFromConstrain,
+    llzkFunction_FuncDefOpGetSingleResultTypeOfCompute,
+    llzkFunction_FuncDefOpHasAllowConstraintAttr,
+    llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
+    llzkFunction_FuncDefOpHasArgPublicAttr, llzkFunction_FuncDefOpIsInStruct,
+    llzkFunction_FuncDefOpIsStructCompute, llzkFunction_FuncDefOpIsStructConstrain,
+    llzkFunction_FuncDefOpNameIsCompute, llzkFunction_FuncDefOpNameIsConstrain,
+    llzkFunction_FuncDefOpSetAllowConstraintAttr,
+    llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
+    llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
 };
 use melior::{
     Context, StringRef,
@@ -58,74 +61,81 @@ fn create_out_of_bounds_error<'c: 'a, 'a>(
 pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns true if the FuncDefOp has the allow_constraint attribute.
     fn has_allow_constraint_attr(&self) -> bool {
-        unsafe { llzkFuncDefOpGetHasAllowConstraintAttr(self.to_raw()) }
+        unsafe { llzkFunction_FuncDefOpHasAllowConstraintAttr(self.to_raw()) }
     }
 
     /// Sets the allow_constraint attribute in the FuncDefOp operation.
     fn set_allow_constraint_attr(&self, value: bool) {
-        unsafe { llzkFuncDefOpSetAllowConstraintAttr(self.to_raw(), value) }
+        unsafe { llzkFunction_FuncDefOpSetAllowConstraintAttr(self.to_raw(), value) }
     }
 
     /// Returns true if the FuncDefOp has the allow_witness attribute.
     fn has_allow_witness_attr(&self) -> bool {
-        unsafe { llzkFuncDefOpGetHasAllowWitnessAttr(self.to_raw()) }
+        unsafe { llzkFunction_FuncDefOpHasAllowWitnessAttr(self.to_raw()) }
     }
 
     /// Sets the allow_witness attribute in the FuncDefOp operation.
     fn set_allow_witness_attr(&self, value: bool) {
-        unsafe { llzkFuncDefOpSetAllowWitnessAttr(self.to_raw(), value) }
+        unsafe { llzkFunction_FuncDefOpSetAllowWitnessAttr(self.to_raw(), value) }
     }
 
     /// Returns true if the FuncDefOp has the allow_non_native_field_ops attribute.
     fn has_allow_non_native_field_ops_attr(&self) -> bool {
-        unsafe { llzkFuncDefOpGetHasAllowNonNativeFieldOpsAttr(self.to_raw()) }
+        unsafe { llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr(self.to_raw()) }
     }
 
     /// Sets the allow_non_native_field_ops attribute in the FuncDefOp operation.
     fn set_allow_non_native_field_ops_attr(&self, value: bool) {
-        unsafe { llzkFuncDefOpSetAllowNonNativeFieldOpsAttr(self.to_raw(), value) }
+        unsafe { llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr(self.to_raw(), value) }
     }
 
     /// Returns true if the `idx`-th argument has the Pub attribute.
     fn arg_is_pub(&self, idx: u32) -> bool {
-        unsafe { llzkFuncDefOpGetHasArgIsPub(self.to_raw(), idx) }
+        unsafe { llzkFunction_FuncDefOpHasArgPublicAttr(self.to_raw(), idx) }
     }
 
     /// Returns the fully qualified name of the function.
     fn fully_qualified_name(&self) -> Attribute<'c> {
-        unsafe { Attribute::from_raw(llzkFuncDefOpGetFullyQualifiedName(self.to_raw())) }
+        unsafe {
+            Attribute::from_raw(llzkFunction_FuncDefOpGetFullyQualifiedName(
+                self.to_raw(),
+                false,
+            ))
+        }
     }
 
     /// Returns true if the function's name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE).
     fn name_is_compute(&self) -> bool {
-        unsafe { llzkFuncDefOpGetNameIsCompute(self.to_raw()) }
+        unsafe { llzkFunction_FuncDefOpNameIsCompute(self.to_raw()) }
     }
 
     /// Returns true if the function's name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN).
     fn name_is_constrain(&self) -> bool {
-        unsafe { llzkFuncDefOpGetNameIsConstrain(self.to_raw()) }
+        unsafe { llzkFunction_FuncDefOpNameIsConstrain(self.to_raw()) }
     }
 
     /// Returns true if the function's defined inside a struct.
     fn is_in_struct(&self) -> bool {
-        unsafe { llzkFuncDefOpGetIsInStruct(self.to_raw()) }
+        unsafe { llzkFunction_FuncDefOpIsInStruct(self.to_raw()) }
     }
 
     /// Returns true if the function is the struct's witness computation.
     fn is_struct_compute(&self) -> bool {
-        unsafe { llzkFuncDefOpGetIsStructCompute(self.to_raw()) }
+        unsafe { llzkFunction_FuncDefOpIsStructCompute(self.to_raw()) }
     }
 
     /// Returns true if the function is the struct's constrain definition.
     fn is_struct_constrain(&self) -> bool {
-        unsafe { llzkFuncDefOpGetIsStructConstrain(self.to_raw()) }
+        unsafe { llzkFunction_FuncDefOpIsStructConstrain(self.to_raw()) }
     }
 
     /// If the function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE), return the "self"
     /// value (i.e. the return value) from the function. Otherwise, return Err(ExpectedFunctionName).
     fn self_value_of_compute(&self) -> Result<Value<'c, 'a>, Error> {
         if self.name_is_compute() {
-            Ok(unsafe { Value::from_raw(llzkFuncDefOpGetSelfValueFromCompute(self.to_raw())) })
+            Ok(unsafe {
+                Value::from_raw(llzkFunction_FuncDefOpGetSelfValueFromCompute(self.to_raw()))
+            })
         } else {
             Err(Error::ExpectedFunctionName(&llzk_sys::FUNC_NAME_COMPUTE))
         }
@@ -135,7 +145,11 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// value (i.e. the first parameter) from the function. Otherwise, return Err(ExpectedFunctionName).
     fn self_value_of_constrain(&self) -> Result<Value<'c, 'a>, Error> {
         if self.name_is_constrain() {
-            Ok(unsafe { Value::from_raw(llzkFuncDefOpGetSelfValueFromConstrain(self.to_raw())) })
+            Ok(unsafe {
+                Value::from_raw(llzkFunction_FuncDefOpGetSelfValueFromConstrain(
+                    self.to_raw(),
+                ))
+            })
         } else {
             Err(Error::ExpectedFunctionName(&llzk_sys::FUNC_NAME_CONSTRAIN))
         }
@@ -143,9 +157,13 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Assuming the function is the compute function returns its StructType result.
     fn result_type_of_compute(&self) -> StructType<'c> {
-        unsafe { Type::from_raw(llzkFuncDefOpGetSingleResultTypeOfCompute(self.to_raw())) }
-            .try_into()
-            .expect("struct type")
+        unsafe {
+            Type::from_raw(llzkFunction_FuncDefOpGetSingleResultTypeOfCompute(
+                self.to_raw(),
+            ))
+        }
+        .try_into()
+        .expect("struct type")
     }
 
     /// Returns the n-th argument of the function.
@@ -190,7 +208,11 @@ pub trait FuncDefOpMutLike<'c: 'a, 'a>: FuncDefOpLike<'c, 'a> + OperationMutLike
 // FuncDefOp, FuncDefOpRef, and FuncDefOpRefMut
 //===----------------------------------------------------------------------===//
 
-llzk_op_type!(FuncDefOp, llzkOperationIsAFuncDefOp, "function.def");
+llzk_op_type!(
+    FuncDefOp,
+    llzkOperationIsA_Function_FuncDefOp,
+    "function.def"
+);
 
 impl<'a, 'c: 'a> FuncDefOpLike<'c, 'a> for FuncDefOp<'c> {}
 
@@ -210,29 +232,31 @@ impl<'a, 'c: 'a> FuncDefOpMutLike<'c, 'a> for FuncDefOpRefMut<'c, 'a> {}
 pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns true if the call target name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE).
     fn callee_is_compute(&self) -> bool {
-        unsafe { llzkCallOpGetCalleeIsCompute(self.to_raw()) }
+        unsafe { llzkFunction_CallOpCalleeIsCompute(self.to_raw()) }
     }
 
     /// Returns true if the call target name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN).
     fn callee_is_constrain(&self) -> bool {
-        unsafe { llzkCallOpGetCalleeIsConstrain(self.to_raw()) }
+        unsafe { llzkFunction_CallOpCalleeIsConstrain(self.to_raw()) }
     }
 
     /// Return `true` iff the callee function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE) within a StructDefOp.
     fn callee_is_struct_compute(&self) -> bool {
-        unsafe { llzkCallOpGetCalleeIsStructCompute(self.to_raw()) }
+        unsafe { llzkFunction_CallOpCalleeIsStructCompute(self.to_raw()) }
     }
 
     /// Return `true` iff the callee function name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN) within a StructDefOp.
     fn callee_is_struct_constrain(&self) -> bool {
-        unsafe { llzkCallOpGetCalleeIsStructConstrain(self.to_raw()) }
+        unsafe { llzkFunction_CallOpCalleeIsStructConstrain(self.to_raw()) }
     }
 
     /// If the function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE), return the "self"
     /// value (i.e. the return value) from the callee function. Otherwise, return Err(ExpectedFunctionName).
     fn self_value_of_compute(&self) -> Result<Value<'c, 'a>, Error> {
         if self.callee_is_compute() {
-            Ok(unsafe { Value::from_raw(llzkCallOpGetSelfValueFromCompute(self.to_raw())) })
+            Ok(unsafe {
+                Value::from_raw(llzkFunction_CallOpGetSelfValueFromCompute(self.to_raw()))
+            })
         } else {
             Err(Error::ExpectedFunctionName(&llzk_sys::FUNC_NAME_COMPUTE))
         }
@@ -242,7 +266,9 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// value (i.e. the first parameter) from the callee function. Otherwise, return Err(ExpectedFunctionName).
     fn self_value_of_constrain(&self) -> Result<Value<'c, 'a>, Error> {
         if self.callee_is_constrain() {
-            Ok(unsafe { Value::from_raw(llzkCallOpGetSelfValueFromConstrain(self.to_raw())) })
+            Ok(unsafe {
+                Value::from_raw(llzkFunction_CallOpGetSelfValueFromConstrain(self.to_raw()))
+            })
         } else {
             Err(Error::ExpectedFunctionName(&llzk_sys::FUNC_NAME_CONSTRAIN))
         }
@@ -253,7 +279,7 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 // CallOp, CallOpRef, CallOpRefMut
 //===----------------------------------------------------------------------===//
 
-llzk_op_type!(CallOp, llzkOperationIsACallOp, "function.call");
+llzk_op_type!(CallOp, llzkOperationIsA_Function_CallOp, "function.call");
 
 impl<'a, 'c: 'a> CallOpLike<'c, 'a> for CallOp<'c> {}
 
@@ -310,7 +336,7 @@ pub fn def<'c>(
     let attrs: Vec<_> = attrs.iter().map(tuple_to_named_attr).collect();
     let arg_attrs = prepare_arg_attrs(arg_attrs, r#type.input_count(), unsafe { ctx.to_ref() });
     unsafe {
-        Operation::from_raw(llzkFuncDefOpCreateWithAttrsAndArgAttrs(
+        Operation::from_raw(llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs(
             location.to_raw(),
             name.to_raw(),
             r#type.to_raw(),
@@ -338,7 +364,7 @@ pub fn call<'c>(
     return_types: &[impl TypeLike<'c>],
 ) -> Result<CallOp<'c>, Error> {
     unsafe {
-        Operation::from_raw(llzkCallOpBuild(
+        Operation::from_raw(llzkFunction_CallOpBuild(
             builder.to_raw(),
             location.to_raw(),
             return_types.len() as isize,

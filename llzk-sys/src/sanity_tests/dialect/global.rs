@@ -10,7 +10,7 @@ use mlir_sys::{
 use rstest::rstest;
 
 use crate::{
-    llzkGlobalDefOpGetIsConstant, llzkOperationIsAGlobalDefOp,
+    llzkGlobal_GlobalDefOpIsConstant, llzkOperationIsA_Global_GlobalDefOp,
     mlirGetDialectHandle__llzk__global__,
     sanity_tests::{TestContext, context, str_ref},
 };
@@ -63,7 +63,7 @@ fn test_llzk_operation_is_a_global_def_op(context: TestContext) {
     unsafe {
         let op = create_global_def_op(context.ctx, "G", false, mlirIndexTypeGet(context.ctx), None);
         assert_ne!(op.ptr, null_mut());
-        assert!(llzkOperationIsAGlobalDefOp(op));
+        assert!(llzkOperationIsA_Global_GlobalDefOp(op));
         mlirOperationDestroy(op);
     }
 }
@@ -73,7 +73,7 @@ fn test_llzk_global_def_op_get_is_constant_1(context: TestContext) {
     unsafe {
         let op = create_global_def_op(context.ctx, "G", false, mlirIndexTypeGet(context.ctx), None);
         assert_ne!(op.ptr, null_mut());
-        assert!(!llzkGlobalDefOpGetIsConstant(op));
+        assert!(!llzkGlobal_GlobalDefOpIsConstant(op));
         mlirOperationDestroy(op);
     }
 }
@@ -89,7 +89,7 @@ fn test_llzk_global_def_op_get_is_constant_2(context: TestContext) {
             Some(mlirIntegerAttrGet(mlirIndexTypeGet(context.ctx), 1)),
         );
         assert_ne!(op.ptr, null_mut());
-        assert!(llzkGlobalDefOpGetIsConstant(op));
+        assert!(llzkGlobal_GlobalDefOpIsConstant(op));
         mlirOperationDestroy(op);
     }
 }

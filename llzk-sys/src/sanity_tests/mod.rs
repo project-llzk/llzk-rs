@@ -99,6 +99,10 @@ pub fn str_ref(s: &'static str) -> MlirStringRef {
     }
 }
 
+pub fn identifier(ctx: &MlirContext, s: &'static str) -> MlirIdentifier {
+    unsafe { mlirIdentifierGet(*ctx, str_ref(s)) }
+}
+
 #[rstest]
 fn test_context(context: TestContext) {
     unsafe {

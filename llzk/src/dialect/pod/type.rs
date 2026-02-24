@@ -3,8 +3,8 @@
 use super::attrs::PodRecordAttribute;
 use crate::utils::IsA;
 use llzk_sys::{
-    llzkPodTypeGet, llzkPodTypeGetNumRecords, llzkPodTypeGetRecords, llzkPodTypeLookupRecord,
-    llzkTypeIsAPodType,
+    llzkPod_PodTypeGet, llzkPod_PodTypeGetRecords, llzkPod_PodTypeGetRecordsCount,
+    llzkPod_PodTypeLookupRecord, llzkTypeIsA_Pod_PodType,
 };
 use melior::{
     Context, StringRef,
@@ -29,7 +29,7 @@ impl<'c> PodType<'c> {
     pub fn new(ctx: &'c Context, records: &[PodRecordAttribute<'c>]) -> Self {
         let raw_refs: Vec<_> = records.iter().map(|r| r.to_raw()).collect();
         unsafe {
-            Self::from_raw(llzkPodTypeGet(
+            Self::from_raw(llzkPod_PodTypeGet(
                 ctx.to_raw(),
                 raw_refs.len() as isize,
                 raw_refs.as_ptr(),
@@ -43,14 +43,14 @@ impl<'c> PodType<'c> {
     ///
     /// If any of the wrapped attributes is not a `pod.record` attribute.
     pub fn get_records(&self) -> Vec<PodRecordAttribute<'c>> {
-        let num = unsafe { llzkPodTypeGetNumRecords(self.to_raw()) };
+        let num = unsafe { llzkPod_PodTypeGetRecordsCount(self.to_raw()) };
         let mut raw = vec![
             MlirAttribute {
                 ptr: std::ptr::null()
             };
             num.try_into().unwrap()
         ];
-        unsafe { llzkPodTypeGetRecords(self.to_raw(), raw.as_mut_ptr()) };
+        unsafe { llzkPod_PodTypeGetRecords(self.to_raw(), raw.as_mut_ptr()) };
         raw.into_iter()
             .map(|op| {
                 unsafe { Attribute::from_raw(op) }
@@ -63,7 +63,7 @@ impl<'c> PodType<'c> {
     /// Get the type of the record with the given name, if it exists in this type.
     pub fn get_type_of_record(&self, name: &str) -> Option<Type<'c>> {
         let name = StringRef::new(name);
-        let raw = unsafe { llzkPodTypeLookupRecord(self.to_raw(), name.to_raw()) };
+        let raw = unsafe { llzkPod_PodTypeLookupRecord(self.to_raw(), name.to_raw()) };
         (!raw.ptr.is_null()).then(|| unsafe { Type::from_raw(raw) })
     }
 }
@@ -78,7 +78,7 @@ impl<'c> TryFrom<Type<'c>> for PodType<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Type<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkTypeIsAPodType(t.to_raw()) } {
+        if unsafe { llzkTypeIsA_Pod_PodType(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::TypeExpected("llzk pod", t.to_string()))
