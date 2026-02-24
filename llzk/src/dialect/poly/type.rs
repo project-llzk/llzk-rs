@@ -1,7 +1,10 @@
 //! Implementation of `!poly.tvar` type.
 
 use crate::utils::IsA;
-use llzk_sys::{llzkTypeIsATypeVarType, llzkTypeVarTypeGet, llzkTypeVarTypeGetNameRef};
+use llzk_sys::{
+    llzkPoly_TypeVarTypeGetFromStringRef, llzkPoly_TypeVarTypeGetRefName,
+    llzkTypeIsA_Poly_TypeVarType,
+};
 use melior::{
     Context, StringRef,
     ir::{Type, TypeLike},
@@ -23,12 +26,17 @@ impl<'c> TVarType<'c> {
 
     /// Creates a new `!poly.tvar` type variable with the given symbol name.
     pub fn new(ctx: &'c Context, name: StringRef) -> Self {
-        unsafe { Self::from_raw(llzkTypeVarTypeGet(ctx.to_raw(), name.to_raw())) }
+        unsafe {
+            Self::from_raw(llzkPoly_TypeVarTypeGetFromStringRef(
+                ctx.to_raw(),
+                name.to_raw(),
+            ))
+        }
     }
 
     /// Returns the name of the type variable.
     pub fn name(&self) -> StringRef<'_> {
-        unsafe { StringRef::from_raw(llzkTypeVarTypeGetNameRef(self.r#type.to_raw())) }
+        unsafe { StringRef::from_raw(llzkPoly_TypeVarTypeGetRefName(self.r#type.to_raw())) }
     }
 }
 
@@ -42,7 +50,7 @@ impl<'c> TryFrom<Type<'c>> for TVarType<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Type<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkTypeIsATypeVarType(t.to_raw()) } {
+        if unsafe { llzkTypeIsA_Poly_TypeVarType(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::TypeExpected(

@@ -2,8 +2,9 @@
 
 use crate::utils::IsA;
 use llzk_sys::{
-    llzkArrayTypeGet, llzkArrayTypeGetDim, llzkArrayTypeGetElementType, llzkArrayTypeGetNumDims,
-    llzkArrayTypeGetWithNumericDims, llzkTypeIsAArrayType,
+    llzkArray_ArrayTypeGetDimensionSizesAt, llzkArray_ArrayTypeGetDimensionSizesCount,
+    llzkArray_ArrayTypeGetElementType, llzkArray_ArrayTypeGetWithDims,
+    llzkArray_ArrayTypeGetWithShape, llzkTypeIsA_Array_ArrayType,
 };
 use melior::ir::{Attribute, Type, TypeLike};
 use mlir_sys::MlirType;
@@ -24,7 +25,7 @@ impl<'c> ArrayType<'c> {
     /// Creates a new type with the given element type and dimensions.
     pub fn new(element_type: Type<'c>, dims: &[Attribute<'c>]) -> Self {
         unsafe {
-            Self::from_raw(llzkArrayTypeGet(
+            Self::from_raw(llzkArray_ArrayTypeGetWithDims(
                 element_type.to_raw(),
                 dims.len() as _,
                 dims.as_ptr() as *const _,
@@ -35,7 +36,7 @@ impl<'c> ArrayType<'c> {
     /// Creates a new type with the given element type and dimensions as integers.
     pub fn new_with_dims(element_type: Type<'c>, dims: &[i64]) -> Self {
         unsafe {
-            Self::from_raw(llzkArrayTypeGetWithNumericDims(
+            Self::from_raw(llzkArray_ArrayTypeGetWithShape(
                 element_type.to_raw(),
                 dims.len() as _,
                 dims.as_ptr() as *const _,
@@ -45,17 +46,17 @@ impl<'c> ArrayType<'c> {
 
     /// Returns the element type of the array.
     pub fn element_type(&self) -> Type<'c> {
-        unsafe { Type::from_raw(llzkArrayTypeGetElementType(self.to_raw())) }
+        unsafe { Type::from_raw(llzkArray_ArrayTypeGetElementType(self.to_raw())) }
     }
 
     /// Returns the number of dimensions of the array.
     pub fn num_dims(&self) -> isize {
-        unsafe { llzkArrayTypeGetNumDims(self.to_raw()) }
+        unsafe { llzkArray_ArrayTypeGetDimensionSizesCount(self.to_raw()) }
     }
 
     /// Returns the Attribute specifying the size of dimension `idx`.
     pub fn dim(&self, idx: isize) -> Attribute<'c> {
-        unsafe { Attribute::from_raw(llzkArrayTypeGetDim(self.to_raw(), idx)) }
+        unsafe { Attribute::from_raw(llzkArray_ArrayTypeGetDimensionSizesAt(self.to_raw(), idx)) }
     }
 
     /// Returns the Attributes specifying the sizes of all dimensions.
@@ -75,7 +76,7 @@ impl<'c> TryFrom<Type<'c>> for ArrayType<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Type<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkTypeIsAArrayType(t.to_raw()) } {
+        if unsafe { llzkTypeIsA_Array_ArrayType(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::TypeExpected("llzk array", t.to_string()))

@@ -52,7 +52,7 @@ fn f_eq() {
     log::info!("Op passed verification");
     let ir = format!("{f}");
     let expected = r"function.def @f_eq(%arg0: !felt.type, %arg1: !felt.type) -> i1 attributes {function.allow_witness} {
-  %0 = bool.cmp eq(%arg0, %arg1)
+  %0 = bool.cmp eq(%arg0, %arg1) : !felt.type, !felt.type
   function.return %0 : i1
 }";
     assert_eq!(ir, expected);
@@ -100,7 +100,7 @@ fn f_ne() {
     log::info!("Op passed verification");
     let ir = format!("{f}");
     let expected = r"function.def @f_ne(%arg0: !felt.type, %arg1: !felt.type) -> i1 attributes {function.allow_witness} {
-  %0 = bool.cmp ne(%arg0, %arg1)
+  %0 = bool.cmp ne(%arg0, %arg1) : !felt.type, !felt.type
   function.return %0 : i1
 }";
     assert_eq!(ir, expected);
@@ -148,7 +148,7 @@ fn f_lt() {
     log::info!("Op passed verification");
     let ir = format!("{f}");
     let expected = r"function.def @f_lt(%arg0: !felt.type, %arg1: !felt.type) -> i1 attributes {function.allow_witness} {
-  %0 = bool.cmp lt(%arg0, %arg1)
+  %0 = bool.cmp lt(%arg0, %arg1) : !felt.type, !felt.type
   function.return %0 : i1
 }";
     assert_eq!(ir, expected);
@@ -196,7 +196,7 @@ fn f_le() {
     log::info!("Op passed verification");
     let ir = format!("{f}");
     let expected = r"function.def @f_le(%arg0: !felt.type, %arg1: !felt.type) -> i1 attributes {function.allow_witness} {
-  %0 = bool.cmp le(%arg0, %arg1)
+  %0 = bool.cmp le(%arg0, %arg1) : !felt.type, !felt.type
   function.return %0 : i1
 }";
     assert_eq!(ir, expected);
@@ -244,7 +244,7 @@ fn f_gt() {
     log::info!("Op passed verification");
     let ir = format!("{f}");
     let expected = r"function.def @f_gt(%arg0: !felt.type, %arg1: !felt.type) -> i1 attributes {function.allow_witness} {
-  %0 = bool.cmp gt(%arg0, %arg1)
+  %0 = bool.cmp gt(%arg0, %arg1) : !felt.type, !felt.type
   function.return %0 : i1
 }";
     assert_eq!(ir, expected);
@@ -292,7 +292,7 @@ fn f_ge() {
     log::info!("Op passed verification");
     let ir = format!("{f}");
     let expected = r"function.def @f_ge(%arg0: !felt.type, %arg1: !felt.type) -> i1 attributes {function.allow_witness} {
-  %0 = bool.cmp ge(%arg0, %arg1)
+  %0 = bool.cmp ge(%arg0, %arg1) : !felt.type, !felt.type
   function.return %0 : i1
 }";
     assert_eq!(ir, expected);
