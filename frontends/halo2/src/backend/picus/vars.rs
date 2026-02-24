@@ -4,9 +4,10 @@ pub use picus::vars::{VarKind, VarStr};
 use crate::backend::func::FuncIO;
 
 /// Inner value of [`VarKeySeed`].
-#[derive(Clone, Hash, Eq, PartialEq, Debug)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug, Default)]
 pub enum VarKeySeedInner {
     IO(FuncIO),
+    #[default]
     Temp,
     Lifted(usize),
 }
@@ -21,23 +22,12 @@ impl VarKeySeed {
     }
 }
 
-#[derive(Clone, Copy, Hash, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq, Debug, Default)]
 pub enum VarKey {
     IO(FuncIO),
+    #[default]
     Temp,
     Lifted(usize),
-}
-
-impl Default for VarKeySeedInner {
-    fn default() -> Self {
-        Self::Temp
-    }
-}
-
-impl Default for VarKey {
-    fn default() -> Self {
-        Self::Temp
-    }
 }
 
 impl Temp<'_> for VarKey {

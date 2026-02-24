@@ -483,7 +483,7 @@ impl StmtConstantFolding for PostConditionStmt {
     }
 }
 
-const POST_CONDITION_KW: &'static str = "post-condition";
+const POST_CONDITION_KW: &str = "post-condition";
 
 impl TextRepresentable for PostConditionStmt {
     fn to_repr(&self) -> TextRepresentation<'_> {

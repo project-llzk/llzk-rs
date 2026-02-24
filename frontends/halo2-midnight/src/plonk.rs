@@ -150,6 +150,7 @@ impl<FC: ColumnWrapper + ColumnConversion<TC>, TC: halo2_frontend_core::table::C
 pub struct ConstraintSystem<F: Field> {
     cs: midnight_proofs::plonk::ConstraintSystem<F>,
     gates: Option<Vec<_Gate<F>>>,
+    #[allow(clippy::type_complexity)]
     lookups: Option<Vec<(String, Vec<_Expression<F>>, Vec<_Expression<F>>)>>,
 }
 
