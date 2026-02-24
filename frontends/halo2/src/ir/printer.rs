@@ -111,7 +111,7 @@ impl<'a> IRPrinter<'a> {
             }
             writeln!(ctx, "\"{}\" ", callee)?;
             self.block("inputs", ctx, |ctx| {
-                let do_nl = inputs.iter().any(|expr| self.aexpr_depth(expr) > 1);
+                let do_nl = inputs.iter().any(|expr| Self::aexpr_depth(expr) > 1);
                 let mut is_first = true;
                 for expr in inputs {
                     if do_nl && !is_first {
@@ -156,12 +156,12 @@ impl<'a> IRPrinter<'a> {
             }
             IRStmt::Constraint(constraint) => {
                 self.block(format!("assert/{}", constraint.op()).as_str(), ctx, |ctx| {
-                    if self.aexpr_depth(constraint.lhs()) > 1 {
+                    if Self::aexpr_depth(constraint.lhs()) > 1 {
                         ctx.nl()?;
                     }
                     self.fmt_aexpr(constraint.lhs(), ctx)?;
-                    if self.aexpr_depth(constraint.lhs()) > 1
-                        || self.aexpr_depth(constraint.rhs()) > 1
+                    if Self::aexpr_depth(constraint.lhs()) > 1
+                        || Self::aexpr_depth(constraint.rhs()) > 1
                     {
                         ctx.nl()?;
                     }
@@ -198,18 +198,18 @@ impl<'a> IRPrinter<'a> {
             IRBexpr::False => write!(ctx, "(false)"),
             IRBexpr::Cmp(cmp_op, lhs, rhs) => {
                 self.block(format!("{cmp_op}").as_str(), ctx, |ctx| {
-                    if self.aexpr_depth(lhs) > 1 {
+                    if Self::aexpr_depth(lhs) > 1 {
                         ctx.nl()?;
                     }
                     self.fmt_aexpr(lhs, ctx)?;
-                    if self.aexpr_depth(&lhs) > 1 || self.aexpr_depth(&rhs) > 1 {
+                    if Self::aexpr_depth(lhs) > 1 || Self::aexpr_depth(rhs) > 1 {
                         ctx.nl()?;
                     }
                     self.fmt_aexpr(rhs, ctx)
                 })
             }
             IRBexpr::And(exprs) => self.block("&&", ctx, |ctx| {
-                let do_nl = exprs.iter().any(|expr| self.bexpr_depth(expr) > 1);
+                let do_nl = exprs.iter().any(|expr| Self::bexpr_depth(expr) > 1);
                 let mut is_first = true;
                 for expr in exprs {
                     if do_nl && !is_first {
@@ -221,7 +221,7 @@ impl<'a> IRPrinter<'a> {
                 Ok(())
             }),
             IRBexpr::Or(exprs) => self.block("||", ctx, |ctx| {
-                let do_nl = exprs.iter().any(|expr| self.bexpr_depth(expr) > 1);
+                let do_nl = exprs.iter().any(|expr| Self::bexpr_depth(expr) > 1);
                 let mut is_first = true;
                 for expr in exprs {
                     if do_nl && !is_first {
@@ -232,24 +232,24 @@ impl<'a> IRPrinter<'a> {
                 }
                 Ok(())
             }),
-            IRBexpr::Not(expr) => self.block("!", ctx, |ctx| self.fmt_bexpr(&expr, ctx)),
+            IRBexpr::Not(expr) => self.block("!", ctx, |ctx| self.fmt_bexpr(expr, ctx)),
             IRBexpr::Det(expr) => self.block("det", ctx, |ctx| self.fmt_aexpr(expr, ctx)),
             IRBexpr::Implies(lhs, rhs) => self.block("=>", ctx, |ctx| {
-                if self.bexpr_depth(&lhs) > 1 {
+                if Self::bexpr_depth(lhs) > 1 {
                     ctx.nl()?;
                 }
                 self.fmt_bexpr(lhs, ctx)?;
-                if self.bexpr_depth(&lhs) > 1 || self.bexpr_depth(&rhs) > 1 {
+                if Self::bexpr_depth(lhs) > 1 || Self::bexpr_depth(rhs) > 1 {
                     ctx.nl()?;
                 }
                 self.fmt_bexpr(rhs, ctx)
             }),
             IRBexpr::Iff(lhs, rhs) => self.block("<=>", ctx, |ctx| {
-                if self.bexpr_depth(&lhs) > 1 {
+                if Self::bexpr_depth(lhs) > 1 {
                     ctx.nl()?;
                 }
                 self.fmt_bexpr(lhs, ctx)?;
-                if self.bexpr_depth(&lhs) > 1 || self.bexpr_depth(&rhs) > 1 {
+                if Self::bexpr_depth(lhs) > 1 || Self::bexpr_depth(rhs) > 1 {
                     ctx.nl()?;
                 }
                 self.fmt_bexpr(rhs, ctx)
@@ -261,32 +261,32 @@ impl<'a> IRPrinter<'a> {
         match aexpr {
             IRAexpr::Constant(felt) => self.list("const", ctx, |ctx| write!(ctx, "{}", felt)),
             IRAexpr::IO(func_io) => self.fmt_func_io(func_io, ctx),
-            IRAexpr::Negated(expr) => self.block("-", ctx, |ctx| self.fmt_aexpr(&expr, ctx)),
+            IRAexpr::Negated(expr) => self.block("-", ctx, |ctx| self.fmt_aexpr(expr, ctx)),
             IRAexpr::Sum(lhs, rhs) => self.block("+", ctx, |ctx| {
-                let do_nl = self.aexpr_depth(&lhs) > 1 || self.aexpr_depth(&rhs) > 1;
-                if self.aexpr_depth(lhs) > 1 {
+                let do_nl = Self::aexpr_depth(lhs) > 1 || Self::aexpr_depth(rhs) > 1;
+                if Self::aexpr_depth(lhs) > 1 {
                     ctx.nl()?;
                 }
-                self.fmt_aexpr(&lhs, ctx)?;
+                self.fmt_aexpr(lhs, ctx)?;
                 if do_nl {
                     ctx.nl()?;
                 } else {
                     write!(ctx, " ")?;
                 }
-                self.fmt_aexpr(&rhs, ctx)
+                self.fmt_aexpr(rhs, ctx)
             }),
             IRAexpr::Product(lhs, rhs) => self.block("*", ctx, |ctx| {
-                let do_nl = self.aexpr_depth(&lhs) > 1 || self.aexpr_depth(&rhs) > 1;
-                if self.aexpr_depth(lhs) > 1 {
+                let do_nl = Self::aexpr_depth(lhs) > 1 || Self::aexpr_depth(rhs) > 1;
+                if Self::aexpr_depth(lhs) > 1 {
                     ctx.nl()?;
                 }
-                self.fmt_aexpr(&lhs, ctx)?;
+                self.fmt_aexpr(lhs, ctx)?;
                 if do_nl {
                     ctx.nl()?;
                 } else {
                     write!(ctx, " ")?;
                 }
-                self.fmt_aexpr(&rhs, ctx)
+                self.fmt_aexpr(rhs, ctx)
             }),
         }
     }
@@ -294,23 +294,23 @@ impl<'a> IRPrinter<'a> {
     /// Returns the depth of the boolean expression.
     ///
     /// The depth is used for the heuristic used for deciding when to indentate or not.
-    fn bexpr_depth(&self, bexpr: &IRBexpr<IRAexpr>) -> usize {
+    fn bexpr_depth(bexpr: &IRBexpr<IRAexpr>) -> usize {
         match bexpr {
             IRBexpr::True | IRBexpr::False => 1,
             IRBexpr::Cmp(_, lhs, rhs) => {
-                1 + std::cmp::max(self.aexpr_depth(lhs), self.aexpr_depth(rhs))
+                1 + std::cmp::max(Self::aexpr_depth(lhs), Self::aexpr_depth(rhs))
             }
             IRBexpr::And(exprs) | IRBexpr::Or(exprs) => {
                 1 + exprs
                     .iter()
-                    .map(|expr| self.bexpr_depth(expr))
+                    .map(Self::bexpr_depth)
                     .max()
                     .unwrap_or_default()
             }
-            IRBexpr::Not(expr) => 1 + self.bexpr_depth(&expr),
-            IRBexpr::Det(expr) => 1 + self.aexpr_depth(expr),
+            IRBexpr::Not(expr) => 1 + Self::bexpr_depth(expr),
+            IRBexpr::Det(expr) => 1 + Self::aexpr_depth(expr),
             IRBexpr::Implies(lhs, rhs) | IRBexpr::Iff(lhs, rhs) => {
-                1 + std::cmp::max(self.bexpr_depth(&lhs), self.bexpr_depth(&rhs))
+                1 + std::cmp::max(Self::bexpr_depth(lhs), Self::bexpr_depth(rhs))
             }
         }
     }
@@ -318,12 +318,12 @@ impl<'a> IRPrinter<'a> {
     /// Returns the depth of the arithmetic expression.
     ///
     /// The depth is used for the heuristic used for deciding when to indentate or not.
-    fn aexpr_depth(&self, aexpr: &IRAexpr) -> usize {
+    fn aexpr_depth(aexpr: &IRAexpr) -> usize {
         match aexpr {
             IRAexpr::Constant(_) | IRAexpr::IO(_) => 1,
-            IRAexpr::Negated(expr) => 1 + self.aexpr_depth(&expr),
+            IRAexpr::Negated(expr) => 1 + Self::aexpr_depth(expr),
             IRAexpr::Sum(lhs, rhs) | IRAexpr::Product(lhs, rhs) => {
-                1 + std::cmp::max(self.aexpr_depth(&lhs), self.aexpr_depth(&rhs))
+                1 + std::cmp::max(Self::aexpr_depth(lhs), Self::aexpr_depth(rhs))
             }
         }
     }
@@ -398,7 +398,7 @@ impl<'a, 'f> IRPrinterCtx<'a, 'f> {
     fn nl(&mut self) -> FmtResult {
         if !self.indent_pending {
             self.indent_pending = true;
-            writeln!(self.f, "")?;
+            writeln!(self.f)?;
         }
         Ok(())
     }

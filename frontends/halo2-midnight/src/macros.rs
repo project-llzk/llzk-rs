@@ -36,10 +36,10 @@ macro_rules! __newtype_impls {
         $crate::macros::__newtype_impls!( $wrapper with $( $traits, )*);
     };
     ($wrapper:ident impl Copy) => {
-                impl Copy for $wrapper {}
-
+        impl Copy for $wrapper {}
     };
     ($wrapper:ident impl Clone) => {
+        #[allow(clippy::non_canonical_clone_impl)]
         impl Clone for $wrapper {
             fn clone(&self) -> Self {
                 Self(self.0.clone())

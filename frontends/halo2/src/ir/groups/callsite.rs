@@ -65,7 +65,7 @@ where
             let expr = cell.to_expr::<F, E>();
             let row = match cell {
                 GroupCell::Assigned(cell) => {
-                    let start = ctx.regions_by_index()[&cell.region_index.into()]
+                    let start = ctx.regions_by_index()[&cell.region_index]
                         .start()
                         .ok_or_else(|| {
                             anyhow::anyhow!("Region {} does not have a start", *cell.region_index)

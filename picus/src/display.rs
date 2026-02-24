@@ -7,9 +7,10 @@ use std::{
 
 use crate::{Program, vars::VarKind};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum ListPunctuation {
     None,
+    #[default]
     Parens,
     Brackets,
     SquareBrackets,
@@ -46,12 +47,6 @@ impl From<&'static str> for ListPunctuation {
                 "can't create list punctuation with {x:?}. Valid options: \"()\", \"[]\", \"{{}}\", and \"\""
             ),
         }
-    }
-}
-
-impl Default for ListPunctuation {
-    fn default() -> Self {
-        Self::Parens
     }
 }
 
