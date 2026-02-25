@@ -1,10 +1,6 @@
 use mlir_sys::{mlirPassManagerAddOwnedPass, mlirPassManagerCreate, mlirPassManagerDestroy};
 use rstest::rstest;
 
-#[cfg(feature = "pcl-backend")]
-use crate::{
-    mlirCreateLLZKTransformationPCLLoweringPass, mlirRegisterLLZKTransformationPCLLoweringPass,
-};
 use crate::{
     mlirCreateLLZKTransformationRedundantOperationEliminationPass,
     mlirCreateLLZKTransformationRedundantReadAndWriteEliminationPass,
@@ -13,6 +9,10 @@ use crate::{
     mlirRegisterLLZKTransformationRedundantReadAndWriteEliminationPass,
     mlirRegisterLLZKTransformationUnusedDeclarationEliminationPass,
     sanity_tests::{TestContext, context},
+};
+#[cfg(feature = "pcl-backend")]
+use crate::{
+    mlirCreatePCLTransformationPCLLoweringPass, mlirRegisterPCLTransformationPCLLoweringPass,
 };
 
 #[cfg(test)]
@@ -29,7 +29,7 @@ mod tests {
             mlirRegisterLLZKTransformationRedundantReadAndWriteEliminationPass();
             mlirRegisterLLZKTransformationUnusedDeclarationEliminationPass();
             #[cfg(feature = "pcl-backend")]
-            mlirRegisterLLZKTransformationPCLLoweringPass();
+            mlirRegisterPCLTransformationPCLLoweringPass();
         });
     }
 
@@ -45,7 +45,7 @@ mod tests {
             let pass2 = mlirCreateLLZKTransformationRedundantReadAndWriteEliminationPass();
             let pass3 = mlirCreateLLZKTransformationUnusedDeclarationEliminationPass();
             #[cfg(feature = "pcl-backend")]
-            let pass4 = mlirCreateLLZKTransformationPCLLoweringPass();
+            let pass4 = mlirCreatePCLTransformationPCLLoweringPass();
             mlirPassManagerAddOwnedPass(manager, pass1);
             mlirPassManagerAddOwnedPass(manager, pass2);
             mlirPassManagerAddOwnedPass(manager, pass3);
@@ -105,7 +105,7 @@ mod tests {
         unsafe {
             let manager = mlirPassManagerCreate(context.ctx);
 
-            let pass = mlirCreateLLZKTransformationPCLLoweringPass();
+            let pass = mlirCreatePCLTransformationPCLLoweringPass();
             mlirPassManagerAddOwnedPass(manager, pass);
 
             mlirPassManagerDestroy(manager);
