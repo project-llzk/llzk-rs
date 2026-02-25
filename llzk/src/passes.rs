@@ -8,9 +8,13 @@ passes!(
         mlirCreateLLZKTransformationRedundantOperationEliminationPass,
         mlirCreateLLZKTransformationRedundantReadAndWriteEliminationPass,
         mlirCreateLLZKTransformationUnusedDeclarationEliminationPass,
-        #[cfg(feature = "pcl-backend")]
-        mlirCreateLLZKTransformationPCLLoweringPass,
     ]
+);
+
+#[cfg(feature = "pcl-backend")]
+passes!(
+    "PCLTransformation",
+    [mlirCreatePCLTransformationPCLLoweringPass,]
 );
 
 passes!(
@@ -36,6 +40,8 @@ passes!(
 /// Registers all the available LLZK passes.
 pub fn register_all_llzk_passes() {
     register_llzk_transformation_passes();
+    #[cfg(feature = "pcl-backend")]
+    register_pcl_transformation_passes();
     register_llzk_array_transformation_passes();
     register_llzk_include_transformation_passes();
     register_llzk_polymorphic_transformation_passes();
@@ -48,6 +54,16 @@ mod tests {
 
     use melior::{Context, pass::PassManager};
 
+    #[cfg(feature = "pcl-backend")]
+    #[test]
+    fn generated_pcl_pass_functions() {
+        let ctx = Context::new();
+        let pm = PassManager::new(&ctx);
+        super::register_pcl_transformation_passes();
+        super::register_pcl_lowering_pass();
+        pm.add_pass(super::create_pcl_lowering_pass());
+    }
+
     #[test]
     fn generated_pass_functions() {
         let ctx = Context::new();
@@ -57,13 +73,9 @@ mod tests {
         super::register_redundant_operation_elimination_pass();
         super::register_redundant_read_and_write_elimination_pass();
         super::register_unused_declaration_elimination_pass();
-        #[cfg(feature = "pcl-backend")]
-        super::register_pcl_lowering_pass();
         pm.add_pass(super::create_redundant_operation_elimination_pass());
         pm.add_pass(super::create_redundant_read_and_write_elimination_pass());
         pm.add_pass(super::create_unused_declaration_elimination_pass());
-        #[cfg(feature = "pcl-backend")]
-        pm.add_pass(super::create_pcl_lowering_pass());
 
         super::register_llzk_array_transformation_passes();
         super::register_array_to_scalar_pass();

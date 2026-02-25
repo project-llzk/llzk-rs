@@ -47,6 +47,7 @@ fn create_default_cfg() -> DefaultConfig<'static> {
             "Operation.*",
             "OpBuilder.*",
             "RegisterLLZK.*Passes",
+            "RegisterPCL.*Passes",
         ],
         &[
             "OpBuilder",

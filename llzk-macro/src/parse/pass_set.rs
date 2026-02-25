@@ -5,7 +5,6 @@
 use crate::Identifier;
 
 use super::IdentifierList;
-use proc_macro2::Ident;
 use syn::{
     LitStr, Result, Token, bracketed,
     parse::{Parse, ParseStream},
