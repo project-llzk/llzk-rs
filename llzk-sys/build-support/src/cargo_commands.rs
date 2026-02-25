@@ -2,7 +2,7 @@
 
 use std::{
     io::{Result as IOResult, Write},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 /// Returns configuration for the linker regarding the `whole-archive` flag.

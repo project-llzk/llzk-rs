@@ -1,18 +1,14 @@
 //! Implementation of the fundamenal configuration.
 
-use std::{
-    env,
-    io::{Write, stdout},
-    path::PathBuf,
-};
+use std::{io::stdout, path::PathBuf};
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use bindgen::Builder;
 use cc::Build;
 use cmake::Config;
 
 use crate::{
-    cargo_commands::{CargoCommands, whole_archive_config},
+    cargo_commands::whole_archive_config,
     config_traits::{bindgen::BindgenConfig, cc::CCConfig, cmake::CMakeConfig},
     llzk::LIBDIR,
     mlir::MlirConfig,

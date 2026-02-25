@@ -9,7 +9,7 @@ use bindgen::Builder;
 use cc::Build;
 use std::{
     borrow::Cow,
-    io::{Result as IOResult, Write},
+    io::Write,
     path::{Path, PathBuf},
 };
 
