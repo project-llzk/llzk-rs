@@ -1,10 +1,10 @@
 //! Implementation of `!felt.type` type.
 
 use crate::utils::IsA;
-use llzk_sys::{llzkFelt_FeltTypeGetUnspecified, llzkTypeIsA_Felt_FeltType};
+use llzk_sys::{llzkFelt_FeltTypeGet, llzkFelt_FeltTypeGetUnspecified, llzkTypeIsA_Felt_FeltType};
 use melior::{
     Context,
-    ir::{Type, TypeLike},
+    ir::{Identifier, Type, TypeLike},
 };
 use mlir_sys::MlirType;
 
@@ -24,6 +24,16 @@ impl<'c> FeltType<'c> {
     /// Creates a new felt type.
     pub fn new(ctx: &'c Context) -> Self {
         unsafe { Self::from_raw(llzkFelt_FeltTypeGetUnspecified(ctx.to_raw())) }
+    }
+
+    /// Creates a new felt type with the given field name.
+    ///
+    /// # Safety
+    ///
+    /// The process will abort at the C++ level if the given field name is not valid.
+    pub fn with_field(ctx: &'c Context, name: &str) -> Self {
+        let ident = Identifier::new(ctx, name);
+        unsafe { Self::from_raw(llzkFelt_FeltTypeGet(ctx.to_raw(), ident.to_raw())) }
     }
 }
 
@@ -61,4 +71,24 @@ impl<'c> From<FeltType<'c>> for Type<'c> {
 #[inline]
 pub fn is_felt_type(t: Type) -> bool {
     t.isa::<FeltType>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::context::LlzkContext;
+    use melior::ir::{Location, operation::OperationLike};
+    use rstest::rstest;
+
+    #[rstest]
+    #[case("mersenne31")]
+    fn test_ctor_with_field(#[case] field: &str) {
+        let ctx = LlzkContext::new();
+        let t = FeltType::with_field(&ctx, field);
+        // Test by printing.
+        assert_eq!(t.to_string(), format!("!felt.type<\"{field}\">"));
+        // And by using some op that we validate.
+        let op = crate::dialect::llzk::nondet(Location::unknown(&ctx), t.into());
+        assert!(op.verify());
+    }
 }
