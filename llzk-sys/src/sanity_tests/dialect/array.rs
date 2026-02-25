@@ -1,9 +1,10 @@
 use crate::{
-    llzkAffineMapOperandsBuilderCreate, llzkAffineMapOperandsBuilderDestroy, llzkArrayTypeGet,
-    llzkArrayTypeGetDim, llzkArrayTypeGetElementType, llzkArrayTypeGetNumDims,
-    llzkArrayTypeGetWithNumericDims, llzkCreateArrayOpBuildWithMapOperands,
-    llzkCreateArrayOpBuildWithValues, llzkTypeIsAArrayType, mlirGetDialectHandle__llzk__array__,
-    mlirOpBuilderCreate, mlirOpBuilderDestroy,
+    llzkAffineMapOperandsBuilderCreate, llzkAffineMapOperandsBuilderDestroy,
+    llzkArray_ArrayTypeGetDimensionSizesAt, llzkArray_ArrayTypeGetDimensionSizesCount,
+    llzkArray_ArrayTypeGetElementType, llzkArray_ArrayTypeGetWithDims,
+    llzkArray_ArrayTypeGetWithShape, llzkArray_CreateArrayOpBuildWithMapOperands,
+    llzkArray_CreateArrayOpBuildWithValues, llzkTypeIsA_Array_ArrayType,
+    mlirGetDialectHandle__llzk__array__, mlirOpBuilderCreate, mlirOpBuilderDestroy,
     sanity_tests::{
         TestContext, context, load_llzk_dialects,
         typing::{IndexType, index_type},
@@ -31,7 +32,8 @@ fn test_llzk_array_type_get(index_type: IndexType) {
     unsafe {
         let size = mlirIntegerAttrGet(index_type.t, 1);
         let dims = [size];
-        let arr_type = llzkArrayTypeGet(index_type.t, dims.len() as isize, dims.as_ptr());
+        let arr_type =
+            llzkArray_ArrayTypeGetWithDims(index_type.t, dims.len() as isize, dims.as_ptr());
         assert_ne!(arr_type.ptr, null());
     }
 }
@@ -41,16 +43,17 @@ fn test_llzk_type_isa_array_type_pass(index_type: IndexType) {
     unsafe {
         let size = mlirIntegerAttrGet(index_type.t, 1);
         let dims = [size];
-        let arr_type = llzkArrayTypeGet(index_type.t, dims.len() as isize, dims.as_ptr());
+        let arr_type =
+            llzkArray_ArrayTypeGetWithDims(index_type.t, dims.len() as isize, dims.as_ptr());
         assert_ne!(arr_type.ptr, null());
-        assert!(llzkTypeIsAArrayType(arr_type));
+        assert!(llzkTypeIsA_Array_ArrayType(arr_type));
     }
 }
 
 #[rstest]
 fn test_llzk_type_isa_array_type_fail(index_type: IndexType) {
     unsafe {
-        assert!(!llzkTypeIsAArrayType(index_type.t));
+        assert!(!llzkTypeIsA_Array_ArrayType(index_type.t));
     }
 }
 
@@ -59,7 +62,7 @@ fn test_llzk_array_type_get_with_numeric_dims(index_type: IndexType) {
     unsafe {
         let dims = [1, 2];
         let arr_type =
-            llzkArrayTypeGetWithNumericDims(index_type.t, dims.len() as isize, dims.as_ptr());
+            llzkArray_ArrayTypeGetWithShape(index_type.t, dims.len() as isize, dims.as_ptr());
         assert_ne!(arr_type.ptr, null());
     }
 }
@@ -69,9 +72,9 @@ fn test_llzk_array_type_get_element_type(index_type: IndexType) {
     unsafe {
         let dims = [1, 2];
         let arr_type =
-            llzkArrayTypeGetWithNumericDims(index_type.t, dims.len() as isize, dims.as_ptr());
+            llzkArray_ArrayTypeGetWithShape(index_type.t, dims.len() as isize, dims.as_ptr());
         assert_ne!(arr_type.ptr, null());
-        let elt_type = llzkArrayTypeGetElementType(arr_type);
+        let elt_type = llzkArray_ArrayTypeGetElementType(arr_type);
         assert!(mlirTypeEqual(index_type.t, elt_type));
     }
 }
@@ -81,9 +84,9 @@ fn test_llzk_array_type_get_num_dims(index_type: IndexType) {
     unsafe {
         let dims = [1, 2];
         let arr_type =
-            llzkArrayTypeGetWithNumericDims(index_type.t, dims.len() as isize, dims.as_ptr());
+            llzkArray_ArrayTypeGetWithShape(index_type.t, dims.len() as isize, dims.as_ptr());
         assert_ne!(arr_type.ptr, null());
-        let n_dims = llzkArrayTypeGetNumDims(arr_type);
+        let n_dims = llzkArray_ArrayTypeGetDimensionSizesCount(arr_type);
         assert_eq!(n_dims, dims.len() as isize);
     }
 }
@@ -93,9 +96,9 @@ fn test_llzk_array_type_get_dim(index_type: IndexType) {
     unsafe {
         let dims = [1, 2];
         let arr_type =
-            llzkArrayTypeGetWithNumericDims(index_type.t, dims.len() as isize, dims.as_ptr());
+            llzkArray_ArrayTypeGetWithShape(index_type.t, dims.len() as isize, dims.as_ptr());
         assert_ne!(arr_type.ptr, null());
-        let out_dim = llzkArrayTypeGetDim(arr_type, 0);
+        let out_dim = llzkArray_ArrayTypeGetDimensionSizesAt(arr_type, 0);
         let dim_as_attr = mlirIntegerAttrGet(index_type.t, dims[0]);
         assert!(mlirAttributeEqual(out_dim, dim_as_attr));
     }
@@ -114,7 +117,7 @@ fn test_llzk_create_array_op_build_with_values(context: TestContext, #[values(&[
             .collect::<Vec<_>>();
         let builder = mlirOpBuilderCreate(context.ctx);
         let location = mlirLocationUnknownGet(context.ctx);
-        let create_array_op = llzkCreateArrayOpBuildWithValues(
+        let create_array_op = llzkArray_CreateArrayOpBuildWithValues(
             builder,
             location,
             test_type,
@@ -148,7 +151,8 @@ fn test_llzk_create_array_op_build_with_map_operands(
         let location = mlirLocationUnknownGet(context.ctx);
         let mut map_operands = llzkAffineMapOperandsBuilderCreate();
 
-        let op = llzkCreateArrayOpBuildWithMapOperands(builder, location, test_type, map_operands);
+        let op =
+            llzkArray_CreateArrayOpBuildWithMapOperands(builder, location, test_type, map_operands);
 
         assert!(mlirOperationVerify(op));
         mlirOperationDestroy(op);
@@ -158,7 +162,7 @@ fn test_llzk_create_array_op_build_with_map_operands(
 }
 
 fn test_array(elt: MlirType, dims: &[i64]) -> MlirType {
-    unsafe { llzkArrayTypeGetWithNumericDims(elt, dims.len() as isize, dims.as_ptr()) }
+    unsafe { llzkArray_ArrayTypeGetWithShape(elt, dims.len() as isize, dims.as_ptr()) }
 }
 
 fn create_n_ops(ctx: MlirContext, n_ops: i64, elt_type: MlirType) -> Vec<MlirOperation> {

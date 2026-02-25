@@ -1,6 +1,7 @@
 use llzk_sys::{
-    llzkAttributeIsAFeltConstAttr, llzkFeltConstAttrGet, llzkFeltConstAttrGetFromParts,
-    llzkFeltConstAttrGetFromString, llzkFeltConstAttrGetWithBits,
+    llzkAttributeIsA_Felt_FeltConstAttr, llzkFelt_FeltConstAttrGetFromPartsUnspecified,
+    llzkFelt_FeltConstAttrGetFromStringUnspecified, llzkFelt_FeltConstAttrGetUnspecified,
+    llzkFelt_FeltConstAttrGetWithBitsUnspecified,
 };
 use melior::{
     Context, StringRef,
@@ -27,13 +28,18 @@ impl<'c> FeltConstAttribute<'c> {
 
     /// Creates a [`FeltConstAttribute`] from an unsigned integer.
     pub fn new(ctx: &'c Context, value: u64) -> Self {
-        unsafe { Self::from_raw(llzkFeltConstAttrGet(ctx.to_raw(), value as i64)) }
+        unsafe {
+            Self::from_raw(llzkFelt_FeltConstAttrGetUnspecified(
+                ctx.to_raw(),
+                value as i64,
+            ))
+        }
     }
 
     /// Creates a [`FeltConstAttribute`] from a 64 bit value and a set bit width.
     pub fn new_with_bitlen(ctx: &'c Context, bitlen: u32, value: u64) -> Self {
         unsafe {
-            Self::from_raw(llzkFeltConstAttrGetWithBits(
+            Self::from_raw(llzkFelt_FeltConstAttrGetWithBitsUnspecified(
                 ctx.to_raw(),
                 bitlen,
                 value as i64,
@@ -45,7 +51,7 @@ impl<'c> FeltConstAttribute<'c> {
     pub fn parse(ctx: &'c Context, bitlen: u32, value: &str) -> Self {
         let value = StringRef::new(value);
         unsafe {
-            Self::from_raw(llzkFeltConstAttrGetFromString(
+            Self::from_raw(llzkFelt_FeltConstAttrGetFromStringUnspecified(
                 ctx.to_raw(),
                 bitlen,
                 value.to_raw(),
@@ -64,7 +70,7 @@ impl<'c> FeltConstAttribute<'c> {
             return Self::new_with_bitlen(ctx, bitlen, 0);
         }
         unsafe {
-            Self::from_raw(llzkFeltConstAttrGetFromParts(
+            Self::from_raw(llzkFelt_FeltConstAttrGetFromPartsUnspecified(
                 ctx.to_raw(),
                 bitlen,
                 parts.as_ptr(),
@@ -97,7 +103,7 @@ impl<'c> TryFrom<Attribute<'c>> for FeltConstAttribute<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Attribute<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkAttributeIsAFeltConstAttr(t.to_raw()) } {
+        if unsafe { llzkAttributeIsA_Felt_FeltConstAttr(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::AttributeExpected("llzk felt", t.to_string()))

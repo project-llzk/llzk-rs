@@ -124,6 +124,7 @@ impl<'lc, 'gc, F: Field, E> IRGenParamsBuilder<'lc, 'gc, F, E> {
 }
 
 /// Generates an intermediate representation of the circuit from its synthesis.
+#[allow(clippy::type_complexity)]
 pub(crate) fn generate_ir<'syn, 'ctx, 'cb, 'sco, F, E>(
     syn: &'syn SynthesizedCircuit<F, E>,
     params: IRGenParams<'cb, '_, F, E>,

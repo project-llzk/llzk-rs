@@ -25,7 +25,7 @@ fn record_attr_name() {
     let a = PodRecordAttribute::new("name", FeltType::new(&context).into());
     let name = a.name();
 
-    let name = name.as_str();
+    let name = name.as_string_ref().as_str();
     assert!(name.is_ok());
     let name = name.unwrap();
     assert_eq!(name, "name");

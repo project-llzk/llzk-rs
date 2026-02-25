@@ -293,7 +293,7 @@ impl<E> GroupBody<E> {
     }
 
     /// Returns an iterator with all the [`IRStmt`] in the group.
-    pub fn statements<'a>(&'a self) -> impl Iterator<Item = &'a IRStmt<E>> {
+    pub fn statements(&self) -> impl Iterator<Item = &IRStmt<E>> {
         self.gates
             .iter()
             .chain(self.eq_constraints.iter())
@@ -523,14 +523,8 @@ fn select_equality_constraints<F: Field, E>(
                     (Bound::Outside, Bound::Outside) => false,
                     (Bound::IO, Bound::Outside) => false,
                     (Bound::Outside, Bound::IO) => false,
-                    (Bound::Within, Bound::Outside) => match r.0.column_type() {
-                        Any::Fixed => true,
-                        _ => false,
-                    },
-                    (Bound::Outside, Bound::Within) => match l.0.column_type() {
-                        Any::Fixed => true,
-                        _ => false,
-                    },
+                    (Bound::Within, Bound::Outside) => matches!(r.0.column_type(), Any::Fixed),
+                    (Bound::Outside, Bound::Within) => matches!(l.0.column_type(), Any::Fixed),
                 },
                 EqConstraintCheck::FixedToConst(bound) => match bound {
                     Bound::Within | Bound::Outside => true,
@@ -699,6 +693,7 @@ where
         .collect()
 }
 
+#[allow(clippy::type_complexity)]
 fn codegen_lookup_invocations<'sco, 'syn, 'ctx, 'cb, F, E>(
     syn: &'syn SynthesizedCircuit<F, E>,
     region_rows: &[RegionRow<'syn, 'ctx, 'syn, F>],
@@ -727,7 +722,7 @@ where
         .map(|t| -> &dyn LookupTableGenerator<F> { t })
         .collect::<Vec<_>>();
     let mut temps = Temps::new();
-    let ir = lookup_cb.on_lookups(&lookups, &tables, &mut temps)?;
+    let ir = lookup_cb.on_lookups(lookups, &tables, &mut temps)?;
     Ok(region_rows
         .iter()
         .enumerate()

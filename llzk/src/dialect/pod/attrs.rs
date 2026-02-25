@@ -1,12 +1,10 @@
 //! Implementation of pod dialect RecordAttribute.
 
 use llzk_sys::{
-    llzkAttributeIsARecordAttr, llzkRecordAttrGet, llzkRecordAttrGetName, llzkRecordAttrGetType,
+    llzkAttributeIsA_Pod_RecordAttr, llzkPod_RecordAttrGetInferredContext,
+    llzkPod_RecordAttrGetName, llzkPod_RecordAttrGetType,
 };
-use melior::{
-    StringRef,
-    ir::{Attribute, AttributeLike, Type, TypeLike},
-};
+use melior::ir::{Attribute, AttributeLike, Identifier, Type, TypeLike};
 use mlir_sys::MlirAttribute;
 
 /// A record entry within a [super::r#type::PodType].
@@ -28,18 +26,22 @@ impl<'c> PodRecordAttribute<'c> {
 
     /// Creates a [`PodRecordAttribute`] with the given name and type.
     pub fn new(name: &str, r#type: Type<'c>) -> Self {
-        let name = StringRef::new(name);
-        unsafe { Self::from_raw(llzkRecordAttrGet(name.to_raw(), r#type.to_raw())) }
+        unsafe {
+            Self::from_raw(llzkPod_RecordAttrGetInferredContext(
+                Identifier::new(r#type.context().to_ref(), name).to_raw(),
+                r#type.to_raw(),
+            ))
+        }
     }
 
     /// Returns the record name.
-    pub fn name(&self) -> StringRef<'c> {
-        unsafe { StringRef::from_raw(llzkRecordAttrGetName(self.to_raw())) }
+    pub fn name(&self) -> Identifier<'c> {
+        unsafe { Identifier::from_raw(llzkPod_RecordAttrGetName(self.to_raw())) }
     }
 
     /// Returns the record type.
     pub fn r#type(&self) -> Type<'c> {
-        unsafe { Type::from_raw(llzkRecordAttrGetType(self.to_raw())) }
+        unsafe { Type::from_raw(llzkPod_RecordAttrGetType(self.to_raw())) }
     }
 }
 
@@ -53,7 +55,7 @@ impl<'c> TryFrom<Attribute<'c>> for PodRecordAttribute<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Attribute<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkAttributeIsARecordAttr(t.to_raw()) } {
+        if unsafe { llzkAttributeIsA_Pod_RecordAttr(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::AttributeExpected("llzk record", t.to_string()))

@@ -1,16 +1,18 @@
 use llzk_sys::{
-    llzkMemberDefOpGetHasPublicAttr, llzkMemberDefOpSetPublicAttr, llzkMemberReadOpBuild,
-    llzkOperationIsAMemberDefOp, llzkOperationIsAStructDefOp, llzkStructDefOpGetBody,
-    llzkStructDefOpGetBodyRegion, llzkStructDefOpGetComputeFuncOp,
-    llzkStructDefOpGetConstrainFuncOp, llzkStructDefOpGetHasColumns,
-    llzkStructDefOpGetHasParamName, llzkStructDefOpGetIsMainComponent, llzkStructDefOpGetMemberDef,
-    llzkStructDefOpGetMemberDefs, llzkStructDefOpGetNumMemberDefs, llzkStructDefOpGetType,
-    llzkStructDefOpGetTypeWithParams,
+    llzkOperationIsA_Struct_MemberDefOp, llzkOperationIsA_Struct_StructDefOp,
+    llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetPublicAttr,
+    llzkStruct_MemberReadOpBuild, llzkStruct_StructDefOpGetBody,
+    llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
+    llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetMemberDef,
+    llzkStruct_StructDefOpGetMemberDefs, llzkStruct_StructDefOpGetNumMemberDefs,
+    llzkStruct_StructDefOpGetType, llzkStruct_StructDefOpGetTypeWithParams,
+    llzkStruct_StructDefOpHasColumns, llzkStruct_StructDefOpHasParamName,
+    llzkStruct_StructDefOpIsMainComponent,
 };
 use melior::{
     StringRef,
     ir::{
-        Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Location, Operation,
+        Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
         OperationRef, Region, RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
         attribute::{ArrayAttribute, FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
         operation::{OperationBuilder, OperationLike, OperationMutLike},
@@ -40,7 +42,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     ///
     /// If the 'struct.def' op type is not `!struct.type`.
     fn r#type(&self) -> StructType<'c> {
-        unsafe { Type::from_raw(llzkStructDefOpGetType(self.to_raw())) }
+        unsafe { Type::from_raw(llzkStruct_StructDefOpGetType(self.to_raw())) }
             .try_into()
             .expect("StructDefOpLike::type error")
     }
@@ -59,12 +61,12 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns the single body Region of the StructDefOp.
     fn body_region(&self) -> RegionRef<'c, 'a> {
-        unsafe { RegionRef::from_raw(llzkStructDefOpGetBodyRegion(self.to_raw())) }
+        unsafe { RegionRef::from_raw(llzkStruct_StructDefOpGetBodyRegion(self.to_raw())) }
     }
 
     /// Returns the single body Block within the StructDefOp's Region.
     fn body(&self) -> BlockRef<'c, 'a> {
-        unsafe { BlockRef::from_raw(llzkStructDefOpGetBody(self.to_raw())) }
+        unsafe { BlockRef::from_raw(llzkStruct_StructDefOpGetBody(self.to_raw())) }
     }
 
     /// Returns the associated StructType to this op using the given const params instead of the
@@ -75,7 +77,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// If the 'struct.def' op type is not `!struct.type`.
     fn type_with_params(&self, params: ArrayAttribute<'c>) -> StructType<'c> {
         unsafe {
-            Type::from_raw(llzkStructDefOpGetTypeWithParams(
+            Type::from_raw(llzkStruct_StructDefOpGetTypeWithParams(
                 self.to_raw(),
                 params.to_raw(),
             ))
@@ -90,8 +92,12 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     ///
     /// If the nested symbol operation with the given name is not a `struct.member`.
     fn get_member_def(&self, name: &str) -> Option<MemberDefOpRef<'c, 'a>> {
-        let name = StringRef::new(name);
-        let raw_op = unsafe { llzkStructDefOpGetMemberDef(self.to_raw(), name.to_raw()) };
+        let raw_op = unsafe {
+            llzkStruct_StructDefOpGetMemberDef(
+                self.to_raw(),
+                Identifier::new(self.context().to_ref(), name).to_raw(),
+            )
+        };
         if raw_op.ptr.is_null() {
             return None;
         }
@@ -131,10 +137,11 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// If any of the result operations is not a `struct.member` op.
     fn get_member_defs(&self) -> Vec<MemberDefOpRef<'c, '_>> {
         let num_members =
-            usize::try_from(unsafe { llzkStructDefOpGetNumMemberDefs(self.to_raw()) }).unwrap();
+            usize::try_from(unsafe { llzkStruct_StructDefOpGetNumMemberDefs(self.to_raw()) })
+                .unwrap();
         let mut raw_ops: Vec<MlirOperation> = Vec::with_capacity(num_members);
         unsafe {
-            llzkStructDefOpGetMemberDefs(self.to_raw(), raw_ops.as_mut_ptr());
+            llzkStruct_StructDefOpGetMemberDefs(self.to_raw(), raw_ops.as_mut_ptr());
             raw_ops.set_len(num_members);
         };
         raw_ops
@@ -149,7 +156,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns true if the struct has members marked as columns.
     fn has_columns(&self) -> bool {
-        unsafe { llzkStructDefOpGetHasColumns(self.to_raw()) }.value != 0
+        unsafe { llzkStruct_StructDefOpHasColumns(self.to_raw()) }.value != 0
     }
 
     /// Returns a [`FuncDefOpRef`] reference to the operation that defines the witness computation
@@ -159,7 +166,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     ///
     /// If the result operation is not a `function.def`.
     fn get_compute_func<'b>(&self) -> Option<FuncDefOpRef<'c, 'b>> {
-        let raw_op = unsafe { llzkStructDefOpGetComputeFuncOp(self.to_raw()) };
+        let raw_op = unsafe { llzkStruct_StructDefOpGetComputeFuncOp(self.to_raw()) };
         if raw_op.ptr.is_null() {
             return None;
         }
@@ -177,7 +184,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     ///
     /// If the result operation is not a `function.def`.
     fn get_constrain_func<'b>(&self) -> Option<FuncDefOpRef<'c, 'b>> {
-        let raw_op = unsafe { llzkStructDefOpGetConstrainFuncOp(self.to_raw()) };
+        let raw_op = unsafe { llzkStruct_StructDefOpGetConstrainFuncOp(self.to_raw()) };
         if raw_op.ptr.is_null() {
             return None;
         }
@@ -191,7 +198,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns true if the struct has a parameter with the given name.
     fn has_param_name(&self, name: &str) -> bool {
         let name = StringRef::new(name);
-        unsafe { llzkStructDefOpGetHasParamName(self.to_raw(), name.to_raw()) }
+        unsafe { llzkStruct_StructDefOpHasParamName(self.to_raw(), name.to_raw()) }
     }
 
     /// Returns a StringAttr with the fully qualified name of the struct.
@@ -201,7 +208,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns true if the struct is the main entry point of the circuit.
     fn is_main_component(&self) -> bool {
-        unsafe { llzkStructDefOpGetIsMainComponent(self.to_raw()) }
+        unsafe { llzkStruct_StructDefOpIsMainComponent(self.to_raw()) }
     }
 }
 
@@ -215,7 +222,11 @@ pub trait StructDefOpMutLike<'c: 'a, 'a>:
 // StructDefOp, StructDefOpRef, and StructDefOpRefMut
 //===----------------------------------------------------------------------===//
 
-llzk_op_type!(StructDefOp, llzkOperationIsAStructDefOp, "struct.def");
+llzk_op_type!(
+    StructDefOp,
+    llzkOperationIsA_Struct_StructDefOp,
+    "struct.def"
+);
 
 impl<'a, 'c: 'a> StructDefOpLike<'c, 'a> for StructDefOp<'c> {}
 
@@ -235,13 +246,13 @@ impl<'a, 'c: 'a> StructDefOpMutLike<'c, 'a> for StructDefOpRefMut<'c, 'a> {}
 pub trait MemberDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns true if the member op has a `llzk.pub` attribute.
     fn has_public_attr(&self) -> bool {
-        unsafe { llzkMemberDefOpGetHasPublicAttr(self.to_raw()) }
+        unsafe { llzkStruct_MemberDefOpHasPublicAttr(self.to_raw()) }
     }
 
     /// Sets or unsets the `llzk.pub` attribute.
     fn set_public_attr(&self, value: bool) {
         unsafe {
-            llzkMemberDefOpSetPublicAttr(self.to_raw(), value);
+            llzkStruct_MemberDefOpSetPublicAttr(self.to_raw(), value);
         }
     }
 
@@ -274,7 +285,11 @@ pub trait MemberDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 // MemberDefOp, MemberDefOpRef, MemberDefOpRefMut
 //===----------------------------------------------------------------------===//
 
-llzk_op_type!(MemberDefOp, llzkOperationIsAMemberDefOp, "struct.member");
+llzk_op_type!(
+    MemberDefOp,
+    llzkOperationIsA_Struct_MemberDefOp,
+    "struct.member"
+);
 
 impl<'a, 'c: 'a> MemberDefOpLike<'c, 'a> for MemberDefOp<'c> {}
 
@@ -382,14 +397,13 @@ pub fn readm<'c>(
     component: Value<'c, '_>,
     member_name: &str,
 ) -> Result<Operation<'c>, Error> {
-    let member_name = StringRef::new(member_name);
     unsafe {
-        let raw = llzkMemberReadOpBuild(
+        let raw = llzkStruct_MemberReadOpBuild(
             builder.to_raw(),
             location.to_raw(),
             result_type.to_raw(),
             component.to_raw(),
-            member_name.to_raw(),
+            Identifier::new(result_type.context().to_ref(), member_name).to_raw(),
         );
         if raw.ptr.is_null() {
             Err(Error::BuildMethodFailed("readm"))

@@ -1,7 +1,7 @@
 //! Implementation of `!felt.type` type.
 
 use crate::utils::IsA;
-use llzk_sys::{llzkFeltTypeGet, llzkTypeIsAFeltType};
+use llzk_sys::{llzkFelt_FeltTypeGetUnspecified, llzkTypeIsA_Felt_FeltType};
 use melior::{
     Context,
     ir::{Type, TypeLike},
@@ -23,7 +23,7 @@ impl<'c> FeltType<'c> {
 
     /// Creates a new felt type.
     pub fn new(ctx: &'c Context) -> Self {
-        unsafe { Self::from_raw(llzkFeltTypeGet(ctx.to_raw())) }
+        unsafe { Self::from_raw(llzkFelt_FeltTypeGetUnspecified(ctx.to_raw())) }
     }
 }
 
@@ -37,7 +37,7 @@ impl<'c> TryFrom<Type<'c>> for FeltType<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Type<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkTypeIsAFeltType(t.to_raw()) } {
+        if unsafe { llzkTypeIsA_Felt_FeltType(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::TypeExpected("llzk felt", t.to_string()))

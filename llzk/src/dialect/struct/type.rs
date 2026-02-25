@@ -5,8 +5,11 @@ use crate::error::Error;
 use crate::symbol_lookup::SymbolLookupResult;
 use crate::utils::FromRaw;
 use crate::utils::IsA;
-use llzk_sys::llzkStructTypeGetParams;
-use llzk_sys::{llzkStructTypeGetName, llzkStructTypeGetWithArrayAttr, llzkTypeIsAStructType};
+use llzk_sys::llzkStruct_StructTypeGetParams;
+use llzk_sys::{
+    llzkStruct_StructTypeGetNameRef, llzkStruct_StructTypeGetWithArrayAttr,
+    llzkTypeIsA_Struct_StructType,
+};
 use melior::ir::Module;
 use melior::ir::operation::OperationLike;
 use melior::{
@@ -29,7 +32,7 @@ impl<'c> StructType<'c> {
     /// `struct.def` operation.
     pub fn new(name: FlatSymbolRefAttribute<'c>, params: &[Attribute<'c>]) -> Self {
         unsafe {
-            Self::from_raw(llzkStructTypeGetWithArrayAttr(
+            Self::from_raw(llzkStruct_StructTypeGetWithArrayAttr(
                 name.to_raw(),
                 ArrayAttribute::new(name.context().to_ref(), params).to_raw(),
             ))
@@ -55,7 +58,7 @@ impl<'c> StructType<'c> {
     /// Get the struct's name.
     pub fn name(&self) -> FlatSymbolRefAttribute<'c> {
         FlatSymbolRefAttribute::try_from(unsafe {
-            Attribute::from_raw(llzkStructTypeGetName(self.to_raw()))
+            Attribute::from_raw(llzkStruct_StructTypeGetNameRef(self.to_raw()))
         })
         .expect("struct type must be constructed from FlatSymbolRefAttribute")
     }
@@ -63,7 +66,7 @@ impl<'c> StructType<'c> {
     /// Get the struct's params.
     pub fn params(&self) -> ArrayAttribute<'c> {
         ArrayAttribute::try_from(unsafe {
-            Attribute::from_raw(llzkStructTypeGetParams(self.to_raw()))
+            Attribute::from_raw(llzkStruct_StructTypeGetParams(self.to_raw()))
         })
         .expect("struct type's params must be an array attribute")
     }
@@ -132,7 +135,7 @@ impl<'c> TryFrom<Type<'c>> for StructType<'c> {
     type Error = melior::Error;
 
     fn try_from(t: Type<'c>) -> Result<Self, Self::Error> {
-        if unsafe { llzkTypeIsAStructType(t.to_raw()) } {
+        if unsafe { llzkTypeIsA_Struct_StructType(t.to_raw()) } {
             Ok(unsafe { Self::from_raw(t.to_raw()) })
         } else {
             Err(Self::Error::TypeExpected("llzk struct", t.to_string()))

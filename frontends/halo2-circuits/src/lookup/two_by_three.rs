@@ -75,7 +75,7 @@ impl<F: Field> Lookup2x3Chip<F> {
     // Utility function for creating a field element from a native value. Complexity is O(n) where
     // n is the value of the number so don't use very large numbers with this.
     fn f(&self, n: usize) -> Value<F> {
-        Value::known(iter::repeat(F::ONE).take(n).sum())
+        Value::known(iter::repeat_n(F::ONE, n).sum())
     }
 
     #[allow(clippy::type_complexity)]
@@ -87,7 +87,7 @@ impl<F: Field> Lookup2x3Chip<F> {
                 let snd = [7, 11, 13];
 
                 fst.into_iter()
-                    .zip(snd.into_iter())
+                    .zip(snd)
                     .enumerate()
                     .flat_map(|(offset, (x, y))| [(offset, x), (offset, y)])
                     .map(|(offset, n)| (offset, self.f(n)))
