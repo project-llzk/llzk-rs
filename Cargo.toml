@@ -1,14 +1,9 @@
 [workspace]
 members = [ 
-  "frontends/halo2", 
-  "frontends/halo2-core", 
-  "frontends/halo2-midnight", 
-  "frontends/halo2-circuits", 
   "llzk",
   "llzk-sys",
   "llzk-sys/build-support",
   "llzk-macro",
-  "picus"
 ]
 resolver = "2"
 
