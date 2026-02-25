@@ -90,7 +90,8 @@ impl BindgenConfig for DefaultConfig<'_> {
             .impl_debug(true)
             .header(self.wrapper())
             .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
-        BindgenConfig::apply(&self.mlir, bindgen)
+        let bindgen = BindgenConfig::apply(&self.mlir, bindgen)?;
+        BindgenConfig::apply(&self.pcl, bindgen)
     }
 }
 
