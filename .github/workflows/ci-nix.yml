@@ -59,9 +59,5 @@ jobs:
         uses: nicknovitski/nix-develop@v1
         env:
           CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
-      - name: Debug prints 
-        run: |
-          echo "Prefix"
-          tree $LLZK_PCL_PREFIX
       - name: Run clippy
         run: cargo clippy --all-features -- --no-deps
