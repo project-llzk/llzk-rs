@@ -1,11 +1,13 @@
 use llzk_sys::{
-    llzkAttributeIsA_Felt_FeltConstAttr, llzkFelt_FeltConstAttrGetFromPartsUnspecified,
-    llzkFelt_FeltConstAttrGetFromStringUnspecified, llzkFelt_FeltConstAttrGetUnspecified,
+    llzkAttributeIsA_Felt_FeltConstAttr, llzkFelt_FeltConstAttrGet,
+    llzkFelt_FeltConstAttrGetFromParts, llzkFelt_FeltConstAttrGetFromPartsUnspecified,
+    llzkFelt_FeltConstAttrGetFromString, llzkFelt_FeltConstAttrGetFromStringUnspecified,
+    llzkFelt_FeltConstAttrGetUnspecified, llzkFelt_FeltConstAttrGetWithBits,
     llzkFelt_FeltConstAttrGetWithBitsUnspecified,
 };
 use melior::{
     Context, StringRef,
-    ir::{Attribute, AttributeLike},
+    ir::{Attribute, AttributeLike, Identifier},
 };
 use mlir_sys::MlirAttribute;
 
@@ -26,36 +28,65 @@ impl<'c> FeltConstAttribute<'c> {
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] from an unsigned integer.
-    pub fn new(ctx: &'c Context, value: u64) -> Self {
-        unsafe {
-            Self::from_raw(llzkFelt_FeltConstAttrGetUnspecified(
-                ctx.to_raw(),
-                value as i64,
-            ))
+    /// Creates a [`FeltConstAttribute`] from an unsigned integer and optional field specification.
+    pub fn new(ctx: &'c Context, value: u64, field: Option<&str>) -> Self {
+        match field {
+            Some(field) => unsafe {
+                Self::from_raw(llzkFelt_FeltConstAttrGet(
+                    ctx.to_raw(),
+                    value as i64,
+                    Identifier::new(ctx, field).to_raw(),
+                ))
+            },
+            None => unsafe {
+                Self::from_raw(llzkFelt_FeltConstAttrGetUnspecified(
+                    ctx.to_raw(),
+                    value as i64,
+                ))
+            },
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] from a 64 bit value and a set bit width.
-    pub fn new_with_bitlen(ctx: &'c Context, bitlen: u32, value: u64) -> Self {
-        unsafe {
-            Self::from_raw(llzkFelt_FeltConstAttrGetWithBitsUnspecified(
-                ctx.to_raw(),
-                bitlen,
-                value as i64,
-            ))
+    /// Creates a [`FeltConstAttribute`] from a 64 bit value and a set bit width and optional field specification.
+    pub fn new_with_bitlen(ctx: &'c Context, bitlen: u32, value: u64, field: Option<&str>) -> Self {
+        match field {
+            Some(field) => unsafe {
+                Self::from_raw(llzkFelt_FeltConstAttrGetWithBits(
+                    ctx.to_raw(),
+                    bitlen,
+                    value as i64,
+                    Identifier::new(ctx, field).to_raw(),
+                ))
+            },
+            None => unsafe {
+                Self::from_raw(llzkFelt_FeltConstAttrGetWithBitsUnspecified(
+                    ctx.to_raw(),
+                    bitlen,
+                    value as i64,
+                ))
+            },
         }
     }
 
     /// Creates a [`FeltConstAttribute`] from a base 10 string representation.
-    pub fn parse(ctx: &'c Context, bitlen: u32, value: &str) -> Self {
+    pub fn parse(ctx: &'c Context, bitlen: u32, value: &str, field: Option<&str>) -> Self {
         let value = StringRef::new(value);
-        unsafe {
-            Self::from_raw(llzkFelt_FeltConstAttrGetFromStringUnspecified(
-                ctx.to_raw(),
-                bitlen,
-                value.to_raw(),
-            ))
+        match field {
+            Some(field) => unsafe {
+                Self::from_raw(llzkFelt_FeltConstAttrGetFromString(
+                    ctx.to_raw(),
+                    bitlen,
+                    value.to_raw(),
+                    Identifier::new(ctx, field).to_raw(),
+                ))
+            },
+            None => unsafe {
+                Self::from_raw(llzkFelt_FeltConstAttrGetFromStringUnspecified(
+                    ctx.to_raw(),
+                    bitlen,
+                    value.to_raw(),
+                ))
+            },
         }
     }
 
@@ -64,18 +95,29 @@ impl<'c> FeltConstAttribute<'c> {
     /// If the number represented by the parts is unsigned set the bit length to at least one more
     /// than the minimum number of bits required to represent it. Otherwise the number will be
     /// interpreted as signed and may cause unexpected behaviors.
-    pub fn from_parts(ctx: &'c Context, bitlen: u32, parts: &[u64]) -> Self {
+    pub fn from_parts(ctx: &'c Context, bitlen: u32, parts: &[u64], field: Option<&str>) -> Self {
         // Special case for empty parts array
         if parts.is_empty() {
-            return Self::new_with_bitlen(ctx, bitlen, 0);
+            return Self::new_with_bitlen(ctx, bitlen, 0, field);
         }
-        unsafe {
-            Self::from_raw(llzkFelt_FeltConstAttrGetFromPartsUnspecified(
-                ctx.to_raw(),
-                bitlen,
-                parts.as_ptr(),
-                parts.len() as isize,
-            ))
+        match field {
+            Some(field) => unsafe {
+                Self::from_raw(llzkFelt_FeltConstAttrGetFromParts(
+                    ctx.to_raw(),
+                    bitlen,
+                    parts.as_ptr(),
+                    parts.len() as isize,
+                    Identifier::new(ctx, field).to_raw(),
+                ))
+            },
+            None => unsafe {
+                Self::from_raw(llzkFelt_FeltConstAttrGetFromPartsUnspecified(
+                    ctx.to_raw(),
+                    bitlen,
+                    parts.as_ptr(),
+                    parts.len() as isize,
+                ))
+            },
         }
     }
 
@@ -85,11 +127,15 @@ impl<'c> FeltConstAttribute<'c> {
     ///
     /// If the number of bits required to represent the bigint plus one does not fit in 32 bits.
     #[cfg(feature = "bigint")]
-    pub fn from_biguint(ctx: &'c Context, value: &num_bigint::BigUint) -> Self {
+    pub fn from_biguint(
+        ctx: &'c Context,
+        value: &num_bigint::BigUint,
+        field: Option<&str>,
+    ) -> Self {
         // Increase by one to ensure the value is kept unsigned.
         let bitlen = value.bits() + 1;
         let parts = value.to_u64_digits();
-        Self::from_parts(ctx, bitlen.try_into().unwrap(), &parts)
+        Self::from_parts(ctx, bitlen.try_into().unwrap(), &parts, field)
     }
 }
 
@@ -133,7 +179,7 @@ impl<'c> From<FeltConstAttribute<'c>> for Attribute<'c> {
 
 #[cfg(test)]
 mod tests {
-    use std::ptr::null;
+    use std::{ops::Deref, ptr::null};
 
     use super::*;
     use crate::prelude::*;
@@ -142,22 +188,44 @@ mod tests {
         attribute::{IntegerAttribute, StringAttribute},
         r#type::IntegerType,
     };
+    use quickcheck::{Arbitrary, Gen};
     use quickcheck_macros::quickcheck;
     use simplelog::{Config, TestLogger};
 
+    #[derive(Clone, Debug)]
+    struct FieldArg(Option<String>);
+
+    impl Arbitrary for FieldArg {
+        fn arbitrary(g: &mut Gen) -> Self {
+            if bool::arbitrary(g) {
+                Self(None)
+            } else {
+                Self(Some("mersenne31".to_string()))
+            }
+        }
+    }
+
+    impl Deref for FieldArg {
+        type Target = Option<String>;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
     #[quickcheck]
-    fn felt_const_attr_new(value: u64) {
+    fn felt_const_attr_new(value: u64, field: FieldArg) {
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
-        let f = FeltConstAttribute::new(&ctx, value);
+        let f = FeltConstAttribute::new(&ctx, value, field.as_deref());
         assert_ne!(f.to_raw().ptr, null());
     }
 
     #[quickcheck]
-    fn felt_const_attr_conversion(value: u64) {
+    fn felt_const_attr_conversion(value: u64, field: FieldArg) {
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
-        let f = FeltConstAttribute::new(&ctx, value);
+        let f = FeltConstAttribute::new(&ctx, value, field.as_deref());
         let attr: Attribute = f.into();
         let f: FeltConstAttribute = attr.try_into().unwrap();
         assert_ne!(f.to_raw().ptr, null());
@@ -179,10 +247,10 @@ mod tests {
     }
 
     #[quickcheck]
-    fn felt_const_attr_parse_from_u64(value: u64) {
+    fn felt_const_attr_parse_from_u64(value: u64, field: FieldArg) {
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
-        let f = FeltConstAttribute::parse(&ctx, 64, &value.to_string());
+        let f = FeltConstAttribute::parse(&ctx, 64, &value.to_string(), field.as_deref());
         assert_ne!(f.to_raw().ptr, null());
     }
 
@@ -208,7 +276,7 @@ mod tests {
 
             let _ = TestLogger::init(LevelFilter::Debug, Config::default());
             let ctx = LlzkContext::new();
-            let f = FeltConstAttribute::from_biguint(&ctx, &value);
+            let f = FeltConstAttribute::from_biguint(&ctx, &value, None);
             assert_ne!(f.to_raw().ptr, null());
         }
     }

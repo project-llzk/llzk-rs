@@ -114,7 +114,7 @@ mod tests {
         let ctx = LlzkContext::new();
         let op = constant(
             Location::unknown(&ctx),
-            FeltConstAttribute::new(&ctx, value),
+            FeltConstAttribute::new(&ctx, value, None),
         )
         .unwrap();
         assert!(op.verify(), "operation {op:?} failed verification");
@@ -125,7 +125,7 @@ mod tests {
         let ctx = LlzkContext::new();
         let op = constant(
             Location::unknown(&ctx),
-            FeltConstAttribute::new(&ctx, value),
+            FeltConstAttribute::new(&ctx, value, None),
         )
         .unwrap();
         assert!(is_felt_const(&op), "operation {op:?} failed isa test");
