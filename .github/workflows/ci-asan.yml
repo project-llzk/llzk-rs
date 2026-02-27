@@ -39,6 +39,12 @@ jobs:
       - name: Verify LLVM & MLIR installation
         run: |
           $LLVM_BIN/llvm-config --version --assertion-mode
+      - name: Install PCL MLIR 
+        uses: ./.github/actions/install-pcl-mlir
+        with:
+          ref: a82620c4dabf6e51ceda66bba2abb19f7f74ac7d
+          type: ${{ matrix.cmake_build_type }}
+          mlir-dir: ${{ env.MLIR_SYS_200_PREFIX }}
       - name: Cache cargo crates
         uses: actions/cache@v4
         with:

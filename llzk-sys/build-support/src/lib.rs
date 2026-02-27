@@ -7,17 +7,18 @@
 use std::{io::stdout, path::Path};
 
 use crate::{
-    compile_commands::CompileCommands,
-    config_traits::cmake::CMakeConfig,
-    llzk::{LlzkBuild, whole_archive_config},
+    cargo_commands::whole_archive_config, compile_commands::CompileCommands,
+    config_traits::cmake::CMakeConfig, llzk::LlzkBuild,
 };
 use anyhow::Result;
 
+mod cargo_commands;
 pub mod compile_commands;
 pub mod config_traits;
 pub mod default;
 pub mod llzk;
 pub mod mlir;
+mod pcl;
 pub mod wrap_static_fns;
 
 /// Builds `llzk-lib` and emits the cargo instructions to link against it.

@@ -30,6 +30,7 @@ mlir-testutils = {version = "0.1", features = ["similar-asserts"]}
 [features]
 default = []
 bigint = ["num-bigint"]
+pcl-backend = ["llzk-sys/pcl-backend"]
 
 [[example]]
 name = "division"

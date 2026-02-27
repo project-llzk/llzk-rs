@@ -15,9 +15,9 @@ use super::config_traits::{bindgen::BindgenConfig, cc::CCConfig, cmake::CMakeCon
 const LLVM_MAJOR_VERSION: usize = 20;
 
 /// Configuration specific to linking MLIR and LLVM.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct MlirConfig<'a> {
-    passes: &'a [&'a str],
+    passes: Vec<&'a str>,
     mlir_functions: &'a [&'a str],
     mlir_types: &'a [&'a str],
 }
@@ -25,7 +25,7 @@ pub struct MlirConfig<'a> {
 impl<'a> MlirConfig<'a> {
     /// Creates a new MLIR configuration.
     pub const fn new(
-        passes: &'a [&'a str],
+        passes: Vec<&'a str>,
         mlir_functions: &'a [&'a str],
         mlir_types: &'a [&'a str],
     ) -> Self {

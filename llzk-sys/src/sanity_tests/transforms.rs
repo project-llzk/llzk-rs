@@ -10,6 +10,10 @@ use crate::{
     mlirRegisterLLZKTransformationUnusedDeclarationEliminationPass,
     sanity_tests::{TestContext, context},
 };
+#[cfg(feature = "pcl-backend")]
+use crate::{
+    mlirCreatePCLTransformationPCLLoweringPass, mlirRegisterPCLTransformationPCLLoweringPass,
+};
 
 #[cfg(test)]
 #[allow(unused_variables)]
@@ -24,6 +28,8 @@ mod tests {
             mlirRegisterLLZKTransformationRedundantOperationEliminationPass();
             mlirRegisterLLZKTransformationRedundantReadAndWriteEliminationPass();
             mlirRegisterLLZKTransformationUnusedDeclarationEliminationPass();
+            #[cfg(feature = "pcl-backend")]
+            mlirRegisterPCLTransformationPCLLoweringPass();
         });
     }
 
@@ -38,9 +44,13 @@ mod tests {
             let pass1 = mlirCreateLLZKTransformationRedundantOperationEliminationPass();
             let pass2 = mlirCreateLLZKTransformationRedundantReadAndWriteEliminationPass();
             let pass3 = mlirCreateLLZKTransformationUnusedDeclarationEliminationPass();
+            #[cfg(feature = "pcl-backend")]
+            let pass4 = mlirCreatePCLTransformationPCLLoweringPass();
             mlirPassManagerAddOwnedPass(manager, pass1);
             mlirPassManagerAddOwnedPass(manager, pass2);
             mlirPassManagerAddOwnedPass(manager, pass3);
+            #[cfg(feature = "pcl-backend")]
+            mlirPassManagerAddOwnedPass(manager, pass4);
 
             mlirPassManagerDestroy(manager);
         }
@@ -83,6 +93,19 @@ mod tests {
             let manager = mlirPassManagerCreate(context.ctx);
 
             let pass = mlirCreateLLZKTransformationUnusedDeclarationEliminationPass();
+            mlirPassManagerAddOwnedPass(manager, pass);
+
+            mlirPassManagerDestroy(manager);
+        }
+    }
+
+    #[cfg(feature = "pcl-backend")]
+    #[rstest]
+    fn test_mlir_register_pcl_lowering_pass_and_create(register_passes: (), context: TestContext) {
+        unsafe {
+            let manager = mlirPassManagerCreate(context.ctx);
+
+            let pass = mlirCreatePCLTransformationPCLLoweringPass();
             mlirPassManagerAddOwnedPass(manager, pass);
 
             mlirPassManagerDestroy(manager);

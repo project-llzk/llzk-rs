@@ -14,6 +14,11 @@ jobs:
         BUILD_TARGET:
           - release
           - dev
+        include:
+          - BUILD_TARGET: release 
+            cmake_build_type: Release
+          - BUILD_TARGET: dev 
+            cmake_build_type: Debug
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,6 +42,12 @@ jobs:
       - name: Verify LLVM & MLIR installation
         run: |
           $LLVM_BIN/llvm-config --version --assertion-mode
+      - name: Install PCL MLIR 
+        uses: ./.github/actions/install-pcl-mlir
+        with:
+          ref: a82620c4dabf6e51ceda66bba2abb19f7f74ac7d
+          type: ${{ matrix.cmake_build_type }}
+          mlir-dir: ${{ env.MLIR_SYS_200_PREFIX }}
       - name: Cache cargo crates
         uses: actions/cache@v4
         with:

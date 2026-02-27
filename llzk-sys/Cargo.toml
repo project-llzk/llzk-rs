@@ -30,7 +30,6 @@ exclude = [
   "/llzk-lib/README.md",
 ]
 
-
 [dependencies]
 mlir-sys = { workspace = true }
 
@@ -40,3 +39,7 @@ anyhow = "1"
 
 [dev-dependencies]
 rstest = "0.25.0"
+
+[features]
+default = []
+pcl-backend = []
