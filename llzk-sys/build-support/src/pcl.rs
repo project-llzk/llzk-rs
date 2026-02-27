@@ -90,7 +90,7 @@ impl PclConfig {
     }
 
     fn expanded_lib_path(&self) -> Result<Vec<PathBuf>> {
-        // PCL could leave it's libraries in the inner directories instead of everything on the
+        // PCL could leave its libraries in the inner directories instead of everything on the
         // root. This function looks in either place.
         let lib_path = self.lib_path()?;
         Ok([
