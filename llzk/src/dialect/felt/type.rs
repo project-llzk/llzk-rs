@@ -15,7 +15,7 @@ pub struct FeltType<'c> {
 }
 
 impl<'c> FeltType<'c> {
-    unsafe fn from_raw(raw: MlirType) -> Self {
+    pub(super) unsafe fn from_raw(raw: MlirType) -> Self {
         Self {
             r#type: unsafe { Type::from_raw(raw) },
         }

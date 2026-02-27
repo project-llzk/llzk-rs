@@ -1,19 +1,19 @@
 use crate::{error::Error, ident};
 
-use super::{FeltConstAttribute, FeltType};
+use super::FeltConstAttribute;
 use melior::ir::{
-    Location, Operation, Value,
+    Location, Operation, Type, Value, ValueLike as _,
     operation::{OperationBuilder, OperationLike},
 };
 
 fn build_op<'c>(
     name: &str,
     location: Location<'c>,
+    result: Type<'c>,
     operands: &[Value<'c, '_>],
 ) -> Result<Operation<'c>, Error> {
-    let ctx = location.context();
     OperationBuilder::new(format!("felt.{name}").as_str(), location)
-        .add_results(&[FeltType::new(unsafe { ctx.to_ref() }).into()])
+        .add_results(&[result])
         .add_operands(operands)
         .build()
         .map_err(Into::into)
@@ -30,7 +30,7 @@ macro_rules! binop {
             lhs: Value<'c, '_>,
             rhs: Value<'c, '_>,
         ) -> Result<Operation<'c>, Error> {
-            build_op($opname, location, &[lhs, rhs])
+            build_op($opname, location, lhs.r#type(), &[lhs, rhs])
         }
 
         paste::paste! {
@@ -53,7 +53,7 @@ macro_rules! unop {
             location: Location<'c>,
             value: Value<'c, '_>,
         ) -> Result<Operation<'c>, Error> {
-            build_op($opname, location, &[value])
+            build_op($opname, location, value.r#type(), &[value])
         }
 
         paste::paste! {
@@ -91,7 +91,7 @@ pub fn constant<'c>(
 ) -> Result<Operation<'c>, Error> {
     let ctx = location.context();
     OperationBuilder::new("felt.const", location)
-        .add_results(&[FeltType::new(unsafe { ctx.to_ref() }).into()])
+        .add_results(&[value.r#type().into()])
         .add_attributes(&[(ident!(ctx, "value"), value.into())])
         .build()
         .map_err(Into::into)

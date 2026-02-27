@@ -2,14 +2,16 @@ use llzk_sys::{
     llzkAttributeIsA_Felt_FeltConstAttr, llzkFelt_FeltConstAttrGet,
     llzkFelt_FeltConstAttrGetFromParts, llzkFelt_FeltConstAttrGetFromPartsUnspecified,
     llzkFelt_FeltConstAttrGetFromString, llzkFelt_FeltConstAttrGetFromStringUnspecified,
-    llzkFelt_FeltConstAttrGetUnspecified, llzkFelt_FeltConstAttrGetWithBits,
-    llzkFelt_FeltConstAttrGetWithBitsUnspecified,
+    llzkFelt_FeltConstAttrGetType, llzkFelt_FeltConstAttrGetUnspecified,
+    llzkFelt_FeltConstAttrGetWithBits, llzkFelt_FeltConstAttrGetWithBitsUnspecified,
 };
 use melior::{
     Context, StringRef,
     ir::{Attribute, AttributeLike, Identifier},
 };
 use mlir_sys::MlirAttribute;
+
+use super::FeltType;
 
 /// A constant finite field element.
 #[derive(Clone, Copy)]
@@ -136,6 +138,11 @@ impl<'c> FeltConstAttribute<'c> {
         let bitlen = value.bits() + 1;
         let parts = value.to_u64_digits();
         Self::from_parts(ctx, bitlen.try_into().unwrap(), &parts, field)
+    }
+
+    /// Returns the felt type of the attribute.
+    pub fn r#type(&self) -> FeltType<'c> {
+        unsafe { FeltType::from_raw(llzkFelt_FeltConstAttrGetType(self.to_raw())) }
     }
 }
 
