@@ -20,7 +20,7 @@ fn f_constant() {
     {
         let block = Block::new(&[]);
         let felt = block.append_operation(
-            dialect::felt::constant(loc, FeltConstAttribute::new(&context, 42)).unwrap(),
+            dialect::felt::constant(loc, FeltConstAttribute::new(&context, 42, None)).unwrap(),
         );
         block.append_operation(dialect::function::r#return(
             loc,
