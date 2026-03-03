@@ -11,7 +11,7 @@ use crate::error::Error;
 /// Translate module to PCL lisp format using the given callback to write the
 /// translation. The user_data is passed as the second argument to the cb, with
 /// the first argument being from text of the translation.
-// #[cfg(feature = "pcl-backend")]
+#[cfg(feature = "pcl-backend")]
 pub unsafe fn translate_module_to_pcl_with_cb<'ctx>(
     module: &Module<'ctx>,
     cb: unsafe extern "C" fn(MlirStringRef, *mut c_void),
@@ -37,7 +37,7 @@ unsafe extern "C" fn writer_callback<W: Write>(s: MlirStringRef, user_data: *mut
 }
 
 /// Translate module to PCL lisp format, writing the translation to `writer`.
-// #[cfg(feature = "pcl-backend")]
+#[cfg(feature = "pcl-backend")]
 pub fn translate_module_to_pcl<'ctx, W: Write>(
     module: &Module<'ctx>,
     writer: &mut W,
