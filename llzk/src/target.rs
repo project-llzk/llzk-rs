@@ -1,6 +1,6 @@
 //! Interface to LLZK targets
 
-use std::{ffi::c_void, io::Write};
+use std::{ffi::c_void, fmt::Write};
 
 use melior::{ir::Module, StringRef};
 
