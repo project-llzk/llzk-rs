@@ -114,7 +114,7 @@ impl<'s> LlzkBuild<'s> {
         path.is_dir().then_some(path)
     }
 
-    fn include_paths(&self) -> Vec<Cow<Path>> {
+    fn include_paths(&self) -> Vec<Cow<'_, Path>> {
         // Base paths that we always include.
         [
             Cow::Borrowed(self.dst_path()),

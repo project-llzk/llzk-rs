@@ -23,6 +23,7 @@ pub mod symbol_ref;
 mod test;
 pub mod utils;
 pub mod value_ext;
+pub mod target;
 
 /// Adds all LLZK dialects into the given registry.
 pub fn register_all_llzk_dialects(registry: &DialectRegistry) {
