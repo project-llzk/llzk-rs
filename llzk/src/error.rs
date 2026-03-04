@@ -49,6 +49,9 @@ pub enum Error {
     ExpectedFunctionName(&'static str),
     /// General error containing only a message.
     GeneralError(&'static str),
+    /// Error emitted by the translation function.
+    #[cfg(feature = "pcl-backend")]
+    PclTranslationError,
 }
 
 impl error::Error for Error {}
@@ -132,6 +135,8 @@ impl Display for Error {
             Error::GeneralError(msg) => write!(f, "{msg}"),
             Error::SymbolNotFound(sym) => write!(f, "symbol was not found: {sym}"),
             Error::AttributeExpected(attr, actual) => write!(f, "{attr} attr expected: {actual}"),
+            #[cfg(feature = "pcl-backend")]
+            Error::PclTranslationError => write!(f, "failed to translate IR into PCL lisp"),
         }
     }
 }
