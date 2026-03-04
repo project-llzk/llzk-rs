@@ -59,9 +59,9 @@ mod tests {
         let expected_lisp = include_str!("test_files/translation_to_pcl.pcl");
 
         let mut module = Module::parse(&ctx, module_ir).unwrap();
-        let pm = PassManager::new(&ctx);
-        pm.add_pass(llzk::passes::create_pcl_lowering_pass());
-        pm.run(module).unwrap();
+        let pm = melior::pass::PassManager::new(&ctx);
+        pm.add_pass(crate::passes::create_pcl_lowering_pass());
+        pm.run(&mut module).unwrap();
         let output = translate_module(&module).expect("pcl translation");
         similar_asserts::assert_eq!(output, expected_lisp);
     }
