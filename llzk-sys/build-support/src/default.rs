@@ -41,6 +41,11 @@ impl<'a> DefaultConfig<'a> {
         "wrapper.h"
     }
 
+    /// Version of LLZK.
+    pub fn version(&self) -> &'static str {
+        "1.1.2"
+    }
+
     /// Returns the Clang directories for used by CMake to locate them.
     fn clang_cmake_flags(&self) -> Result<Vec<(&'static str, PathBuf)>> {
         Ok(vec![
@@ -64,7 +69,8 @@ impl CMakeConfig for DefaultConfig<'_> {
             // Force the install lib directory for consistency between Linux distros
             // See: https://stackoverflow.com/questions/76517286/how-does-cmake-decide-to-make-a-lib-or-lib64-directory-for-installations
             .define("CMAKE_INSTALL_LIBDIR", LIBDIR)
-            .define("BUILD_TESTING", "OFF");
+            .define("BUILD_TESTING", "OFF")
+            .define("LLZK_VERSION_OVERRIDE", self.version());
 
         for (k, v) in self.clang_cmake_flags()? {
             cmake.define(k, &*v);
