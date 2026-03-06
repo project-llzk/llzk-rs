@@ -1,16 +1,14 @@
 //! Implementation of the fundamenal configuration.
 
-use std::{io::stdout, path::PathBuf};
+use std::io::stdout;
 
 use anyhow::Result;
 use bindgen::Builder;
 use cc::Build;
-use cmake::Config;
 
 use crate::{
     cargo_commands::whole_archive_config,
-    config_traits::{bindgen::BindgenConfig, cc::CCConfig, cmake::CMakeConfig},
-    llzk::LIBDIR,
+    config_traits::{bindgen::BindgenConfig, cc::CCConfig},
     mlir::MlirConfig,
     pcl::PclConfig,
 };
@@ -41,42 +39,10 @@ impl<'a> DefaultConfig<'a> {
         "wrapper.h"
     }
 
-    /// Version of LLZK.
-    pub fn version(&self) -> &'static str {
-        "1.1.2"
-    }
-
-    /// Returns the Clang directories for used by CMake to locate them.
-    fn clang_cmake_flags(&self) -> Result<Vec<(&'static str, PathBuf)>> {
-        Ok(vec![
-            ("Clang_DIR", self.mlir.mlir_cmake_path()?),
-            ("Clang_ROOT", self.mlir.mlir_path()?),
-        ])
-    }
-
     /// Emits cargo commands.
     pub fn emit_cargo_commands(&self) -> Result<()> {
         self.pcl
             .emit_cargo_commands(stdout(), whole_archive_config())
-    }
-}
-
-impl CMakeConfig for DefaultConfig<'_> {
-    fn apply(&self, cmake: &mut Config) -> Result<()> {
-        cmake
-            .define("LLZK_BUILD_DEVTOOLS", "OFF")
-            .define("LLZK_ENABLE_BINDINGS_PYTHON", "OFF")
-            // Force the install lib directory for consistency between Linux distros
-            // See: https://stackoverflow.com/questions/76517286/how-does-cmake-decide-to-make-a-lib-or-lib64-directory-for-installations
-            .define("CMAKE_INSTALL_LIBDIR", LIBDIR)
-            .define("BUILD_TESTING", "OFF")
-            .define("LLZK_VERSION_OVERRIDE", self.version());
-
-        for (k, v) in self.clang_cmake_flags()? {
-            cmake.define(k, &*v);
-        }
-        CMakeConfig::apply(&self.pcl, cmake)?;
-        CMakeConfig::apply(&self.mlir, cmake)
     }
 }
 

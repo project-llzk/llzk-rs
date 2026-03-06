@@ -190,12 +190,7 @@ mod tests {
         "cargo:rustc-link-lib=static:-mod,-other=example"
     );
 
-    fn setup_llzk<'s>(
-        src: &'s Path,
-        dst: &Path,
-        libraries: &[&str],
-        others: &[&str],
-    ) -> LlzkBuild<'s> {
+    fn setup_llzk(dst: &Path, libraries: &[&str], others: &[&str]) -> LlzkBuild {
         let libdir = dst.join(LIBDIR);
         std::fs::create_dir(&libdir).unwrap();
         for l in libraries {
@@ -204,7 +199,7 @@ mod tests {
         for o in others {
             std::fs::write(libdir.join(o), []).unwrap();
         }
-        LlzkBuild::new(src, dst.to_owned())
+        LlzkBuild::new(dst.to_owned())
     }
 
     fn emit_commands(llzk: &LlzkBuild, wac: Option<bool>) -> Vec<String> {
@@ -222,16 +217,13 @@ mod tests {
 
     #[test]
     fn test_llzk_cargo_commands() {
-        let src = TempDir::with_prefix("src").unwrap();
         let dst = TempDir::with_prefix("dst").unwrap();
         let libraries = ["XXX", "YYY"];
         let others = ["other file"];
-        let llzk = setup_llzk(src.path(), dst.path(), &libraries, &others);
+        let llzk = setup_llzk(dst.path(), &libraries, &others);
 
         let commands = emit_commands(&llzk, None);
         let expected = vec![
-            format!("cargo:rerun-if-changed={}/include", src.path().display()),
-            format!("cargo:rerun-if-changed={}/lib", src.path().display()),
             "cargo:rustc-link-lib=static=XXX".to_string(),
             "cargo:rustc-link-lib=static=YYY".to_string(),
             format!(
@@ -244,16 +236,13 @@ mod tests {
 
     #[test]
     fn test_llzk_cargo_commands_no_whole_archive() {
-        let src = TempDir::with_prefix("src").unwrap();
         let dst = TempDir::with_prefix("dst").unwrap();
         let libraries = ["XXX", "YYY"];
         let others = ["other file"];
-        let llzk = setup_llzk(src.path(), dst.path(), &libraries, &others);
+        let llzk = setup_llzk(dst.path(), &libraries, &others);
 
         let commands = emit_commands(&llzk, Some(false));
         let expected = vec![
-            format!("cargo:rerun-if-changed={}/include", src.path().display()),
-            format!("cargo:rerun-if-changed={}/lib", src.path().display()),
             "cargo:rustc-link-lib=static:-whole-archive=XXX".to_string(),
             "cargo:rustc-link-lib=static:-whole-archive=YYY".to_string(),
             format!(
@@ -266,16 +255,13 @@ mod tests {
 
     #[test]
     fn test_llzk_cargo_commands_with_whole_archive() {
-        let src = TempDir::with_prefix("src").unwrap();
         let dst = TempDir::with_prefix("dst").unwrap();
         let libraries = ["XXX", "YYY"];
         let others = ["other file"];
-        let llzk = setup_llzk(src.path(), dst.path(), &libraries, &others);
+        let llzk = setup_llzk(dst.path(), &libraries, &others);
 
         let commands = emit_commands(&llzk, Some(true));
         let expected = vec![
-            format!("cargo:rerun-if-changed={}/include", src.path().display()),
-            format!("cargo:rerun-if-changed={}/lib", src.path().display()),
             "cargo:rustc-link-lib=static:+whole-archive=XXX".to_string(),
             "cargo:rustc-link-lib=static:+whole-archive=YYY".to_string(),
             format!(

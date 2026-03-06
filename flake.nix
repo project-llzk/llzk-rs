@@ -128,6 +128,7 @@
               TABLEGEN_200_PREFIX = "${mlir-with-llvm}";
               LLZK_PCL_ROOT = "${pcl-mlir-pkg}";
               LLZK_PCL_PREFIX = "${final.pcl-mlir}";
+              LLZK_SYS_10_PREFIX = "${final.llzk}";
               LIBCLANG_PATH = "${final.llzk-llvmPackages.libclang.lib}/lib";
               RUST_BACKTRACE = "1";
             };
@@ -161,8 +162,6 @@
               rec {
                 pname = "${packageName}-rs";
                 version = (final.lib.importTOML (./. + "/${packageName}/Cargo.toml")).package.version;
-                # Note: for this source to include the `llzk-lib` submodule, the nix command line
-                # must use `.?submodules=1`. For example, `nix build '.?submodules=1#llzk-rs'`.
                 src = ./.;
 
                 nativeBuildInputs = final.llzkSharedEnvironment.nativeBuildInputs;
