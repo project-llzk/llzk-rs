@@ -162,8 +162,6 @@
               rec {
                 pname = "${packageName}-rs";
                 version = (final.lib.importTOML (./. + "/${packageName}/Cargo.toml")).package.version;
-                # Note: for this source to include the `llzk-lib` submodule, the nix command line
-                # must use `.?submodules=1`. For example, `nix build '.?submodules=1#llzk-rs'`.
                 src = ./.;
 
                 nativeBuildInputs = final.llzkSharedEnvironment.nativeBuildInputs;

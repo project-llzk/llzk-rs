@@ -7,7 +7,6 @@
 
 use anyhow::{Context, Result};
 use llzk_sys_build_support::{
-    build_llzk,
     config_traits::{bindgen::BindgenConfig as _, cc::CCConfig as _},
     default::DefaultConfig,
     link_llzk,
@@ -74,13 +73,7 @@ fn run() -> Result<()> {
     let cfg = (
         &default_cfg,
         WrapStaticFns::new(Path::new(&out_dir)),
-        if feature_is_enabled("build-llzk") {
-            // In build mode, the LLZK dir points to the source directory.
-            build_llzk(Path::new(&llzk_dir), &default_cfg)?
-        } else {
-            // In non-build mode, it points to the installation directory.
-            link_llzk(PathBuf::from(llzk_dir))?
-        },
+        link_llzk(PathBuf::from(llzk_dir))?,
     );
     cfg.generate()?
         .write_to_file(Path::new(&out_dir).join("bindings.rs"))?;
