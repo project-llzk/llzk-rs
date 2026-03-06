@@ -5,14 +5,20 @@
 //! - Generate the Rust bindings for LLZK's CAPI using [`bindgen`].
 //! - Build and link the static functions defined in LLZK's CAPI.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use llzk_sys_build_support::{
     build_llzk,
     config_traits::{bindgen::BindgenConfig as _, cc::CCConfig as _},
     default::DefaultConfig,
+    link_llzk,
     wrap_static_fns::WrapStaticFns,
 };
-use std::{env, path::Path};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
+
+const LLZK_MAJOR_VERSION: u8 = 1;
 
 /// Default configuration of the build process.
 ///
@@ -34,7 +40,7 @@ fn create_default_cfg() -> DefaultConfig<'static> {
         "UnusedDeclarationElimination",
         "MemberWriteValidator",
     ];
-    let pcl_enabled = env::var_os("CARGO_FEATURE_PCL_BACKEND").is_some();
+    let pcl_enabled = feature_is_enabled("pcl-backend");
     if pcl_enabled {
         passes.push("PCLLowering");
     }
@@ -60,17 +66,33 @@ fn create_default_cfg() -> DefaultConfig<'static> {
 }
 
 fn run() -> Result<()> {
-    let out_dir = env::var("OUT_DIR")?;
+    let out_dir = env::var("OUT_DIR").context("OUT_DIR environment variable")?;
+    let llzk_prefix = format!("LLZK_SYS_{LLZK_MAJOR_VERSION}0_PREFIX");
+    let llzk_dir = env::var(&llzk_prefix).context(format!("{llzk_prefix} environment variable"))?;
     let default_cfg = create_default_cfg();
     default_cfg.emit_cargo_commands()?;
     let cfg = (
         &default_cfg,
         WrapStaticFns::new(Path::new(&out_dir)),
-        build_llzk(Path::new("llzk-lib"), &default_cfg)?,
+        if feature_is_enabled("build-llzk") {
+            // In build mode, the LLZK dir points to the source directory.
+            build_llzk(Path::new(&llzk_dir), &default_cfg)?
+        } else {
+            // In non-build mode, it points to the installation directory.
+            link_llzk(PathBuf::from(llzk_dir))?
+        },
     );
     cfg.generate()?
         .write_to_file(Path::new(&out_dir).join("bindings.rs"))?;
     cfg.try_compile("llzk-sys-cc")
+}
+
+fn feature_is_enabled(feature: &str) -> bool {
+    env::var_os(&format!(
+        "CARGO_FEATURE_{}",
+        feature.to_uppercase().replace("-", "_")
+    ))
+    .is_some()
 }
 
 fn main() {

@@ -4,7 +4,10 @@
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 
-use std::{io::stdout, path::Path};
+use std::{
+    io::stdout,
+    path::{Path, PathBuf},
+};
 
 use crate::{
     cargo_commands::whole_archive_config, compile_commands::CompileCommands,
@@ -28,6 +31,13 @@ pub fn build_llzk<'a>(src: &'a Path, cfg: impl CMakeConfig) -> Result<LlzkBuild<
     if let Some(compile_commands) = compile_commands {
         compile_commands.link(&llzk)?;
     }
+    llzk.emit_cargo_commands(stdout(), whole_archive_config())?;
+    Ok(llzk)
+}
+
+/// Links an existing installation of LLZK.
+pub fn link_llzk(path: PathBuf) -> Result<LlzkBuild<'static>> {
+    let llzk = LlzkBuild::new_precompiled(path);
     llzk.emit_cargo_commands(stdout(), whole_archive_config())?;
     Ok(llzk)
 }

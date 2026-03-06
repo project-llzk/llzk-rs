@@ -125,7 +125,6 @@ impl PclConfig {
         // Adding the whole archive modifier is optional since only seems to be required for some GNU-like linkers.
         let modifiers = whole_archive_config.map(|enable| ("whole-archive", enable));
         for lib in self.libraries()? {
-            eprintln!("PCL library: {lib}");
             cargo.rustc_link_lib_static(&lib, modifiers)?;
         }
 
