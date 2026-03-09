@@ -152,6 +152,8 @@
               # Fix _FORTIFY_SOURCE warning on Linux. The same approach used in `pkgSettings` did not work
               # in the dev shell for some reason. In this case, just disable _FORTIFY_SOURCE altogether.
               NIX_CFLAGS_COMPILE = " -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0";
+              # Fix for GNU-like linkers on Linux to avoid removing symbols
+              LLZK_SYS_ENABLE_WHOLE_ARCHIVE = "1";
             };
           };
 
