@@ -35,15 +35,16 @@
         "release-helpers": "release-helpers"
       },
       "locked": {
-        "lastModified": 1772829939,
-        "narHash": "sha256-Coi2K38emils6NLH2kq1P6Zfed2RdPlIRiMuIgeurNA=",
+        "lastModified": 1773057453,
+        "narHash": "sha256-x2l1AuW5FhFyFoxkaYLCB2RW8zoQiSl8NetxO5YltYw=",
         "owner": "project-llzk",
         "repo": "llzk-lib",
-        "rev": "b8dc5f2d8dc0cf4be50e79c937def9aee4808f3a",
+        "rev": "bd0b9eabc2e18b639954e62299963dc85f0ed0cf",
         "type": "github"
       },
       "original": {
         "owner": "project-llzk",
+        "ref": "dani/install-backend-headers",
         "repo": "llzk-lib",
         "type": "github"
       }

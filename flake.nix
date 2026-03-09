@@ -4,7 +4,7 @@
     nixpkgs.follows = "llzk-pkgs/nixpkgs";
     flake-utils.follows = "llzk-pkgs/flake-utils";
     llzk-lib = {
-      url = "github:project-llzk/llzk-lib";
+      url = "github:project-llzk/llzk-lib?ref=dani/install-backend-headers";
       inputs = {
         nixpkgs.follows = "llzk-pkgs/nixpkgs";
         flake-utils.follows = "llzk-pkgs/flake-utils";
