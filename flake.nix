@@ -147,7 +147,7 @@
 
             # Shared settings for dev shells
             devSettings = {
-              RUSTFLAGS = "-L ${mlir-with-llvm}/lib";
+              RUSTFLAGS = "-lLLVM -L ${mlir-with-llvm}/lib";
               RUST_SRC_PATH = final.rustPlatform.rustLibSrc;
               # Fix _FORTIFY_SOURCE warning on Linux. The same approach used in `pkgSettings` did not work
               # in the dev shell for some reason. In this case, just disable _FORTIFY_SOURCE altogether.
