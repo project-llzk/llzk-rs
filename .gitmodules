@@ -1,3 +1,0 @@
-[submodule "llzk-sys/llzk-lib"]
-	path = llzk-sys/llzk-lib
-	url = https://github.com/project-llzk/llzk-lib.git
