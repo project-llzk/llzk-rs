@@ -1,62 +1,62 @@
-name: Continuous Integration (without nix build)
-
-on:
-  pull_request:
-  push:
-    branches:
-      - main
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        BUILD_TARGET:
-          - release
-          - dev
-        include:
-          - BUILD_TARGET: release 
-            cmake_build_type: Release
-          - BUILD_TARGET: dev 
-            cmake_build_type: Debug
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Load shared env
-        run: |
-          cat .github/workflows/llzk.env >> "$GITHUB_ENV"
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          large-packages: false
-      - uses: Homebrew/actions/setup-homebrew@master
-      - name: Cache homebrew downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Homebrew/
-          # It's not the greatest key in the world but works
-          key: ${{ runner.os }}-homebrew-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install LLVM & MLIR
-        run: brew install llvm@20
-      - name: Verify LLVM & MLIR installation
-        run: |
-          $LLVM_BIN/llvm-config --version --assertion-mode
-      - name: Install PCL MLIR 
-        uses: ./.github/actions/install-pcl-mlir
-        with:
-          ref: a82620c4dabf6e51ceda66bba2abb19f7f74ac7d
-          type: ${{ matrix.cmake_build_type }}
-          mlir-dir: ${{ env.MLIR_SYS_200_PREFIX }}
-      - name: Cache cargo crates
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-${{ matrix.BUILD_TARGET }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Build in "${{ matrix.BUILD_TARGET }}" mode
-        run: cargo build --profile ${{ matrix.BUILD_TARGET }} --all-features
-      - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
-        run: cargo test --profile ${{ matrix.BUILD_TARGET }} --all-features
+# name: Continuous Integration (without nix build)
+#
+# on:
+#   pull_request:
+#   push:
+#     branches:
+#       - main
+#
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     strategy:
+#       matrix:
+#         BUILD_TARGET:
+#           - release
+#           - dev
+#         include:
+#           - BUILD_TARGET: release 
+#             cmake_build_type: Release
+#           - BUILD_TARGET: dev 
+#             cmake_build_type: Debug
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           submodules: true
+#       - name: Load shared env
+#         run: |
+#           cat .github/workflows/llzk.env >> "$GITHUB_ENV"
+#       - name: Free Disk Space
+#         uses: jlumbroso/free-disk-space@v1.3.1
+#         with:
+#           large-packages: false
+#       - uses: Homebrew/actions/setup-homebrew@master
+#       - name: Cache homebrew downloads
+#         uses: actions/cache@v4
+#         with:
+#           path: ~/.cache/Homebrew/
+#           # It's not the greatest key in the world but works
+#           key: ${{ runner.os }}-homebrew-${{ hashFiles('**/Cargo.lock') }}
+#       - name: Install LLVM & MLIR
+#         run: brew install llvm@20
+#       - name: Verify LLVM & MLIR installation
+#         run: |
+#           $LLVM_BIN/llvm-config --version --assertion-mode
+#       - name: Install PCL MLIR 
+#         uses: ./.github/actions/install-pcl-mlir
+#         with:
+#           ref: a82620c4dabf6e51ceda66bba2abb19f7f74ac7d
+#           type: ${{ matrix.cmake_build_type }}
+#           mlir-dir: ${{ env.MLIR_SYS_200_PREFIX }}
+#       - name: Cache cargo crates
+#         uses: actions/cache@v4
+#         with:
+#           path: |
+#             ~/.cargo/registry
+#             ~/.cargo/git
+#             target
+#           key: ${{ runner.os }}-${{ matrix.BUILD_TARGET }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+#       - name: Build in "${{ matrix.BUILD_TARGET }}" mode
+#         run: cargo build --profile ${{ matrix.BUILD_TARGET }} --all-features
+#       - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
+#         run: cargo test --profile ${{ matrix.BUILD_TARGET }} --all-features
