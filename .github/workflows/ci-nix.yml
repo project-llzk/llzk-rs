@@ -92,10 +92,10 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-asan-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install nightly 
-        run: rustup toolchain install nightly
+      # - name: Install nightly 
+      #   run: rustup toolchain install nightly
       - name: Build 
-        run: cargo +nightly build --target=x86_64-unknown-linux-gnu --profile=dev --all-features
+        run: cargo build --target=x86_64-unknown-linux-gnu --profile=dev --all-features
       - name: Run tests 
         run: rustup run +nightly cargo build --target=x86_64-unknown-linux-gnu --profile=dev --all-features
 
