@@ -7,12 +7,8 @@ use std::{
 };
 
 use anyhow::{Context as _, Result, bail};
-use cmake::Config;
 
-use crate::{
-    cargo_commands::CargoCommands,
-    config_traits::{bindgen::BindgenConfig, cmake::CMakeConfig},
-};
+use crate::{cargo_commands::CargoCommands, config_traits::bindgen::BindgenConfig};
 
 /// Configures the PCL backend.
 #[derive(Debug, Clone)]
@@ -39,36 +35,6 @@ impl PclConfig {
             bail!("PCL prefix path {} is not a directory", path.display());
         }
         Ok(path)
-    }
-
-    fn pcl_cmake_path(&self) -> Result<PathBuf> {
-        let prefix = self.pcl_prefix_path()?;
-        let lib_path = self.lib_path()?;
-        // Priority order
-        // 1. $prefix/lib/cmake/PCL
-        // 2. $prefix/lib/cmake
-        // 3. $prefix/cmake
-        // 4. $prefix
-        [
-            lib_path.join("cmake").join("PCL"),
-            lib_path.join("cmake"),
-            prefix.join("cmake"),
-            prefix,
-        ]
-        .into_iter()
-        .find(|p| p.is_dir())
-        .ok_or_else(|| anyhow::anyhow!("Failed to locate cmake directory"))
-    }
-
-    /// Returns CMake flags that configure the pcl backend, if enabled.
-    fn pcl_cmake_flags(&self) -> Result<Vec<(&'static str, String)>> {
-        if !self.is_enabled {
-            return Ok(vec![]);
-        }
-        Ok(vec![
-            ("LLZK_WITH_PCL", "ON".to_owned()),
-            ("PCL_DIR", self.pcl_cmake_path()?.display().to_string()),
-        ])
     }
 
     fn lib_path(&self) -> Result<PathBuf> {
@@ -125,7 +91,6 @@ impl PclConfig {
         // Adding the whole archive modifier is optional since only seems to be required for some GNU-like linkers.
         let modifiers = whole_archive_config.map(|enable| ("whole-archive", enable));
         for lib in self.libraries()? {
-            eprintln!("PCL library: {lib}");
             cargo.rustc_link_lib_static(&lib, modifiers)?;
         }
 
@@ -178,18 +143,6 @@ impl PclConfig {
                     .transpose()
             })
             .collect()
-    }
-}
-
-impl CMakeConfig for PclConfig {
-    fn apply(&self, cmake: &mut Config) -> Result<()> {
-        if !self.is_enabled {
-            return Ok(());
-        }
-        for (k, v) in self.pcl_cmake_flags()? {
-            cmake.define(k, v);
-        }
-        Ok(())
     }
 }
 

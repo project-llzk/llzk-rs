@@ -18,34 +18,32 @@ pub const LIBDIR: &str = "lib";
 
 /// Represents a CMake build of the LLZK library.
 #[derive(Debug)]
-pub struct LlzkBuild<'s> {
-    src_path: &'s Path,
+pub struct LlzkBuild {
+    // src_path: Option<&'s Path>,
     dst_path: PathBuf,
 }
 
-impl<'s> LlzkBuild<'s> {
+impl LlzkBuild {
     /// Creates a new build.
-    pub(crate) fn new(src_path: &'s Path, dst_path: PathBuf) -> Self {
-        Self { src_path, dst_path }
-    }
-
-    /// Returns the source path.
-    pub fn src_path(&self) -> &'s Path {
-        self.src_path
+    pub(crate) fn new(dst_path: PathBuf) -> Self {
+        Self {
+            // src_path: None,
+            dst_path,
+        }
     }
 
     /// Returns the destination path of the build.
-    pub fn dst_path(&self) -> &Path {
+    fn dst_path(&self) -> &Path {
         &self.dst_path
     }
 
     /// Returns the library installation path of the build.
-    pub fn lib_path(&self) -> PathBuf {
+    fn lib_path(&self) -> PathBuf {
         self.dst_path.join(LIBDIR)
     }
 
     /// Returns the path where CMake stored intermediate build files.
-    pub fn build_path(&self) -> PathBuf {
+    fn build_path(&self) -> PathBuf {
         self.dst_path.join("build")
     }
 
@@ -62,9 +60,6 @@ impl<'s> LlzkBuild<'s> {
         whole_archive_config: Option<bool>,
     ) -> Result<()> {
         let mut cargo = CargoCommands::new(out);
-        cargo.rerun_if_changed(self.src_path().join("include"))?;
-        cargo.rerun_if_changed(self.src_path().join("lib"))?;
-
         cargo.rustc_link_search(self.lib_path(), Some("native"))?;
         // Adding the whole archive modifier is optional since only seems to be required for some GNU-like linkers.
         let modifiers = whole_archive_config.map(|enable| ("whole-archive", enable));
@@ -114,20 +109,16 @@ impl<'s> LlzkBuild<'s> {
         path.is_dir().then_some(path)
     }
 
-    fn include_paths(&self) -> Vec<Cow<'_, Path>> {
-        // Base paths that we always include.
-        [
-            Cow::Borrowed(self.dst_path()),
-            Cow::Borrowed(self.src_path()),
-        ]
-        .into_iter()
+    fn include_paths(&self) -> Vec<Cow<Path>> {
+        // We always include the destination path.
+        std::iter::once(Cow::Borrowed(self.dst_path()))
             // Optionally, add the PCL include path in the dst directory, if present.
             .chain(self.pcl_include_path().map(Cow::Owned))
         .collect()
     }
 }
 
-impl BindgenConfig for LlzkBuild<'_> {
+impl BindgenConfig for LlzkBuild {
     fn apply(&self, bindgen: Builder) -> Result<Builder> {
         let paths = self.include_paths();
         Ok(BindgenConfig::include_paths(
@@ -138,9 +129,14 @@ impl BindgenConfig for LlzkBuild<'_> {
     }
 }
 
-impl CCConfig for LlzkBuild<'_> {
+impl CCConfig for LlzkBuild {
     fn apply(&self, cc: &mut Build) -> Result<()> {
-        CCConfig::include_paths(self, cc, &[self.dst_path(), self.src_path()]);
+        let paths = self.include_paths();
+        CCConfig::include_paths(
+            self,
+            cc,
+            &paths.iter().map(AsRef::as_ref).collect::<Vec<_>>(),
+        );
         Ok(())
     }
 }

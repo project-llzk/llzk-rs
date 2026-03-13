@@ -3,14 +3,13 @@
 use anyhow::{Result, bail};
 use bindgen::Builder;
 use cc::Build;
-use cmake::Config;
 use std::{
     env,
     path::{Path, PathBuf},
     process::Command,
 };
 
-use super::config_traits::{bindgen::BindgenConfig, cc::CCConfig, cmake::CMakeConfig};
+use super::config_traits::{bindgen::BindgenConfig, cc::CCConfig};
 
 const LLVM_MAJOR_VERSION: usize = 20;
 
@@ -39,22 +38,10 @@ impl<'a> MlirConfig<'a> {
     /// Returns the prefix of the LLVM installation.
     ///
     /// Returns [`Err`] if the path does not exists or is not a directory.
-    pub fn mlir_path(&self) -> Result<PathBuf> {
+    fn mlir_path(&self) -> Result<PathBuf> {
         let path = PathBuf::from(llvm_config("--prefix")?);
         if !path.is_dir() {
             bail!("MLIR prefix path {} is not a directory", path.display());
-        }
-        Ok(path)
-    }
-
-    /// Returns the CMake path for MLIR.
-    ///
-    /// Returns [`Err`] if the path does not exists or is not a directory. Also if [`Self::mlir_path`]
-    /// fails
-    pub fn mlir_cmake_path(&self) -> Result<PathBuf> {
-        let path = self.mlir_path()?.join("lib/cmake");
-        if !path.is_dir() {
-            bail!("MLIR cmake path {} is not a directory", path.display());
         }
         Ok(path)
     }
@@ -71,34 +58,6 @@ impl<'a> MlirConfig<'a> {
         self.mlir_types.iter().fold(bindgen, |bindgen, r#type| {
             bindgen.allowlist_type(format!("Mlir{type}"))
         })
-    }
-
-    /// Returns the LLVM and MLIR directories for used by CMake to locate them.
-    fn cmake_flags_list(&self) -> Result<Vec<(&'static str, PathBuf)>> {
-        Ok(vec![
-            ("LLVM_DIR", self.mlir_cmake_path()?),
-            ("MLIR_DIR", self.mlir_cmake_path()?),
-            ("LLVM_ROOT", self.mlir_path()?),
-            ("MLIR_ROOT", self.mlir_path()?),
-        ])
-    }
-
-    /// Returns the LLVM and MLIR directories for used by CMake to locate them in CLI argument form.
-    pub fn cmake_flags(&self) -> Result<Vec<String>> {
-        Ok(self
-            .cmake_flags_list()?
-            .into_iter()
-            .map(|(k, v)| format!("-D{k}={}", v.display()))
-            .collect())
-    }
-}
-
-impl CMakeConfig for MlirConfig<'_> {
-    fn apply(&self, cmake: &mut Config) -> Result<()> {
-        for (k, v) in self.cmake_flags_list()? {
-            cmake.define(k, &*v);
-        }
-        Ok(())
     }
 }
 

@@ -11,11 +11,8 @@ license = "Apache-2.0"
 
 [dependencies]
 bindgen = "0.71.1"
-cmake = "0.1.54"
-glob = "0.3.2"
 anyhow = "1.0.98"
 cc = "^1.1"
-tempfile = "3.20"
 
 [dev-dependencies]
 tempfile = "3"
