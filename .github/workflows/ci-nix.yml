@@ -97,7 +97,7 @@ jobs:
           rustup toolchain install nightly
           rustup default nightly
       - name: Build 
-        run: cargo build --target=x86_64-unknown-linux-gnu --profile=dev --all-features
+        run: cargo +nightly build --target=x86_64-unknown-linux-gnu --profile=dev --all-features
       - name: Run tests 
         run: rustup run +nightly cargo build --target=x86_64-unknown-linux-gnu --profile=dev --all-features
 
