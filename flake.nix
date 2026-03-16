@@ -3,6 +3,12 @@
     llzk-pkgs.url = "github:project-llzk/llzk-nix-pkgs";
     nixpkgs.follows = "llzk-pkgs/nixpkgs";
     flake-utils.follows = "llzk-pkgs/flake-utils";
+    rust-overlay = { 
+      url = "github:oxalica/rust-overlay"; 
+      inputs = { 
+        nixpkgs.follows = "llzk-pkgs/nixpkgs"; 
+      }; 
+    };
     llzk-lib = {
       url = "github:project-llzk/llzk-lib";
       inputs = {
@@ -37,6 +43,7 @@
       llzk-pkgs,
       llzk-lib,
       pcl-mlir-pkg,
+      rust-overlay
     }:
     {
       # Overlay for downstream consumption
@@ -98,8 +105,6 @@
           llzkSharedEnvironment = {
             nativeBuildInputs = with final; [
               cmake
-              rustc
-              cargo
               llzk-llvmPackages.clang
             ];
 
@@ -113,11 +118,7 @@
 
             devBuildInputs =
               with final;
-              [
-                git
-                rustfmt
-                rustPackages.clippy
-              ]
+              [ git ]
               ++ llzkSharedEnvironment.buildInputs;
 
             # Shared environment variables
@@ -201,6 +202,7 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
+            (import rust-overlay)
             self.overlays.default
             llzk-pkgs.overlays.default
             llzk-lib.overlays.default
@@ -214,6 +216,7 @@
           inherit (pkgs) llzk llzk-debug;
           inherit (pkgs) mlir mlir-debug;
           inherit (pkgs) changelogCreator;
+          inherit (pkgs) rust-bin;
           # Prevent use of libllvm and llvm from nixpkgs, which will have
           # different versions than the mlir from llzk-pkgs.
           inherit (pkgs.llzk-llvmPackages) libllvm llvm;
@@ -225,8 +228,20 @@
         devShells = flake-utils.lib.flattenTree {
           default = pkgs.mkShell (
             {
+              nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs ;
+              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [
+                pkgs.rust-bin.stable.latest.default
+              ];
+            }
+            // pkgs.llzkSharedEnvironment.env
+            // pkgs.llzkSharedEnvironment.devSettings
+          );
+          nightly = pkgs.mkShell (
+            {
               nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs;
-              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs;
+              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [(
+                pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default)
+              )];
             }
             // pkgs.llzkSharedEnvironment.env
             // pkgs.llzkSharedEnvironment.devSettings

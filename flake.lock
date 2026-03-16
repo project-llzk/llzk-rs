@@ -157,7 +157,29 @@
         "release-helpers": [
           "llzk-lib",
           "release-helpers"
+        ],
+        "rust-overlay": "rust-overlay"
+      }
+    },
+    "rust-overlay": {
+      "inputs": {
+        "nixpkgs": [
+          "llzk-pkgs",
+          "nixpkgs"
         ]
+      },
+      "locked": {
+        "lastModified": 1773630837,
+        "narHash": "sha256-zJhgAGnbVKeBMJOb9ctZm4BGS/Rnrz+5lfSXTVah4HQ=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "f600ea449c7b5bb596fa1cf21c871cc5b9e31316",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
       }
     }
   },
