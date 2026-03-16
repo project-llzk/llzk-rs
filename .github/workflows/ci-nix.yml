@@ -69,6 +69,8 @@ jobs:
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
       - name: Set nix environment
         uses: nicknovitski/nix-develop@v1
+        with:
+          arguments: "'.#nightly'"
         env:
           CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
       - name: Set sanitizer options 
