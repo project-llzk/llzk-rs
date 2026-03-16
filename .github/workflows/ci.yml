@@ -1,62 +1,135 @@
-# name: Continuous Integration (without nix build)
-#
-# on:
-#   pull_request:
-#   push:
-#     branches:
-#       - main
-#
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-#     strategy:
-#       matrix:
-#         BUILD_TARGET:
-#           - release
-#           - dev
-#         include:
-#           - BUILD_TARGET: release 
-#             cmake_build_type: Release
-#           - BUILD_TARGET: dev 
-#             cmake_build_type: Debug
-#     steps:
-#       - uses: actions/checkout@v4
-#         with:
-#           submodules: true
-#       - name: Load shared env
-#         run: |
-#           cat .github/workflows/llzk.env >> "$GITHUB_ENV"
-#       - name: Free Disk Space
-#         uses: jlumbroso/free-disk-space@v1.3.1
-#         with:
-#           large-packages: false
-#       - uses: Homebrew/actions/setup-homebrew@master
-#       - name: Cache homebrew downloads
-#         uses: actions/cache@v4
-#         with:
-#           path: ~/.cache/Homebrew/
-#           # It's not the greatest key in the world but works
-#           key: ${{ runner.os }}-homebrew-${{ hashFiles('**/Cargo.lock') }}
-#       - name: Install LLVM & MLIR
-#         run: brew install llvm@20
-#       - name: Verify LLVM & MLIR installation
-#         run: |
-#           $LLVM_BIN/llvm-config --version --assertion-mode
-#       - name: Install PCL MLIR 
-#         uses: ./.github/actions/install-pcl-mlir
-#         with:
-#           ref: a82620c4dabf6e51ceda66bba2abb19f7f74ac7d
-#           type: ${{ matrix.cmake_build_type }}
-#           mlir-dir: ${{ env.MLIR_SYS_200_PREFIX }}
-#       - name: Cache cargo crates
-#         uses: actions/cache@v4
-#         with:
-#           path: |
-#             ~/.cargo/registry
-#             ~/.cargo/git
-#             target
-#           key: ${{ runner.os }}-${{ matrix.BUILD_TARGET }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-#       - name: Build in "${{ matrix.BUILD_TARGET }}" mode
-#         run: cargo build --profile ${{ matrix.BUILD_TARGET }} --all-features
-#       - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
-#         run: cargo test --profile ${{ matrix.BUILD_TARGET }} --all-features
+name: Continuous Integration 
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        BUILD_TARGET:
+          - release
+          - dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@9280e7aca88deada44c930f1e2c78e21c3ae3edd # v31.7.0
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.31.2/install
+          github_access_token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Set Git credentials
+        run: |
+          git config --global 'url.https://api@github.com/'.insteadOf 'https://github.com/'
+          git config --global 'url.https://ssh@github.com/'.insteadOf 'ssh://git@github.com/'
+          git config --global 'url.https://git@github.com/'.insteadOf 'git@github.com:'
+      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        with:
+          name: veridise-public
+          authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
+      - name: Set nix environment
+        uses: nicknovitski/nix-develop@v1
+        env:
+          CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
+      - name: Cache cargo crates
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.BUILD_TARGET }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build in "${{ matrix.BUILD_TARGET }}" mode
+        run: cargo build --profile ${{ matrix.BUILD_TARGET }} --all-features
+      - name: Run tests in "${{ matrix.BUILD_TARGET }}" mode
+        run: cargo test --profile ${{ matrix.BUILD_TARGET }} --all-features
+
+  asan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@9280e7aca88deada44c930f1e2c78e21c3ae3edd # v31.7.0
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.31.2/install
+          github_access_token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Set Git credentials
+        run: |
+          git config --global 'url.https://api@github.com/'.insteadOf 'https://github.com/'
+          git config --global 'url.https://ssh@github.com/'.insteadOf 'ssh://git@github.com/'
+          git config --global 'url.https://git@github.com/'.insteadOf 'git@github.com:'
+      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        with:
+          name: veridise-public
+          authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
+      - name: Set nix environment
+        uses: nicknovitski/nix-develop@v1
+        with:
+          arguments: "'.#nightly'"
+        env:
+          CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
+      - name: Set sanitizer options 
+        run: |
+          supp=$(pwd)/.lsan.supp
+          if [ -e "$supp" ]; then
+            echo "::debug::Set suppressions file to $supp"
+            echo LSAN_OPTIONS="$LSAN_OPTIONS:suppressions=$supp" >> $GITHUB_ENV
+          fi
+          echo ASAN_OPTIONS=detect_odr_violation=2:symbolize=1 >> $GITHUB_ENV
+      - name: Add sanitizer rust flag
+        run: |
+          echo RUSTFLAGS="$RUSTFLAGS -Zsanitizer=address" >> $GITHUB_ENV
+      - name: Cache cargo crates
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-asan-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Get default rustc target 
+        run: |
+          rustc -vV | sed -n 's|host: |DEFAULT_RUST_TARGET=|p' >> $GITHUB_ENV 
+      - name: Build 
+        run: cargo build --target=$DEFAULT_RUST_TARGET --profile=dev --all-features
+      - name: Run tests 
+        run: cargo build --target=$DEFAULT_RUST_TARGET --profile=dev --all-features
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@9280e7aca88deada44c930f1e2c78e21c3ae3edd # v31.7.0
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.31.2/install
+          github_access_token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Set Git credentials
+        run: |
+          git config --global 'url.https://api@github.com/'.insteadOf 'https://github.com/'
+          git config --global 'url.https://ssh@github.com/'.insteadOf 'ssh://git@github.com/'
+          git config --global 'url.https://git@github.com/'.insteadOf 'git@github.com:'
+      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        with:
+          name: veridise-public
+          authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
+      - name: Set nix environment
+        uses: nicknovitski/nix-develop@v1
+        env:
+          CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
+      - name: Cache cargo crates
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-clippy-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run clippy
+        run: cargo clippy --all-features -- --no-deps
