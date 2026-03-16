@@ -105,7 +105,7 @@ impl LlzkBuild {
         path.is_dir().then_some(path)
     }
 
-    fn include_paths(&self) -> Vec<Cow<Path>> {
+    fn include_paths(&self) -> Vec<Cow<'_, Path>> {
         // We always include the destination path.
         std::iter::once(Cow::Borrowed(self.dst_path()))
             // Optionally, add the PCL include path in the dst directory, if present.
