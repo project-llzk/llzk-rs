@@ -19,17 +19,13 @@ pub const LIBDIR: &str = "lib";
 /// Represents a CMake build of the LLZK library.
 #[derive(Debug)]
 pub struct LlzkBuild {
-    // src_path: Option<&'s Path>,
     dst_path: PathBuf,
 }
 
 impl LlzkBuild {
     /// Creates a new build.
     pub(crate) fn new(dst_path: PathBuf) -> Self {
-        Self {
-            // src_path: None,
-            dst_path,
-        }
+        Self { dst_path }
     }
 
     /// Returns the destination path of the build.
