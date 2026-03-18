@@ -23,7 +23,9 @@ We include some optional functionality guarded by feature flags. We currently ha
 
 - `bigint`: Allows creating constant values from [`num-bigint`'s Big integers](https://docs.rs/num-bigint/latest/num_bigint/struct.BigUint.html).
 
-## Manual installation (pre v1 release)
+## Manual installation
+
+### Prerequisites
 
 Install LLVM 20 and note the installation path. While building your project the build scripts will look for LLVM using `llvm-config`.
 If you don't have that tool in your `PATH` or it doesn't point to an LLVM 20 installation set the following environment variables
@@ -33,6 +35,59 @@ to the path where LLVM is installed and the build scripts will then use `$MLIR_S
 export MLIR_SYS_200_PREFIX=/path/to/llvm/20/
 export TABLEGEN_200_PREFIX=/path/to/llvm/20/
 ```
+
+### Building PCL
+
+Clone and build the `pcl-mlir` component at a known-good commit:
+
+```sh
+git clone https://github.com/Veridise/pcl-mlir.git
+cd pcl-mlir && git checkout 55cf619b032314198aacafc305871fb66b12b70e && cd ..
+```
+
+Build with CMake:
+
+```sh
+cmake -S pcl-mlir -B pcl-mlir/build \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DBUILD_TESTING=OFF \
+  -DCMAKE_PREFIX_PATH=$MLIR_SYS_200_PREFIX
+cmake --build pcl-mlir/build
+```
+
+Then set the following environment variables to point to the source and build directories:
+
+```text
+export LLZK_PCL_ROOT=/path/to/pcl-mlir
+export LLZK_PCL_PREFIX=/path/to/pcl-mlir/build
+```
+
+### Building LLZK
+
+Clone the [LLZK library](https://github.com/project-llzk/llzk-lib) and build it:
+
+If you want to run LLZK's tests when building, you also need [lit](https://pypi.org/project/lit/) (LLVM's test runner):
+
+```text
+pip install lit
+```
+
+```sh
+git clone https://github.com/project-llzk/llzk-lib.git
+cmake -B llzk-lib/build -S llzk-lib \
+  -DCMAKE_INSTALL_PREFIX=$(pwd)/llzk-lib/build/install \
+  -DCMAKE_PREFIX_PATH=$MLIR_SYS_200_PREFIX
+cmake --build llzk-lib/build
+cmake --install llzk-lib/build
+```
+
+Then set the `LLZK_SYS_10_PREFIX` environment variable to point to the install location:
+
+```text
+export LLZK_SYS_10_PREFIX=/path/to/llzk-lib/build/install
+```
+
+### Adding the crates to your project
 
 In your rust project, add the crates to your Cargo.toml:
 
@@ -48,8 +103,9 @@ Setting the following environment variables configures the build system with the
 Depending on the version of your default C++ compiler you may need to set `CXX` and `CC` to a compiler that supports C++ 20.
 
 ```text
-export MLIR_SYS_200_PREFIX=/opt/homebrew/opt/llvm@20/
-export TABLEGEN_200_PREFIX=/opt/homebrew/opt/llvm@20/
+export MLIR_SYS_200_PREFIX=$(brew --prefix llvm@20)
+export TABLEGEN_200_PREFIX=$(brew --prefix llvm@20)
+export LIBCLANG_PATH=$(brew --prefix llvm@20)/lib
 export CXX=clang++
 export CC=clang
 export RUSTFLAGS='-L /opt/homebrew/lib/'
@@ -57,7 +113,7 @@ export RUSTFLAGS='-L /opt/homebrew/lib/'
 
 See [`llzk-sys`'s README](llzk-sys/README.md) for more details on setting up the build environment.
 
-If working on LLZK via the submodule you can enable dumping the compile commands when building with cargo. Assuming the current directory is where your editor will look for the compile commands you can link them setting the `LLZK_EMIT_COMPILE_COMMANDS` environment variable as follows.
+If working on LLZK locally you can enable dumping the compile commands when building with cargo. Assuming the current directory is where your editor will look for the compile commands you can link them setting the `LLZK_EMIT_COMPILE_COMMANDS` environment variable as follows.
 
 ```text
 LLZK_EMIT_COMPILE_COMMANDS=$(pwd) cargo build
@@ -65,13 +121,15 @@ LLZK_EMIT_COMPILE_COMMANDS=$(pwd) cargo build
 
 ## Nix installation
 
-We also include a nix flake that creates an environment with the right version of LLVM and MLIR. If you are already using nix this may be your prefered method.
+We also include a nix flake that creates an environment with the right versions of LLVM, MLIR, and PCL.
+All dependencies, including the correct `pcl-mlir` commit, are pinned in `flake.lock` and set up automatically.
+If you are already using nix this may be your preferred method.
 
 You can use this flake for configuring your development environment.
 For example, to work within a nix developer shell you can use the following command.
 
 ```text
-nix develop 'github:project-llzk/llzk-rs?submodules=1#llzk-rs'
+nix develop 'github:project-llzk/llzk-rs#llzk-rs'
 ```
 
 Another alternative is to use [direnv](https://direnv.net/) with the following `.envrc` to automatically enter
@@ -82,15 +140,9 @@ if ! has nix_direnv_version || ! nix_direnv_version 3.0.4; then
   source_url "https://raw.githubusercontent.com/nix-community/nix-direnv/3.0.4/direnvrc" "sha256-DzlYZ33mWF/Gs8DDeyjr8mnVmQGx7ASYqA5WlxwvBG4="
 fi
 
-use flake 'github:project-llzk/llzk-rs?submodules=1#llzk-rs'
+use flake 'github:project-llzk/llzk-rs#llzk-rs'
 ```
 
 ## Updating LLZK
 
-If you need to update the llzk-lib dependency, run the update script:
-
-```sh
-./scripts/update_llzk_lib.sh
-```
-
-This will pull the latest version of LLZK and update the submodule and nix flake accordingly.
+If you need to update the llzk-lib dependency, pull the latest changes from the [llzk-lib repository](https://github.com/project-llzk/llzk-lib) and rebuild it.
