@@ -117,17 +117,12 @@ export RUSTFLAGS='-L /opt/homebrew/lib/'
 
 See [`llzk-sys`'s README](llzk-sys/README.md) for more details on setting up the build environment.
 
-If working on LLZK locally you can enable dumping the compile commands when building with cargo. Assuming the current directory is where your editor will look for the compile commands you can link them setting the `LLZK_EMIT_COMPILE_COMMANDS` environment variable as follows.
-
-```text
-LLZK_EMIT_COMPILE_COMMANDS=$(pwd) cargo build
-```
 
 ## Nix installation
 
 We also include a nix flake that creates an environment with the right versions of LLVM, MLIR, and PCL.
 All dependencies, including the correct `pcl-mlir` commit, are pinned in `flake.lock` and set up automatically.
-If you are already using nix this may be your preferred method.
+If you are already using nix, this may be your preferred method.
 
 You can use this flake for configuring your development environment.
 For example, to work within a nix developer shell you can use the following command.
@@ -149,4 +144,8 @@ use flake 'github:project-llzk/llzk-rs#llzk-rs'
 
 ## Updating LLZK
 
+### Mmanual installation
 If you need to update the llzk-lib dependency, pull the latest changes from the [llzk-lib repository](https://github.com/project-llzk/llzk-lib) and rebuild it.
+
+### Nix installation
+To update the llzk-lib dependency run `nix flake update llzk-lib`
