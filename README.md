@@ -51,8 +51,10 @@ Build with CMake:
 cmake -S pcl-mlir -B pcl-mlir/build \
   -DCMAKE_BUILD_TYPE=Debug \
   -DBUILD_TESTING=OFF \
-  -DCMAKE_PREFIX_PATH=$MLIR_SYS_200_PREFIX
+  -DCMAKE_PREFIX_PATH=$MLIR_SYS_200_PREFIX \
+  -DCMAKE_INSTALL_PREFIX=$(pwd)/pcl-mlir/build
 cmake --build pcl-mlir/build
+cmake --install pcl-mlir/build
 ```
 
 Then set the following environment variables to point to the source and build directories:
@@ -74,17 +76,17 @@ pip install lit
 
 ```sh
 git clone https://github.com/project-llzk/llzk-lib.git
-cmake -B llzk-lib/build -S llzk-lib \
-  -DCMAKE_INSTALL_PREFIX=$(pwd)/llzk-lib/build/install \
-  -DCMAKE_PREFIX_PATH=$MLIR_SYS_200_PREFIX
-cmake --build llzk-lib/build
-cmake --install llzk-lib/build
+cmake -B llzk-lib/out/build -S llzk-lib \
+  -DCMAKE_INSTALL_PREFIX=$(pwd)/llzk-lib/out \
+  -DCMAKE_PREFIX_PATH="$MLIR_SYS_200_PREFIX;$LLZK_PCL_PREFIX" 
+cmake --build llzk-lib/out/build
+cmake --install llzk-lib/out/build
 ```
 
 Then set the `LLZK_SYS_10_PREFIX` environment variable to point to the install location:
 
 ```text
-export LLZK_SYS_10_PREFIX=/path/to/llzk-lib/build/install
+export LLZK_SYS_10_PREFIX=/path/to/llzk-lib/out
 ```
 
 ### Adding the crates to your project
@@ -108,6 +110,8 @@ export TABLEGEN_200_PREFIX=$(brew --prefix llvm@20)
 export LIBCLANG_PATH=$(brew --prefix llvm@20)/lib
 export CXX=clang++
 export CC=clang
+export LLZK_PCL_ROOT=/path/to/pcl-mlir
+export LLZK_PCL_PREFIX=/path/to/pcl-mlir/build
 export RUSTFLAGS='-L /opt/homebrew/lib/'
 ```
 
