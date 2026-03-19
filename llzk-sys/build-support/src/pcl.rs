@@ -81,19 +81,20 @@ impl PclConfig {
         out: W,
         whole_archive_config: Option<bool>,
     ) -> Result<()> {
-        let mut cargo = CargoCommands::new(out);
-        cargo.rerun_if_changed(self.pcl_path()?.join("include"))?;
-        cargo.rerun_if_changed(self.pcl_path()?.join("lib"))?;
+        if self.is_enabled {
+            let mut cargo = CargoCommands::new(out);
+            cargo.rerun_if_changed(self.pcl_path()?.join("include"))?;
+            cargo.rerun_if_changed(self.pcl_path()?.join("lib"))?;
 
-        for lib_path in self.expanded_lib_path()? {
-            cargo.rustc_link_search(lib_path, Some("native"))?;
+            for lib_path in self.expanded_lib_path()? {
+                cargo.rustc_link_search(lib_path, Some("native"))?;
+            }
+            // Adding the whole archive modifier is optional since only seems to be required for some GNU-like linkers.
+            let modifiers = whole_archive_config.map(|enable| ("whole-archive", enable));
+            for lib in self.libraries()? {
+                cargo.rustc_link_lib_static(&lib, modifiers)?;
+            }
         }
-        // Adding the whole archive modifier is optional since only seems to be required for some GNU-like linkers.
-        let modifiers = whole_archive_config.map(|enable| ("whole-archive", enable));
-        for lib in self.libraries()? {
-            cargo.rustc_link_lib_static(&lib, modifiers)?;
-        }
-
         Ok(())
     }
 
