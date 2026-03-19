@@ -1,11 +1,11 @@
 [package]
 name = "llzk-sys-build-support"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 keywords = ["llzk", "mlir"]
 categories = ["development-tools::build-utils"]
 description = "Helpers for building llzk-sys."
-repository = "https://github.com/Veridise/llzk-rs"
+repository = "https://github.com/project-llzk/llzk-rs"
 readme = "README.md"
 license = "Apache-2.0"
 

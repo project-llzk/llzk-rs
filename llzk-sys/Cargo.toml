@@ -1,11 +1,11 @@
 [package]
 name = "llzk-sys"
-version = "10.0.0"
+version = "10.0.1"
 edition = "2024"
 keywords = ["llzk", "mlir"]
 categories = ["external-ffi-bindings"]
 description = "Rust bindings to the LLZK C API."
-repository = "https://github.com/Veridise/llzk-rs"
+repository = "https://github.com/project-llzk/llzk-rs"
 readme = "README.md"
 links = "LLZK"
 license = "Apache-2.0"
@@ -34,7 +34,7 @@ exclude = [
 mlir-sys = { workspace = true }
 
 [build-dependencies]
-llzk-sys-build-support = { version = "1.0.0", path = "./build-support/" }
+llzk-sys-build-support = { version = "1.0", path = "./build-support/" }
 anyhow = "1"
 
 [dev-dependencies]
