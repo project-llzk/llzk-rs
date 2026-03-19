@@ -81,6 +81,9 @@ impl PclConfig {
         out: W,
         whole_archive_config: Option<bool>,
     ) -> Result<()> {
+        if !self.is_enabled {
+            return Ok(());
+        }
         let mut cargo = CargoCommands::new(out);
         cargo.rerun_if_changed(self.pcl_path()?.join("include"))?;
         cargo.rerun_if_changed(self.pcl_path()?.join("lib"))?;
