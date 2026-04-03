@@ -4,7 +4,7 @@ use crate::{
     llzkFunction_CallOpBuildToCalleeWithMapOperands, llzkFunction_CallOpBuildWithMapOperands,
     llzkFunction_CallOpCalleeIsCompute, llzkFunction_CallOpCalleeIsConstrain,
     llzkFunction_CallOpCalleeIsStructCompute, llzkFunction_CallOpCalleeIsStructConstrain,
-    llzkFunction_CallOpGetCalleeType, llzkFunction_CallOpGetSingleResultTypeOfCompute,
+    llzkFunction_CallOpGetSingleResultTypeOfCompute, llzkFunction_CallOpGetTypeSignature,
     llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetFullyQualifiedName,
     llzkFunction_FuncDefOpGetSingleResultTypeOfCompute,
     llzkFunction_FuncDefOpHasAllowConstraintAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
@@ -370,7 +370,7 @@ call_pred_test!(
 );
 
 #[rstest]
-fn test_llzk_call_op_get_callee_type(test_function0: TestFuncDefOp) {
+fn test_llzk_call_op_get_type_signature(test_function0: TestFuncDefOp) {
     unsafe {
         let ctx = mlirOperationGetContext(test_function0.op);
         let builder = mlirOpBuilderCreate(ctx);
@@ -379,7 +379,7 @@ fn test_llzk_call_op_get_callee_type(test_function0: TestFuncDefOp) {
             llzkFunction_CallOpBuildToCallee(builder, location, test_function0.op, 0, null());
 
         let func_type = create_func_type(ctx, &test_function0.in_types, &test_function0.out_types);
-        let out_type = llzkFunction_CallOpGetCalleeType(call);
+        let out_type = llzkFunction_CallOpGetTypeSignature(call);
         assert!(mlirTypeEqual(func_type, out_type));
 
         mlirOperationDestroy(call);
