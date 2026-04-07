@@ -81,7 +81,7 @@ fn run() -> Result<()> {
 }
 
 fn feature_is_enabled(feature: &str) -> bool {
-    env::var_os(&format!(
+    env::var_os(format!(
         "CARGO_FEATURE_{}",
         feature.to_uppercase().replace("-", "_")
     ))
