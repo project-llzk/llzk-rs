@@ -1,0 +1,88 @@
+name: Notify on llzk-lib bump CI failure
+
+on:
+  workflow_run:
+    workflows:
+      - Continuous Integration
+    types:
+      - completed
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  notify:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get associated PR number
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          PR_NUMBER=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.pull_requests[0].number // empty')
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Exit if not associated with a PR
+        if: steps.pr.outputs.number == ''
+        run: exit 0
+
+      - name: Read PR head branch
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          HEAD_REF=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefName --jq '.headRefName')
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Exit if this is not the bot bump PR
+        if: steps.meta.outputs.head_ref != 'bot/bump-llzk-lib'
+        run: exit 0
+
+      - name: Check whether failure comment already exists
+        id: dup
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          FOUND=$(gh pr view "$PR_NUMBER" --repo "$REPO" --comments --json comments \
+            --jq '[.comments[] | select(.body | contains("<!-- llzk-lib-bump-failure -->"))] | length')
+          if [ "$FOUND" -gt 0 ]; then
+            echo "already_commented=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_commented=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment and tag core devs
+        if: steps.dup.outputs.already_commented != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          CORE_DEV_MENTION: ${{ vars.CORE_DEV_MENTION }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          if [ -n "$CORE_DEV_MENTION" ]; then
+            MENTION_LINE="$CORE_DEV_MENTION please investigate."
+          else
+            MENTION_LINE="Core devs: please investigate. Set repository variable CORE_DEV_MENTION to a team handle."
+          fi
+
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$(cat <<EOF
+          <!-- llzk-lib-bump-failure -->
+          CI failed for this automated \`llzk-lib\` bump PR.
+
+          $MENTION_LINE
+
+          Workflow run: $RUN_URL
+          EOF
+          )"
