@@ -7,14 +7,16 @@ use mlir_sys::{
 };
 use rstest::rstest;
 
+use crate::sanity_tests::dialect::{TestOp, test_op};
 use crate::{
-    MlirValueRange, llzkOperationIsA_Poly_ApplyMapOp, llzkPoly_ApplyMapOpBuild,
-    llzkPoly_ApplyMapOpBuildWithAffineExpr, llzkPoly_ApplyMapOpBuildWithAffineMap,
-    llzkPoly_ApplyMapOpGetAffineMap, llzkPoly_ApplyMapOpGetDimOperands,
-    llzkPoly_ApplyMapOpGetNumDimOperands, llzkPoly_ApplyMapOpGetNumSymbolOperands,
-    llzkPoly_ApplyMapOpGetSymbolOperands, llzkPoly_TypeVarTypeGetFromAttr,
-    llzkPoly_TypeVarTypeGetFromStringRef, llzkPoly_TypeVarTypeGetNameRef,
-    llzkPoly_TypeVarTypeGetRefName, llzkTypeIsA_Poly_TypeVarType,
+    MlirValueRange, llzkOperationIsA_Poly_ApplyMapOp, llzkOperationIsA_Poly_TemplateOp,
+    llzkPoly_ApplyMapOpBuild, llzkPoly_ApplyMapOpBuildWithAffineExpr,
+    llzkPoly_ApplyMapOpBuildWithAffineMap, llzkPoly_ApplyMapOpGetAffineMap,
+    llzkPoly_ApplyMapOpGetDimOperands, llzkPoly_ApplyMapOpGetNumDimOperands,
+    llzkPoly_ApplyMapOpGetNumSymbolOperands, llzkPoly_ApplyMapOpGetSymbolOperands,
+    llzkPoly_TemplateOpHasConstExprNamed, llzkPoly_TemplateOpHasConstParamNamed,
+    llzkPoly_TypeVarTypeGetFromAttr, llzkPoly_TypeVarTypeGetFromStringRef,
+    llzkPoly_TypeVarTypeGetNameRef, llzkPoly_TypeVarTypeGetRefName, llzkTypeIsA_Poly_TypeVarType,
     mlirGetDialectHandle__llzk__polymorphic__, mlirOpBuilderCreate, mlirOpBuilderDestroy,
     sanity_tests::{TestContext, context, str_ref},
 };
@@ -249,5 +251,25 @@ fn test_llzk_apply_map_op_get_symbol_operands(context: TestContext) {
         assert_eq!(syms.len(), 0);
         mlirOperationDestroy(op);
         mlirOpBuilderDestroy(builder);
+    }
+}
+
+#[rstest]
+fn test_llzk_template_op_get_has_const_param_name(test_op: TestOp) {
+    unsafe {
+        if llzkOperationIsA_Poly_TemplateOp(test_op.op) {
+            let name = str_ref("p");
+            llzkPoly_TemplateOpHasConstParamNamed(test_op.op, name);
+        }
+    }
+}
+
+#[rstest]
+fn test_llzk_template_op_get_has_const_expr_name(test_op: TestOp) {
+    unsafe {
+        if llzkOperationIsA_Poly_TemplateOp(test_op.op) {
+            let name = str_ref("p");
+            llzkPoly_TemplateOpHasConstExprNamed(test_op.op, name);
+        }
     }
 }

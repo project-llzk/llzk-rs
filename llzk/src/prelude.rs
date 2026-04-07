@@ -87,7 +87,10 @@ pub mod dialect {
 
     /// Exports functions from the 'poly' dialect
     pub mod poly {
-        pub use crate::dialect::poly::ops::{is_read_const_op, read_const};
+        pub use crate::dialect::poly::ops::{
+            expr, is_expr_op, is_param_op, is_read_const_op, is_template_op, is_yield_op, param,
+            read_const, template, r#yield,
+        };
     }
 
     /// Exports functions from the 'struct' dialect

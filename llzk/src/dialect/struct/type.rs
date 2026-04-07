@@ -3,6 +3,7 @@
 use crate::attributes::array::ArrayAttribute;
 use crate::error::Error;
 use crate::symbol_lookup::SymbolLookupResult;
+use crate::symbol_ref::SymbolRefAttrLike;
 use crate::utils::FromRaw;
 use crate::utils::IsA;
 use llzk_sys::llzkStruct_StructTypeGetParams;
@@ -30,7 +31,7 @@ impl<'c> StructType<'c> {
     ///
     /// The params array must match the number of params and their kind as defined by the associated
     /// `struct.def` operation.
-    pub fn new(name: FlatSymbolRefAttribute<'c>, params: &[Attribute<'c>]) -> Self {
+    pub fn new(name: impl SymbolRefAttrLike<'c>, params: &[Attribute<'c>]) -> Self {
         unsafe {
             Self::from_raw(llzkStruct_StructTypeGetWithArrayAttr(
                 name.to_raw(),

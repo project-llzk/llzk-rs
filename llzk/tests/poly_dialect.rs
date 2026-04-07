@@ -1,5 +1,9 @@
 use llzk::builder::OpBuilder;
-use llzk::dialect::poly::{applymap, is_applymap_op, is_unifiable_cast_op, unifiable_cast};
+use llzk::dialect::poly::{
+    TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, applymap, expr, is_applymap_op,
+    is_expr_op, is_param_op, is_template_op, is_unifiable_cast_op, is_yield_op, param, template,
+    unifiable_cast, r#yield,
+};
 use llzk::prelude::*;
 use melior::dialect::arith;
 use melior::ir::Location;
@@ -51,6 +55,172 @@ fn is_read_const() {
 
     let op_ref = unsafe { OperationRef::from_raw(op.to_raw()) };
     assert!(dialect::poly::is_read_const_op(&op_ref));
+}
+
+#[test]
+fn create_param() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let module = llzk_module(loc);
+    let op = param(
+        loc,
+        "T",
+        Some(TVarType::new(&context, StringRef::new("T")).into()),
+    )
+    .unwrap();
+
+    let ir = format!("{op}");
+    assert!(ir.contains("\"poly.param\""));
+    assert!(ir.contains("sym_name = \"T\""));
+    assert!(ir.contains("type_opt = !poly.tvar<@T>"));
+    assert!(op.type_opt().is_some());
+    assert!(is_param_op(&op));
+
+    let tmpl = template(loc, "tmpl", [Ok(op.into())]).unwrap();
+    let tmpl = module.body().append_operation(tmpl.into());
+    assert!(tmpl.verify());
+}
+
+#[test]
+fn create_template_with_param_and_expr() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let loc = Location::unknown(&context);
+    let c1 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 1).into(),
+        loc,
+    );
+    let c1_res = c1.result(0).unwrap();
+
+    let tmpl = template(
+        loc,
+        "tmpl",
+        [
+            param(loc, "T", None).map(Into::into),
+            expr(
+                loc,
+                "N",
+                [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
+            )
+            .map(Into::into),
+        ],
+    )
+    .unwrap();
+
+    assert!(tmpl.has_const_param_ops());
+    assert!(tmpl.has_const_expr_ops());
+    assert!(tmpl.has_const_param_named("T"));
+    assert!(tmpl.has_const_expr_named("N"));
+    assert_eq!(tmpl.const_param_names().len(), 1);
+    assert_eq!(tmpl.const_expr_names().len(), 1);
+    assert!(is_template_op(&tmpl));
+
+    let tmpl = module.body().append_operation(tmpl.into());
+    let ir = format!("{}", module.as_operation());
+    let expected = r#"module attributes {llzk.lang} {
+  poly.template @tmpl {
+    poly.param @T
+    poly.expr @N {
+      %c1 = arith.constant 1 : index
+      poly.yield %c1 : index
+    }
+  }
+}
+"#;
+    assert_eq!(ir, expected);
+    assert!(tmpl.verify());
+}
+
+#[test]
+fn empty_struct_with_one_param() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let loc = Location::unknown(&context);
+    let typ = StructType::new(
+        SymbolRefAttribute::new(&context, "tmpl", &["empty"]),
+        &[FlatSymbolRefAttribute::new(&context, "T").into()],
+    );
+
+    let s = dialect::r#struct::def(
+        loc,
+        "empty",
+        [
+            dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
+            dialect::r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
+        ],
+    )
+    .unwrap();
+
+    let tmpl = template(
+        loc,
+        "tmpl",
+        [param(loc, "T", None).map(Into::into), Ok(s.into())],
+    )
+    .unwrap();
+    let tmpl = module.body().append_operation(tmpl.into());
+
+    assert_test!(tmpl, module, @file "expected/empty_struct_with_one_param.mlir");
+}
+
+#[test]
+fn create_expr_and_get_type() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let loc = Location::unknown(&context);
+    let c2 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 2).into(),
+        loc,
+    );
+    let c2_res = c2.result(0).unwrap();
+
+    let op = expr(
+        loc,
+        "Two",
+        [Ok(c2), r#yield(loc, c2_res.into()).map(Into::into)],
+    )
+    .unwrap();
+
+    assert!(is_expr_op(&op));
+    assert_eq!(format!("{}", op.expr_type()), "index");
+    assert_eq!(
+        op.initializer_region()
+            .first_block()
+            .unwrap()
+            .argument_count(),
+        0
+    );
+
+    let tmpl = template(loc, "tmpl", [Ok(op.into())]).unwrap();
+    let tmpl = module.body().append_operation(tmpl.into());
+    assert!(tmpl.verify());
+}
+
+#[test]
+fn create_yield() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let module = Module::new(loc);
+    let block = module.body();
+    let c3 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 3).into(),
+        loc,
+    );
+    let c3 = block.append_operation(c3);
+    let y = r#yield(loc, c3.result(0).unwrap().into()).unwrap();
+    let y = block.append_operation(y.into());
+
+    assert!(is_yield_op(&y));
+    let ir = format!("{block}");
+    assert!(ir.contains("\"poly.yield\"(%0)"));
+    assert!(ir.contains("value = 3 : index"));
 }
 
 fn create_index_constant<'c>(

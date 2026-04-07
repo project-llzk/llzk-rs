@@ -1,11 +1,15 @@
 module attributes { llzk.lang } {
-  struct.def @empty<[@T]> {
-    function.def @compute() -> !struct.type<@empty<[@T]>> attributes {function.allow_non_native_field_ops, function.allow_witness} {
-      %self = struct.new : <@empty<[@T]>>
-      function.return %self : !struct.type<@empty<[@T]>>
-    }
-    function.def @constrain(%arg0: !struct.type<@empty<[@T]>>) attributes {function.allow_constraint, function.allow_non_native_field_ops} {
-      function.return
+  poly.template @tmpl {
+    poly.param @T
+
+    struct.def @empty {
+      function.def @compute() -> !struct.type<@tmpl::@empty<[@T]>> attributes {function.allow_non_native_field_ops, function.allow_witness} {
+        %self = struct.new : <@tmpl::@empty<[@T]>>
+        function.return %self : !struct.type<@tmpl::@empty<[@T]>>
+      }
+      function.def @constrain(%arg0: !struct.type<@tmpl::@empty<[@T]>>) attributes {function.allow_constraint, function.allow_non_native_field_ops} {
+        function.return
+      }
     }
   }
 }

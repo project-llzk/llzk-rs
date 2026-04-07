@@ -22,25 +22,10 @@ fn empty_struct() {
     let typ = StructType::from_str(&context, "empty");
     assert_eq!(typ.name().value(), "empty");
 
-    let s = dialect::r#struct::def(loc, "empty", &[], default_funcs(loc, typ)).unwrap();
+    let s = dialect::r#struct::def(loc, "empty", default_funcs(loc, typ)).unwrap();
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/empty_struct.mlir" );
-}
-
-#[test]
-fn empty_struct_with_one_param() {
-    common::setup();
-    let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
-    let loc = Location::unknown(&context);
-    let typ = StructType::from_str_params(&context, "empty", &["T"]);
-    assert_eq!(typ.name().value(), "empty");
-
-    let s = dialect::r#struct::def(loc, "empty", &["T"], default_funcs(loc, typ)).unwrap();
-    let s = module.body().append_operation(s.into());
-
-    assert_test!(s, module, @file "expected/empty_struct_with_one_param.mlir");
 }
 
 #[test]
@@ -58,7 +43,7 @@ fn struct_with_one_member() {
     ];
     region_ops.extend(default_funcs(loc, typ));
 
-    let s = dialect::r#struct::def(loc, name, &[], region_ops).unwrap();
+    let s = dialect::r#struct::def(loc, name, region_ops).unwrap();
     assert!(s.get_member_def("foo").is_some());
     assert_eq!(s.get_member_defs().len(), 1);
     let s = module.body().append_operation(s.into());
@@ -77,7 +62,7 @@ fn empty_struct_with_pub_inputs() {
 
     let inputs = vec![(FeltType::new(&context).into(), Location::unknown(&context))];
     let arg_attrs = vec![vec![PublicAttribute::new_named_attr(&context)]];
-    let s = dialect::r#struct::def(loc, "empty", &[], {
+    let s = dialect::r#struct::def(loc, "empty", {
         [
             dialect::r#struct::helpers::compute_fn(
                 loc,

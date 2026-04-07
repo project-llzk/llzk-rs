@@ -5,19 +5,19 @@ use llzk_sys::{
     llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
     llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetMemberDef,
     llzkStruct_StructDefOpGetMemberDefs, llzkStruct_StructDefOpGetNumMemberDefs,
-    llzkStruct_StructDefOpGetType, llzkStruct_StructDefOpGetTypeWithParams,
-    llzkStruct_StructDefOpHasColumns, llzkStruct_StructDefOpHasParamName,
+    llzkStruct_StructDefOpGetNumTemplateExprOpNames,
+    llzkStruct_StructDefOpGetNumTemplateParamOpNames, llzkStruct_StructDefOpGetTemplateExprOpNames,
+    llzkStruct_StructDefOpGetTemplateParamOpNames, llzkStruct_StructDefOpGetType,
+    llzkStruct_StructDefOpGetTypeWithParams, llzkStruct_StructDefOpHasColumns,
     llzkStruct_StructDefOpIsMainComponent,
 };
-use melior::{
-    StringRef,
-    ir::{
-        Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
-        OperationRef, Region, RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
-        attribute::{ArrayAttribute, FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
-        operation::{OperationBuilder, OperationLike, OperationMutLike},
-    },
+use melior::ir::{
+    Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
+    OperationRef, Region, RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
+    attribute::{ArrayAttribute, FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
+    operation::{OperationBuilder, OperationLike, OperationMutLike},
 };
+use mlir_sys::MlirAttribute;
 use mlir_sys::MlirOperation;
 
 use crate::{
@@ -195,10 +195,40 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         )
     }
 
-    /// Returns true if the struct has a parameter with the given name.
-    fn has_param_name(&self, name: &str) -> bool {
-        let name = StringRef::new(name);
-        unsafe { llzkStruct_StructDefOpHasParamName(self.to_raw(), name.to_raw()) }
+    /// Returns the names of all template parameters accessible by the struct,
+    /// if the struct is within a template op. Otherwise, returns an empty vec.
+    fn get_template_param_op_names(&self) -> Vec<Attribute<'c>> {
+        let num_attrs = usize::try_from(unsafe {
+            llzkStruct_StructDefOpGetNumTemplateParamOpNames(self.to_raw())
+        })
+        .unwrap();
+        let mut raw_attrs: Vec<MlirAttribute> = Vec::with_capacity(num_attrs);
+        unsafe {
+            llzkStruct_StructDefOpGetTemplateParamOpNames(self.to_raw(), raw_attrs.as_mut_ptr());
+            raw_attrs.set_len(num_attrs);
+        };
+        raw_attrs
+            .into_iter()
+            .map(|attr| unsafe { Attribute::from_raw(attr) })
+            .collect()
+    }
+
+    /// Returns the names of all template expressions accessible by the struct,
+    /// if the struct is within a template op. Otherwise, returns an empty vec.
+    fn get_template_expr_op_names(&self) -> Vec<Attribute<'c>> {
+        let num_attrs = usize::try_from(unsafe {
+            llzkStruct_StructDefOpGetNumTemplateExprOpNames(self.to_raw())
+        })
+        .unwrap();
+        let mut raw_attrs: Vec<MlirAttribute> = Vec::with_capacity(num_attrs);
+        unsafe {
+            llzkStruct_StructDefOpGetTemplateExprOpNames(self.to_raw(), raw_attrs.as_mut_ptr());
+            raw_attrs.set_len(num_attrs);
+        };
+        raw_attrs
+            .into_iter()
+            .map(|attr| unsafe { Attribute::from_raw(attr) })
+            .collect()
     }
 
     /// Returns a StringAttr with the fully qualified name of the struct.
@@ -305,18 +335,12 @@ impl<'a, 'c: 'a> MemberDefOpLike<'c, 'a> for MemberDefOpRefMut<'c, 'a> {}
 pub fn def<'c, I>(
     location: Location<'c>,
     name: &str,
-    params: &[&str],
     region_ops: I,
 ) -> Result<StructDefOp<'c>, Error>
 where
     I: IntoIterator<Item = Result<Operation<'c>, Error>>,
 {
     let ctx = location.context();
-    let params: Vec<Attribute> = params
-        .iter()
-        .map(|a| FlatSymbolRefAttribute::new(unsafe { ctx.to_ref() }, a).into())
-        .collect();
-    let params = ArrayAttribute::new(unsafe { ctx.to_ref() }, &params).into();
     let region = Region::new();
     let block = Block::new(&[]);
     region_ops
@@ -327,10 +351,7 @@ where
         })?;
     region.append_block(block);
     let name: Attribute = StringAttribute::new(unsafe { ctx.to_ref() }, name).into();
-    let attrs = [
-        (ident!(ctx, "sym_name"), name),
-        (ident!(ctx, "const_params"), params),
-    ];
+    let attrs = [(ident!(ctx, "sym_name"), name)];
 
     OperationBuilder::new("struct.def", location)
         .add_attributes(&attrs)

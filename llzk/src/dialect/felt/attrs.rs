@@ -7,7 +7,7 @@ use llzk_sys::{
 };
 use melior::{
     Context, StringRef,
-    ir::{Attribute, AttributeLike, Identifier},
+    ir::{Attribute, AttributeLike, TypeLike},
 };
 use mlir_sys::MlirAttribute;
 
@@ -37,7 +37,7 @@ impl<'c> FeltConstAttribute<'c> {
                 Self::from_raw(llzkFelt_FeltConstAttrGet(
                     ctx.to_raw(),
                     value as i64,
-                    Identifier::new(ctx, field).to_raw(),
+                    FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
             None => unsafe {
@@ -57,7 +57,7 @@ impl<'c> FeltConstAttribute<'c> {
                     ctx.to_raw(),
                     bitlen,
                     value as i64,
-                    Identifier::new(ctx, field).to_raw(),
+                    FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
             None => unsafe {
@@ -79,7 +79,7 @@ impl<'c> FeltConstAttribute<'c> {
                     ctx.to_raw(),
                     bitlen,
                     value.to_raw(),
-                    Identifier::new(ctx, field).to_raw(),
+                    FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
             None => unsafe {
@@ -109,7 +109,7 @@ impl<'c> FeltConstAttribute<'c> {
                     bitlen,
                     parts.as_ptr(),
                     parts.len() as isize,
-                    Identifier::new(ctx, field).to_raw(),
+                    FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
             None => unsafe {

@@ -1,5 +1,5 @@
 module attributes {llzk.lang} {
-  struct.def @StructA<[]> {
+  struct.def @StructA {
     function.def @compute() -> !struct.type<@StructA<[]>> attributes {function.allow_non_native_field_ops, function.allow_witness} {
       %self = struct.new : <@StructA<[]>>
       function.return %self : !struct.type<@StructA<[]>>
@@ -8,10 +8,10 @@ module attributes {llzk.lang} {
       function.return
     }
   }
-  struct.def @StructB<[]> {
+  struct.def @StructB {
     function.def @compute() -> !struct.type<@StructB<[]>> attributes {function.allow_non_native_field_ops, function.allow_witness} {
       %self = struct.new : <@StructB<[]>>
-      %0 = function.call @StructA::@compute() : () -> !struct.type<@StructA<[]>>
+      %0 = function.call @StructA::@compute() : () -> !struct.type<@StructA>
       function.return %self : !struct.type<@StructB<[]>>
     }
     function.def @constrain(%arg0: !struct.type<@StructB<[]>>) attributes {function.allow_constraint, function.allow_non_native_field_ops} {
