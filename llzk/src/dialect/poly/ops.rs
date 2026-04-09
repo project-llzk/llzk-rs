@@ -11,7 +11,7 @@ use llzk_sys::{
     llzkOperationIsA_Poly_TemplateParamOp, llzkOperationIsA_Poly_YieldOp,
     llzkPoly_ApplyMapOpBuildWithAffineMap, llzkPoly_TemplateExprOpBuild,
     llzkPoly_TemplateExprOpGetInitializerRegion, llzkPoly_TemplateExprOpGetType,
-    llzkPoly_TemplateOpBuild, llzkPoly_TemplateOpGetBodyRegion,
+    llzkPoly_TemplateOpBuild, llzkPoly_TemplateOpGetBodyRegion, llzkPoly_TemplateOpGetBody,
     llzkPoly_TemplateOpGetConstExprNames, llzkPoly_TemplateOpGetConstParamNames,
     llzkPoly_TemplateOpHasConstExprNamed, llzkPoly_TemplateOpHasConstExprOps,
     llzkPoly_TemplateOpHasConstParamNamed, llzkPoly_TemplateOpHasConstParamOps,
@@ -19,13 +19,12 @@ use llzk_sys::{
     llzkPoly_TemplateParamOpBuild, llzkPoly_TemplateParamOpGetTypeOpt, llzkPoly_YieldOpBuild,
 };
 use melior::ir::{
-    Attribute, AttributeLike, Block, BlockLike as _, Identifier, Location, Operation,
+    Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
     RegionLike as _, RegionRef, Type, Value, ValueLike as _,
     attribute::{FlatSymbolRefAttribute, TypeAttribute},
-    operation::{OperationBuilder, OperationLike},
+    operation::{OperationBuilder, OperationLike}
 };
 use mlir_sys::MlirAttribute;
-
 use crate::error::Error;
 
 //===----------------------------------------------------------------------===//
@@ -34,9 +33,14 @@ use crate::error::Error;
 
 /// Defines the public API of the `poly.template` op.
 pub trait TemplateOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
-    /// Returns the template body region.
+    /// Returns the single body region within the TemplateOp.
     fn body_region(&self) -> RegionRef<'c, 'a> {
         unsafe { RegionRef::from_raw(llzkPoly_TemplateOpGetBodyRegion(self.to_raw())) }
+    }
+
+    /// Returns the single body Block within the TemplateOps's Region.
+    fn body(&self) -> BlockRef<'c, 'a> {
+        unsafe { BlockRef::from_raw(llzkPoly_TemplateOpGetBody(self.to_raw())) }
     }
 
     /// Returns `true` if the template defines any `poly.param` children.
