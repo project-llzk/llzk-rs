@@ -14,11 +14,17 @@ pub fn handle() -> DialectHandle {
     unsafe { DialectHandle::from_raw(mlirGetDialectHandle__llzk__cast__()) }
 }
 
-/// Creates a 'cast.tofelt' operation.
-pub fn tofelt<'c>(location: Location<'c>, val: Value<'c, '_>) -> Operation<'c> {
-    let ctx = location.context();
+/// Creates a 'cast.tofelt' operation with the given target `FeltType` or the
+/// default "unspecified prime" `FeltType` if `None` is provided.
+pub fn tofelt<'c>(
+    location: Location<'c>,
+    val: Value<'c, '_>,
+    out_type: Option<FeltType<'c>>,
+) -> Operation<'c> {
+    let out_type =
+        out_type.unwrap_or_else(|| FeltType::new(unsafe { location.context().to_ref() }));
     OperationBuilder::new("cast.tofelt", location)
-        .add_results(&[FeltType::new(unsafe { ctx.to_ref() }).into()])
+        .add_results(&[out_type.into()])
         .add_operands(&[val])
         .build()
         .expect("valid operation")
