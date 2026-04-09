@@ -54,7 +54,7 @@ pub trait TemplateOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the names of all `poly.param` children in definition order.
-    fn const_param_names(&self) -> Vec<Attribute<'c>> {
+    fn const_param_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
         let num_attrs =
             usize::try_from(unsafe { llzkPoly_TemplateOpNumConstParamOps(self.to_raw()) }).unwrap();
         let mut raw_attrs: Vec<MlirAttribute> = Vec::with_capacity(num_attrs);
@@ -64,12 +64,12 @@ pub trait TemplateOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
         raw_attrs
             .into_iter()
-            .map(|attr| unsafe { Attribute::from_raw(attr) })
+            .map(|attr| FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap() )
             .collect()
     }
 
     /// Returns the names of all `poly.expr` children in definition order.
-    fn const_expr_names(&self) -> Vec<Attribute<'c>> {
+    fn const_expr_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
         let num_attrs =
             usize::try_from(unsafe { llzkPoly_TemplateOpNumConstExprOps(self.to_raw()) }).unwrap();
         let mut raw_attrs: Vec<MlirAttribute> = Vec::with_capacity(num_attrs);
@@ -79,7 +79,7 @@ pub trait TemplateOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
         raw_attrs
             .into_iter()
-            .map(|attr| unsafe { Attribute::from_raw(attr) })
+            .map(|attr| FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap())
             .collect()
     }
 
