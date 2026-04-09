@@ -1,24 +1,24 @@
 //! Implementation of `!struct.type` type.
 
-use crate::attributes::array::ArrayAttribute;
-use crate::error::Error;
-use crate::symbol_lookup::SymbolLookupResult;
-use crate::symbol_ref::SymbolRefAttrLike;
-use crate::utils::FromRaw;
-use crate::utils::IsA;
-use llzk_sys::llzkStruct_StructTypeGetParams;
-use llzk_sys::{
-    llzkStruct_StructTypeGetNameRef, llzkStruct_StructTypeGetWithArrayAttr,
-    llzkTypeIsA_Struct_StructType,
+use crate::{
+    attributes::array::ArrayAttribute,
+    error::Error,
+    symbol_lookup::SymbolLookupResult,
+    symbol_ref::SymbolRefAttrLike,
+    utils::{FromRaw, IsA},
 };
-use melior::ir::Module;
-use melior::ir::operation::OperationLike;
+use llzk_sys::{
+    llzkStruct_StructTypeGetNameRef, llzkStruct_StructTypeGetParams,
+    llzkStruct_StructTypeGetWithArrayAttr, llzkTypeIsA_Struct_StructType,
+};
 use melior::{
     Context,
-    ir::{Attribute, AttributeLike as _, Type, TypeLike, attribute::FlatSymbolRefAttribute},
+    ir::{
+        Attribute, AttributeLike as _, Module, Type, TypeLike, attribute::FlatSymbolRefAttribute,
+        operation::OperationLike,
+    },
 };
-use mlir_sys::MlirLogicalResult;
-use mlir_sys::MlirType;
+use mlir_sys::{MlirLogicalResult, MlirType};
 
 /// Represents the `!struct.type` type.
 #[derive(Copy, Clone, Debug)]

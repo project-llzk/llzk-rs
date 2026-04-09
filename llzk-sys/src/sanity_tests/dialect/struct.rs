@@ -3,8 +3,7 @@ use std::{
     ptr::{null, null_mut},
 };
 
-use crate::sanity_tests::dialect::TestOp;
-use crate::sanity_tests::dialect::test_op;
+use crate::sanity_tests::dialect::{TestOp, test_op};
 use mlir_sys::{
     MlirOperation, mlirAffineConstantExprGet, mlirAffineMapGet, mlirArrayAttrGet,
     mlirAttributeEqual, mlirFlatSymbolRefAttrGet, mlirIndexTypeGet, mlirLocationUnknownGet,

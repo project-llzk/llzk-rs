@@ -17,8 +17,7 @@ use melior::ir::{
     attribute::{ArrayAttribute, FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
     operation::{OperationBuilder, OperationLike, OperationMutLike},
 };
-use mlir_sys::MlirAttribute;
-use mlir_sys::MlirOperation;
+use mlir_sys::{MlirAttribute, MlirOperation};
 
 use crate::{
     builder::{OpBuilder, OpBuilderLike},

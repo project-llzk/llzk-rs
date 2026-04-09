@@ -2,17 +2,16 @@
 use llzk_sys::{
     llzkArray_CreateArrayOpBuildWithMapOperands, llzkArray_CreateArrayOpBuildWithValues,
 };
-use melior::ir::TypeLike;
-use melior::ir::operation::OperationBuilder;
 use melior::ir::{
-    Location, Operation, Type, Value, ValueLike, attribute::DenseI32ArrayAttribute,
-    operation::OperationLike,
+    Location, Operation, Type, TypeLike, Value, ValueLike,
+    attribute::DenseI32ArrayAttribute,
+    operation::{OperationBuilder, OperationLike},
 };
 use mlir_sys::MlirOperation;
 
-use crate::map_operands::MapOperandsBuilder;
 use crate::{
     builder::{OpBuilder, OpBuilderLike},
+    map_operands::MapOperandsBuilder,
     value_ext::ValueRange,
 };
 

@@ -7,7 +7,6 @@ use mlir_sys::{
 };
 use rstest::rstest;
 
-use crate::sanity_tests::dialect::{TestOp, test_op};
 use crate::{
     MlirValueRange, llzkOperationIsA_Poly_ApplyMapOp, llzkOperationIsA_Poly_TemplateOp,
     llzkPoly_ApplyMapOpBuild, llzkPoly_ApplyMapOpBuildWithAffineExpr,
@@ -18,7 +17,11 @@ use crate::{
     llzkPoly_TypeVarTypeGetFromAttr, llzkPoly_TypeVarTypeGetFromStringRef,
     llzkPoly_TypeVarTypeGetNameRef, llzkPoly_TypeVarTypeGetRefName, llzkTypeIsA_Poly_TypeVarType,
     mlirGetDialectHandle__llzk__polymorphic__, mlirOpBuilderCreate, mlirOpBuilderDestroy,
-    sanity_tests::{TestContext, context, str_ref},
+    sanity_tests::{
+        TestContext, context,
+        dialect::{TestOp, test_op},
+        str_ref,
+    },
 };
 
 #[test]

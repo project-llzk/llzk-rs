@@ -12,6 +12,7 @@ chain_width = 60
 single_line_if_else_max_width = 50
 single_line_let_else_max_width = 50
 reorder_imports = true
+imports_granularity = "Crate"
 reorder_modules = true
 remove_nested_parens = true
 short_array_element_width_threshold = 10

@@ -1,5 +1,7 @@
-use llzk::builder::{OpBuilder, OpBuilderLike};
-use llzk::prelude::*;
+use llzk::{
+    builder::{OpBuilder, OpBuilderLike},
+    prelude::*,
+};
 use melior::ir::{Location, r#type::FunctionType};
 
 mod common;

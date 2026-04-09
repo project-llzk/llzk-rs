@@ -4,11 +4,9 @@ pub mod ops;
 pub mod r#type;
 pub use ops::{
     TemplateExprOp, TemplateExprOpLike, TemplateOp, TemplateOpLike, TemplateParamOp,
-    TemplateParamOpLike, YieldOp,
-};
-pub use ops::{
-    applymap, expr, is_applymap_op, is_expr_op, is_param_op, is_read_const_op, is_template_op,
-    is_unifiable_cast_op, is_yield_op, param, read_const, template, unifiable_cast, r#yield,
+    TemplateParamOpLike, YieldOp, applymap, expr, is_applymap_op, is_expr_op, is_param_op,
+    is_read_const_op, is_template_op, is_unifiable_cast_op, is_yield_op, param, read_const,
+    template, unifiable_cast, r#yield,
 };
 pub use r#type::{TVarType, is_type_variable};
 
@@ -22,9 +20,11 @@ pub fn handle() -> DialectHandle {
 
 /// Exports the common types of the poly dialect.
 pub mod prelude {
-    pub use super::ops::{
-        TemplateExprOp, TemplateExprOpLike, TemplateOp, TemplateOpLike, TemplateParamOp,
-        TemplateParamOpLike, YieldOp,
+    pub use super::{
+        ops::{
+            TemplateExprOp, TemplateExprOpLike, TemplateOp, TemplateOpLike, TemplateParamOp,
+            TemplateParamOpLike, YieldOp,
+        },
+        r#type::{TVarType, is_type_variable},
     };
-    pub use super::r#type::{TVarType, is_type_variable};
 }

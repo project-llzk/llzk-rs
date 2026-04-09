@@ -7,8 +7,7 @@
 //!
 //! Run with: `cargo run --package llzk --example division`
 
-use std::error::Error as StdError;
-use std::result::Result as StdResult;
+use std::{error::Error as StdError, result::Result as StdResult};
 
 // Commonly used types are re-exported in the prelude.
 use llzk::{builder::OpBuilder, prelude::*};
