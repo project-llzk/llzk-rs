@@ -196,7 +196,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns the names of all template parameters accessible by the struct,
     /// if the struct is within a template op. Otherwise, returns an empty vec.
-    fn get_template_param_op_names(&self) -> Vec<Attribute<'c>> {
+    fn get_template_param_op_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
         let num_attrs = usize::try_from(unsafe {
             llzkStruct_StructDefOpGetNumTemplateParamOpNames(self.to_raw())
         })
@@ -208,13 +208,15 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         };
         raw_attrs
             .into_iter()
-            .map(|attr| unsafe { Attribute::from_raw(attr) })
+            .map(|attr| {
+                FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap()
+            })
             .collect()
     }
 
     /// Returns the names of all template expressions accessible by the struct,
     /// if the struct is within a template op. Otherwise, returns an empty vec.
-    fn get_template_expr_op_names(&self) -> Vec<Attribute<'c>> {
+    fn get_template_expr_op_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
         let num_attrs = usize::try_from(unsafe {
             llzkStruct_StructDefOpGetNumTemplateExprOpNames(self.to_raw())
         })
@@ -226,7 +228,9 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         };
         raw_attrs
             .into_iter()
-            .map(|attr| unsafe { Attribute::from_raw(attr) })
+            .map(|attr| {
+                FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap()
+            })
             .collect()
     }
 

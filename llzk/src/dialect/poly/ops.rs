@@ -2,6 +2,7 @@
 
 use crate::{
     builder::{OpBuilder, OpBuilderLike},
+    error::Error,
     ident,
     macros::llzk_op_type,
     value_ext::{OwningValueRange, ValueRange},
@@ -11,7 +12,7 @@ use llzk_sys::{
     llzkOperationIsA_Poly_TemplateParamOp, llzkOperationIsA_Poly_YieldOp,
     llzkPoly_ApplyMapOpBuildWithAffineMap, llzkPoly_TemplateExprOpBuild,
     llzkPoly_TemplateExprOpGetInitializerRegion, llzkPoly_TemplateExprOpGetType,
-    llzkPoly_TemplateOpBuild, llzkPoly_TemplateOpGetBodyRegion, llzkPoly_TemplateOpGetBody,
+    llzkPoly_TemplateOpBuild, llzkPoly_TemplateOpGetBody, llzkPoly_TemplateOpGetBodyRegion,
     llzkPoly_TemplateOpGetConstExprNames, llzkPoly_TemplateOpGetConstParamNames,
     llzkPoly_TemplateOpHasConstExprNamed, llzkPoly_TemplateOpHasConstExprOps,
     llzkPoly_TemplateOpHasConstParamNamed, llzkPoly_TemplateOpHasConstParamOps,
@@ -22,10 +23,9 @@ use melior::ir::{
     Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
     RegionLike as _, RegionRef, Type, Value, ValueLike as _,
     attribute::{FlatSymbolRefAttribute, TypeAttribute},
-    operation::{OperationBuilder, OperationLike}
+    operation::{OperationBuilder, OperationLike},
 };
 use mlir_sys::MlirAttribute;
-use crate::error::Error;
 
 //===----------------------------------------------------------------------===//
 // TemplateOpLike
@@ -64,7 +64,9 @@ pub trait TemplateOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
         raw_attrs
             .into_iter()
-            .map(|attr| FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap() )
+            .map(|attr| {
+                FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap()
+            })
             .collect()
     }
 
@@ -79,7 +81,9 @@ pub trait TemplateOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
         raw_attrs
             .into_iter()
-            .map(|attr| FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap())
+            .map(|attr| {
+                FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap()
+            })
             .collect()
     }
 

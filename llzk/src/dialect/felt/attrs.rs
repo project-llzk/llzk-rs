@@ -49,7 +49,8 @@ impl<'c> FeltConstAttribute<'c> {
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] from a 64 bit value and a set bit width and optional field specification.
+    /// Creates a [`FeltConstAttribute`] from a 64 bit value and a set bit width and optional field
+    /// specification.
     pub fn new_with_bitlen(ctx: &'c Context, bitlen: u32, value: u64, field: Option<&str>) -> Self {
         match field {
             Some(field) => unsafe {
