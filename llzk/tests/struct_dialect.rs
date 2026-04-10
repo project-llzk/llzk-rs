@@ -14,15 +14,34 @@ fn default_funcs<'c>(
 }
 
 #[test]
+fn struct_type_with_flat_name() {
+    common::setup();
+    let name = "flat";
+    let context = LlzkContext::new();
+    let typ = StructType::from_str(&context, name);
+    assert_eq!(typ.name().to_string(), format!("@{}", name));
+}
+
+#[test]
+fn struct_type_with_non_flat_name() {
+    common::setup();
+    let context = LlzkContext::new();
+    let a = SymbolRefAttribute::new(&context, "root", &["a", "b"]);
+    let typ = StructType::new(a, &[]);
+    assert_eq!(typ.name(), a);
+}
+
+#[test]
 fn empty_struct() {
     common::setup();
+    let name = "empty";
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
-    let typ = StructType::from_str(&context, "empty");
-    assert_eq!(typ.name().value(), "empty");
+    let typ = StructType::from_str(&context, name);
+    assert_eq!(typ.name().to_string(), format!("@{}", name));
 
-    let s = dialect::r#struct::def(loc, "empty", default_funcs(loc, typ)).unwrap();
+    let s = dialect::r#struct::def(loc, name, default_funcs(loc, typ)).unwrap();
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/empty_struct.mlir" );
@@ -31,12 +50,12 @@ fn empty_struct() {
 #[test]
 fn struct_with_one_member() {
     common::setup();
+    let name = "one_member";
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
-    let name = "one_member";
     let typ = StructType::from_str_params(&context, name, &[]);
-    assert_eq!(typ.name().value(), name);
+    assert_eq!(typ.name().to_string(), format!("@{}", name));
 
     let mut region_ops = vec![
         dialect::r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into),
@@ -54,15 +73,16 @@ fn struct_with_one_member() {
 #[test]
 fn empty_struct_with_pub_inputs() {
     common::setup();
+    let name = "empty";
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
-    let typ = StructType::from_str_params(&context, "empty", &[]);
-    assert_eq!(typ.name().value(), "empty");
+    let typ = StructType::from_str_params(&context, name, &[]);
+    assert_eq!(typ.name().to_string(), format!("@{}", name));
 
     let inputs = vec![(FeltType::new(&context).into(), Location::unknown(&context))];
     let arg_attrs = vec![vec![PublicAttribute::new_named_attr(&context)]];
-    let s = dialect::r#struct::def(loc, "empty", {
+    let s = dialect::r#struct::def(loc, name, {
         [
             dialect::r#struct::helpers::compute_fn(
                 loc,

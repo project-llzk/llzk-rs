@@ -4,7 +4,7 @@ use crate::{
     attributes::array::ArrayAttribute,
     error::Error,
     symbol_lookup::SymbolLookupResult,
-    symbol_ref::SymbolRefAttrLike,
+    symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
     utils::{FromRaw, IsA},
 };
 use llzk_sys::{
@@ -57,11 +57,11 @@ impl<'c> StructType<'c> {
     }
 
     /// Get the struct's name.
-    pub fn name(&self) -> FlatSymbolRefAttribute<'c> {
-        FlatSymbolRefAttribute::try_from(unsafe {
+    pub fn name(&self) -> SymbolRefAttribute<'c> {
+        SymbolRefAttribute::try_from(unsafe {
             Attribute::from_raw(llzkStruct_StructTypeGetNameRef(self.to_raw()))
         })
-        .expect("struct type must be constructed from FlatSymbolRefAttribute")
+        .expect("struct type must be constructed from SymbolRefAttribute")
     }
 
     /// Get the struct's params.
@@ -92,7 +92,7 @@ impl<'c> StructType<'c> {
         let result = unsafe { f(self.to_raw(), o, lookup.as_raw_mut()) };
         (result.value != 0)
             .then_some(lookup)
-            .ok_or_else(|| Error::SymbolNotFound(self.name().value().to_owned()))
+            .ok_or_else(|| Error::SymbolNotFound(self.name().to_string()))
     }
 
     /// Looks up the definition of this struct using the given op as root.

@@ -17,7 +17,7 @@ use mlir_sys::{
 /// The difference between this attribute and [`FlatSymbolRefAttribute`] is that this attribute
 /// contains a path of symbol names, which allows referencing operations defined inside modules,
 /// structs, etc.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SymbolRefAttribute<'c> {
     inner: Attribute<'c>,
 }
@@ -103,7 +103,7 @@ impl<'c> fmt::Display for SymbolRefAttribute<'c> {
 
 /// Equivalent to `SymbolRefAttr` in MLIR, providing a common trait for
 /// both flat and non-flat symbol reference attributes.
-pub trait SymbolRefAttrLike<'c>: AttributeLike<'c> + private::Sealed {}
+pub trait SymbolRefAttrLike<'c>: AttributeLike<'c> + fmt::Display + private::Sealed {}
 
 impl<'c> SymbolRefAttrLike<'c> for SymbolRefAttribute<'c> {}
 impl<'c> SymbolRefAttrLike<'c> for FlatSymbolRefAttribute<'c> {}
