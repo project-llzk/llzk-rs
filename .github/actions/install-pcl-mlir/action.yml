@@ -16,7 +16,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         repository: Veridise/pcl-mlir
         ref: ${{ inputs.ref }}
@@ -31,7 +31,7 @@ runs:
         _ROOT: ${{ inputs.root }}
         _BUILD: ${{ inputs.root }}/build
     - name: "Configure CMake"
-      shell: bash 
+      shell: bash
       run: |
         echo "Configuring CMake..."
         export PATH="$PATH:$_MLIR_DIR/bin"
@@ -50,7 +50,7 @@ runs:
         _MLIR_DIR: ${{ inputs.mlir-dir }}
         _BUILD_TYPE: ${{ inputs.type }}
     - name: "Build project"
-      shell: bash 
+      shell: bash
       run: |
         echo "Building project..."
         cmake --build $LLZK_PCL_PREFIX
