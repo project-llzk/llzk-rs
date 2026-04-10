@@ -54,11 +54,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1768329036,
-        "narHash": "sha256-aScxpJJ7VMDETL4hi+6Pojxb4VwKucW0VwOPCZDt53Q=",
+        "lastModified": 1775793233,
+        "narHash": "sha256-MDo3X2dV2Mc+tG9ve476E0WIUlxOaFs97GZrT3heiKw=",
         "owner": "project-llzk",
         "repo": "llzk-nix-pkgs",
-        "rev": "830b084608fe510c2bd2612bf66def7cdabf7cf7",
+        "rev": "0002f52bf1b3bbe810c2b55184b64b8e3bdc865b",
         "type": "github"
       },
       "original": {
