@@ -176,7 +176,7 @@ fn call_op_self_value_of_compute() {
     let builder = OpBuilder::at_block_begin(&context, s2_compute_body);
     let loc = Location::unknown(&context);
     let call = builder.insert(loc, |_, loc| {
-        let name = SymbolRefAttribute::new(&context, "StructA", &["compute"]);
+        let name = SymbolRefAttribute::new_from_str(&context, "StructA", &["compute"]);
         dialect::function::call(&builder, loc, name, &[], &[s1.r#type()])
             .unwrap()
             .into()

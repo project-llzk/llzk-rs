@@ -26,7 +26,7 @@ fn struct_type_with_flat_name() {
 fn struct_type_with_non_flat_name() {
     common::setup();
     let context = LlzkContext::new();
-    let a = SymbolRefAttribute::new(&context, "root", &["a", "b"]);
+    let a = SymbolRefAttribute::new_from_str(&context, "root", &["a", "b"]);
     let typ = StructType::new(a, &[]);
     assert_eq!(typ.name(), a);
 }
