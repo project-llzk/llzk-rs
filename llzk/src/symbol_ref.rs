@@ -52,12 +52,12 @@ impl<'c> SymbolRefAttribute<'c> {
     }
 
     /// Returns the root of the symbol's path.
-    pub fn root(&self) -> StringRef<'_> {
+    pub fn root(&self) -> StringRef<'c> {
         unsafe { StringRef::from_raw(mlirSymbolRefAttrGetRootReference(self.to_raw())) }
     }
 
     /// Returns the leaf of the symbol's path. This corresponds with the symbol name.
-    pub fn leaf(&self) -> StringRef<'_> {
+    pub fn leaf(&self) -> StringRef<'c> {
         unsafe { StringRef::from_raw(mlirSymbolRefAttrGetLeafReference(self.to_raw())) }
     }
 
