@@ -142,7 +142,7 @@ fn empty_struct_with_one_param() {
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
     let typ = StructType::new(
-        SymbolRefAttribute::new(&context, "tmpl", &["empty"]),
+        SymbolRefAttribute::new_from_str(&context, "tmpl", &["empty"]),
         &[FlatSymbolRefAttribute::new(&context, "T").into()],
     );
 
