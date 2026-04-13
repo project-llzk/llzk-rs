@@ -10,6 +10,7 @@ pub mod global;
 pub mod llzk;
 pub mod pod;
 pub mod poly;
+pub mod ram;
 pub mod r#struct;
 
 /// Functions for working with `builtin.module` in LLZK.

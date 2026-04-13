@@ -93,6 +93,12 @@ pub mod dialect {
         };
     }
 
+    /// Exports functions from the 'ram' dialect
+    pub mod ram {
+        pub use crate::dialect::ram::{alloc, load, store};
+        pub use crate::dialect::ram::{is_ram_alloc, is_ram_load, is_ram_store};
+    }
+
     /// Exports functions from the 'struct' dialect
     pub mod r#struct {
         pub use crate::dialect::r#struct::helpers;
