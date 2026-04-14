@@ -21,8 +21,8 @@ pub fn tofelt<'c>(
     val: Value<'c, '_>,
     out_type: Option<FeltType<'c>>,
 ) -> Operation<'c> {
-    let out_type =
-        out_type.unwrap_or_else(|| FeltType::new(unsafe { location.context().to_ref() }));
+    let ctx = location.context();
+    let out_type = out_type.unwrap_or_else(|| FeltType::new(unsafe { ctx.to_ref() }));
     OperationBuilder::new("cast.tofelt", location)
         .add_results(&[out_type.into()])
         .add_operands(&[val])
