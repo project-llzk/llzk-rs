@@ -7,12 +7,13 @@ use melior::ir::{Location, Type, r#type::FunctionType};
 mod common;
 
 #[test]
-fn ram_alloc_load_store() {
+fn ram_load_store() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
     let module = llzk_module(location);
     let index_type = Type::index(&context);
+    let element_type: Type = FeltType::new(&context).into();
 
     let f = dialect::function::def(
         location,
@@ -25,17 +26,6 @@ fn ram_alloc_load_store() {
     f.set_allow_witness_attr(true);
     {
         let block = Block::new(&[]);
-        // %size = arith.constant 1024 : index
-        let size_op = block.append_operation(arith::constant(
-            &context,
-            IntegerAttribute::new(index_type, 1024).into(),
-            location,
-        ));
-        let size: Value = size_op.result(0).unwrap().into();
-
-        // %mem = ram.alloc %size : index
-        let alloc_op = block.append_operation(dialect::ram::alloc(location, size));
-        let mem: Value = alloc_op.result(0).unwrap().into();
 
         // %addr = arith.constant 0 : index
         let addr_op = block.append_operation(arith::constant(
@@ -45,19 +35,18 @@ fn ram_alloc_load_store() {
         ));
         let addr: Value = addr_op.result(0).unwrap().into();
 
-        // %val = arith.constant 42 : index
-        let val_op = block.append_operation(arith::constant(
-            &context,
-            IntegerAttribute::new(index_type, 42).into(),
-            location,
-        ));
+        // %val = felt.const 42
+        let val_op = block.append_operation(
+            dialect::felt::constant(location, FeltConstAttribute::new(&context, 42, None))
+                .expect("valid felt.const"),
+        );
         let val: Value = val_op.result(0).unwrap().into();
 
-        // ram.store %mem[%addr] = %val : index, index
-        block.append_operation(dialect::ram::store(location, mem, addr, val));
+        // ram.store %addr, %val : !felt.type
+        block.append_operation(dialect::ram::store(location, addr, val));
 
-        // %loaded = ram.load %mem[%addr] : index, index
-        let load_op = block.append_operation(dialect::ram::load(location, index_type, mem, addr));
+        // %loaded = ram.load %addr : !felt.type
+        let load_op = block.append_operation(dialect::ram::load(location, element_type, addr));
         assert!(dialect::ram::is_ram_load(&load_op));
 
         block.append_operation(dialect::function::r#return(location, &[]));

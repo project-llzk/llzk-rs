@@ -11,6 +11,7 @@ use rstest::rstest;
 
 use crate::{
     dialect::{
+        felt::{FeltConstAttribute, FeltType},
         function::FuncDefOpLike,
         module::llzk_module,
     },
@@ -21,7 +22,7 @@ use super::ops;
 
 /// Helper: wraps operations inside a `function.def` with `allow_witness` so
 /// that RAM ops pass verification. Asserts verification succeeds.
-fn witness_fn<'c>(
+fn witness_fn_passes<'c>(
     module: &Module<'c>,
     ctx: &'c Context,
     location: Location<'c>,
@@ -36,7 +37,7 @@ fn witness_fn<'c>(
 /// Helper: wraps operations inside a `function.def` with `allow_constraint`.
 /// Asserts that verification *fails* — RAM ops are only permitted inside
 /// witness functions.
-fn constraint_fn<'c>(
+fn constraint_fn_rejected<'c>(
     module: &Module<'c>,
     ctx: &'c Context,
     location: Location<'c>,
@@ -75,17 +76,18 @@ fn build_fn<'c, 'm>(
     module.body().append_operation(f.into())
 }
 
-fn build_alloc<'c, 'b>(
+fn build_addr<'c, 'b>(
     block: &'b Block<'c>,
     ctx: &'c Context,
     location: Location<'c>,
-) -> OperationRef<'c, 'b> {
-    let size_op = block.append_operation(melior::dialect::arith::constant(
+    value: i64,
+) -> Value<'c, 'b> {
+    let addr_op = block.append_operation(melior::dialect::arith::constant(
         ctx,
-        IntegerAttribute::new(Type::index(ctx), 1024).into(),
+        IntegerAttribute::new(Type::index(ctx), value).into(),
         location,
     ));
-    block.append_operation(ops::alloc(location, size_op.result(0).unwrap().into()))
+    addr_op.result(0).unwrap().into()
 }
 
 fn build_load<'c, 'b>(
@@ -93,18 +95,9 @@ fn build_load<'c, 'b>(
     ctx: &'c Context,
     location: Location<'c>,
 ) -> OperationRef<'c, 'b> {
-    let index_type = Type::index(ctx);
-    let alloc_op = build_alloc(block, ctx, location);
-    let mem: Value = alloc_op.result(0).unwrap().into();
-
-    let addr_op = block.append_operation(melior::dialect::arith::constant(
-        ctx,
-        IntegerAttribute::new(index_type, 42).into(),
-        location,
-    ));
-    let addr: Value = addr_op.result(0).unwrap().into();
-
-    block.append_operation(ops::load(location, index_type, mem, addr))
+    let element_type: Type = FeltType::new(ctx).into();
+    let addr = build_addr(block, ctx, location, 42);
+    block.append_operation(ops::load(location, element_type, addr))
 }
 
 fn build_store<'c, 'b>(
@@ -112,36 +105,14 @@ fn build_store<'c, 'b>(
     ctx: &'c Context,
     location: Location<'c>,
 ) -> OperationRef<'c, 'b> {
-    let index_type = Type::index(ctx);
-    let alloc_op = build_alloc(block, ctx, location);
-    let mem: Value = alloc_op.result(0).unwrap().into();
-
-    let addr_op = block.append_operation(melior::dialect::arith::constant(
-        ctx,
-        IntegerAttribute::new(index_type, 0).into(),
-        location,
-    ));
-    let addr: Value = addr_op.result(0).unwrap().into();
-
-    let val_op = block.append_operation(melior::dialect::arith::constant(
-        ctx,
-        IntegerAttribute::new(index_type, 99).into(),
-        location,
-    ));
+    let addr = build_addr(block, ctx, location, 0);
+    let val_op = block.append_operation(
+        crate::dialect::felt::constant(location, FeltConstAttribute::new(ctx, 99, None))
+            .expect("valid felt.const"),
+    );
     let val: Value = val_op.result(0).unwrap().into();
 
-    block.append_operation(ops::store(location, mem, addr, val))
-}
-
-#[rstest]
-fn op_alloc(ctx: Context) {
-    let location = Location::unknown(&ctx);
-    let module = llzk_module(location);
-
-    witness_fn(&module, &ctx, location, |block| {
-        let alloc = build_alloc(block, &ctx, location);
-        assert!(ops::is_ram_alloc(&alloc));
-    });
+    block.append_operation(ops::store(location, addr, val))
 }
 
 #[rstest]
@@ -149,7 +120,7 @@ fn op_load(ctx: Context) {
     let location = Location::unknown(&ctx);
     let module = llzk_module(location);
 
-    witness_fn(&module, &ctx, location, |block| {
+    witness_fn_passes(&module, &ctx, location, |block| {
         let load = build_load(block, &ctx, location);
         assert!(ops::is_ram_load(&load));
     });
@@ -160,19 +131,9 @@ fn op_store(ctx: Context) {
     let location = Location::unknown(&ctx);
     let module = llzk_module(location);
 
-    witness_fn(&module, &ctx, location, |block| {
+    witness_fn_passes(&module, &ctx, location, |block| {
         let store = build_store(block, &ctx, location);
         assert!(ops::is_ram_store(&store));
-    });
-}
-
-#[rstest]
-fn op_alloc_rejected_in_constraint_fn(ctx: Context) {
-    let location = Location::unknown(&ctx);
-    let module = llzk_module(location);
-
-    constraint_fn(&module, &ctx, location, |block| {
-        build_alloc(block, &ctx, location);
     });
 }
 
@@ -181,7 +142,7 @@ fn op_load_rejected_in_constraint_fn(ctx: Context) {
     let location = Location::unknown(&ctx);
     let module = llzk_module(location);
 
-    constraint_fn(&module, &ctx, location, |block| {
+    constraint_fn_rejected(&module, &ctx, location, |block| {
         build_load(block, &ctx, location);
     });
 }
@@ -191,7 +152,7 @@ fn op_store_rejected_in_constraint_fn(ctx: Context) {
     let location = Location::unknown(&ctx);
     let module = llzk_module(location);
 
-    constraint_fn(&module, &ctx, location, |block| {
+    constraint_fn_rejected(&module, &ctx, location, |block| {
         build_store(block, &ctx, location);
     });
 }
