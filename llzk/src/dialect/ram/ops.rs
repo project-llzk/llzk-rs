@@ -1,21 +1,21 @@
 //! `ram` dialect operations.
 
 use melior::ir::{
-    Location, Operation, Type, Value,
+    Location, Operation, Value,
     operation::{OperationBuilder, OperationLike},
 };
 
+use crate::dialect::felt::FeltType;
+
 /// Creates a `ram.load` operation.
 ///
-/// Reads a value from the flat memory region at the given address.
-pub fn load<'c>(
-    location: Location<'c>,
-    result_type: Type<'c>,
-    addr: Value<'c, '_>,
-) -> Operation<'c> {
+/// Reads a `!felt.type` value from the flat memory region at the given address.
+pub fn load<'c>(location: Location<'c>, addr: Value<'c, '_>) -> Operation<'c> {
+    let ctx = location.context();
+    let felt_type = FeltType::new(unsafe { ctx.to_ref() });
     OperationBuilder::new("ram.load", location)
         .add_operands(&[addr])
-        .add_results(&[result_type])
+        .add_results(&[felt_type.into()])
         .build()
         .expect("valid operation")
 }

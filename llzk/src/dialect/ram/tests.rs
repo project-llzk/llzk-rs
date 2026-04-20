@@ -11,9 +11,7 @@ use rstest::rstest;
 
 use crate::{
     dialect::{
-        felt::{FeltConstAttribute, FeltType},
-        function::FuncDefOpLike,
-        module::llzk_module,
+        felt::FeltConstAttribute, function::FuncDefOpLike, module::llzk_module,
     },
     test::ctx,
 };
@@ -95,9 +93,8 @@ fn build_load<'c, 'b>(
     ctx: &'c Context,
     location: Location<'c>,
 ) -> OperationRef<'c, 'b> {
-    let element_type: Type = FeltType::new(ctx).into();
     let addr = build_addr(block, ctx, location, 42);
-    block.append_operation(ops::load(location, element_type, addr))
+    block.append_operation(ops::load(location, addr))
 }
 
 fn build_store<'c, 'b>(
