@@ -11,7 +11,9 @@ use rstest::rstest;
 
 use crate::{
     dialect::{
-        felt::FeltConstAttribute, function::FuncDefOpLike, module::llzk_module,
+        felt::{FeltConstAttribute, FeltType},
+        function::FuncDefOpLike,
+        module::llzk_module,
     },
     test::ctx,
 };
@@ -94,7 +96,7 @@ fn build_load<'c, 'b>(
     location: Location<'c>,
 ) -> OperationRef<'c, 'b> {
     let addr = build_addr(block, ctx, location, 42);
-    block.append_operation(ops::load(location, addr))
+    block.append_operation(ops::load(location, addr, None))
 }
 
 fn build_store<'c, 'b>(
@@ -131,6 +133,19 @@ fn op_store(ctx: Context) {
     witness_fn_passes(&module, &ctx, location, |block| {
         let store = build_store(block, &ctx, location);
         assert!(ops::is_ram_store(&store));
+    });
+}
+
+#[rstest]
+fn op_load_with_specified_field(ctx: Context) {
+    let location = Location::unknown(&ctx);
+    let module = llzk_module(location);
+
+    witness_fn_passes(&module, &ctx, location, |block| {
+        let addr = build_addr(block, &ctx, location, 42);
+        let felt_ty = FeltType::with_field(&ctx, "bn254");
+        let load = block.append_operation(ops::load(location, addr, Some(felt_ty)));
+        assert!(ops::is_ram_load(&load));
     });
 }
 
