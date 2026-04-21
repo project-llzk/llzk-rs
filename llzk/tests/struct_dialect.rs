@@ -1,4 +1,4 @@
-use llzk::prelude::*;
+use llzk::{builder::OpBuilder, prelude::*};
 use melior::ir::Location;
 
 mod common;
@@ -14,15 +14,34 @@ fn default_funcs<'c>(
 }
 
 #[test]
+fn struct_type_with_flat_name() {
+    common::setup();
+    let name = "flat";
+    let context = LlzkContext::new();
+    let typ = StructType::from_str(&context, name);
+    assert_eq!(typ.name().to_string(), format!("@{}", name));
+}
+
+#[test]
+fn struct_type_with_non_flat_name() {
+    common::setup();
+    let context = LlzkContext::new();
+    let a = SymbolRefAttribute::new_from_str(&context, "root", &["a", "b"]);
+    let typ = StructType::new(a, &[]);
+    assert_eq!(typ.name(), a);
+}
+
+#[test]
 fn empty_struct() {
     common::setup();
+    let name = "empty";
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
-    let typ = StructType::from_str(&context, "empty");
-    assert_eq!(typ.name().value(), "empty");
+    let typ = StructType::from_str(&context, name);
+    assert_eq!(typ.name().to_string(), format!("@{}", name));
 
-    let s = dialect::r#struct::def(loc, "empty", default_funcs(loc, typ)).unwrap();
+    let s = dialect::r#struct::def(loc, name, default_funcs(loc, typ)).unwrap();
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/empty_struct.mlir" );
@@ -31,12 +50,12 @@ fn empty_struct() {
 #[test]
 fn struct_with_one_member() {
     common::setup();
+    let name = "one_member";
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
-    let name = "one_member";
     let typ = StructType::from_str_params(&context, name, &[]);
-    assert_eq!(typ.name().value(), name);
+    assert_eq!(typ.name().to_string(), format!("@{}", name));
 
     let mut region_ops = vec![
         dialect::r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into),
@@ -54,15 +73,16 @@ fn struct_with_one_member() {
 #[test]
 fn empty_struct_with_pub_inputs() {
     common::setup();
+    let name = "empty";
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
     let loc = Location::unknown(&context);
-    let typ = StructType::from_str_params(&context, "empty", &[]);
-    assert_eq!(typ.name().value(), "empty");
+    let typ = StructType::from_str_params(&context, name, &[]);
+    assert_eq!(typ.name().to_string(), format!("@{}", name));
 
     let inputs = vec![(FeltType::new(&context).into(), Location::unknown(&context))];
     let arg_attrs = vec![vec![PublicAttribute::new_named_attr(&context)]];
-    let s = dialect::r#struct::def(loc, "empty", {
+    let s = dialect::r#struct::def(loc, name, {
         [
             dialect::r#struct::helpers::compute_fn(
                 loc,
@@ -84,4 +104,39 @@ fn empty_struct_with_pub_inputs() {
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/empty_struct_with_pub_inputs.mlir");
+}
+
+#[test]
+fn struct_readm() {
+    common::setup();
+    let name = "read_member";
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let loc = Location::unknown(&context);
+    let typ = StructType::from_str_params(&context, name, &[]);
+
+    let mut region_ops = vec![
+        dialect::r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into),
+    ];
+    region_ops.extend(default_funcs(loc, typ));
+
+    let s = dialect::r#struct::def(loc, name, region_ops).unwrap();
+    let s = StructDefOpRef::try_from(module.body().append_operation(s.into())).unwrap();
+
+    let constrain_body = s
+        .get_constrain_func()
+        .expect("failed to get constrain function")
+        .region(0)
+        .expect("failed to get first region")
+        .first_block()
+        .expect("failed to get first block");
+
+    let self_value: Value = constrain_body.argument(0).unwrap().into();
+    let builder = OpBuilder::new(&context);
+    let readm_op = constrain_body.insert_operation_before(
+        constrain_body.terminator().unwrap(),
+        dialect::r#struct::readm(&builder, loc, Type::index(&context), self_value, "foo").unwrap(),
+    );
+
+    assert_test!(readm_op, module, @file "expected/read_member.mlir");
 }

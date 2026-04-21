@@ -11,6 +11,7 @@
 #include "llzk-c/Dialect/LLZK.h"
 #include "llzk-c/Dialect/POD.h"
 #include "llzk-c/Dialect/Poly.h"
+#include "llzk-c/Dialect/RAM.h"
 #include "llzk-c/Dialect/String.h"
 #include "llzk-c/Dialect/Struct.h"
 #include "llzk-c/InitDialects.h"

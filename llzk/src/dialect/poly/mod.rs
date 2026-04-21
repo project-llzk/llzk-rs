@@ -22,8 +22,10 @@ pub fn handle() -> DialectHandle {
 pub mod prelude {
     pub use super::{
         ops::{
-            TemplateExprOp, TemplateExprOpLike, TemplateOp, TemplateOpLike, TemplateParamOp,
-            TemplateParamOpLike, YieldOp,
+            TemplateExprOp, TemplateExprOpLike, TemplateExprOpRef, TemplateExprOpRefMut,
+            TemplateOp, TemplateOpLike, TemplateOpRef, TemplateOpRefMut, TemplateParamOp,
+            TemplateParamOpLike, TemplateParamOpRef, TemplateParamOpRefMut, YieldOp, YieldOpRef,
+            YieldOpRefMut,
         },
         r#type::{TVarType, is_type_variable},
     };
