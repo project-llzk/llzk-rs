@@ -49,6 +49,19 @@ jobs:
         run: cargo test --profile ${{ matrix.BUILD_TARGET }} --all-features
 
   # WARNING: do not change this job name. It is a required status check for PRs to `main`.
+  build-result:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+    steps:
+      - name: Verify all build steps passed
+        run: |
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "build failed or was cancelled"
+            exit 1
+          fi
+
+  # WARNING: do not change this job name. It is a required status check for PRs to `main`.
   asan:
     runs-on: ubuntu-latest
     steps:
