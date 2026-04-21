@@ -1,6 +1,6 @@
 [package]
 name = "llzk"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2024"
 keywords = ["llzk", "mlir"]
 categories = ["api-bindings"]
@@ -10,7 +10,7 @@ license = "Apache-2.0"
 readme = "README.md"
 
 [dependencies]
-llzk-sys = { path = "../llzk-sys/", version = "10"}
+llzk-sys = { path = "../llzk-sys/", version = "20"}
 llzk-macro = { path = "../llzk-macro", version = "0.3"}
 melior = { workspace = true }
 melior-macro = { workspace = true }
