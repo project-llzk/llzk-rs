@@ -13,7 +13,7 @@ use llzk_sys_build_support::{
     wrap_static_fns::WrapStaticFns,
 };
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
 };
 
@@ -75,9 +75,49 @@ fn run() -> Result<()> {
         WrapStaticFns::new(Path::new(&out_dir)),
         link_llzk(PathBuf::from(llzk_dir))?,
     );
-    cfg.generate()?
-        .write_to_file(Path::new(&out_dir).join("bindings.rs"))?;
+    let bindings_path = Path::new(&out_dir).join("bindings.rs");
+    let source = cfg.generate()?.to_string();
+    fs::write(bindings_path, suppress_missing_docs(&source))?;
     cfg.try_compile("llzk-sys-cc")
+}
+
+/// Inserts `#[allow(missing_docs)]` before items in the generated bindings that cannot
+/// have doc comments added to them in this crate:
+///
+/// - `pub fn mlir*`: tablegen-generated dialect/pass registration functions.
+/// - `pub struct <name>` where the name contains "bindgen": anonymous types emitted by bindgen.
+/// - `pub <field>:` where the field name contains "bindgen": padding/bitfield fields emitted by
+///   bindgen (e.g. `__bindgen_padding_0`).
+fn suppress_missing_docs(source: &str) -> String {
+    let mut result = String::with_capacity(source.len());
+    for line in source.lines() {
+        let trimmed = line.trim_start();
+        let indent = &line[..line.len() - trimmed.len()];
+        let needs_allow = trimmed.starts_with("pub fn mlir")
+            || trimmed
+                .strip_prefix("pub struct ")
+                .and_then(|rest| rest.split_whitespace().next())
+                .is_some_and(|name| name.to_ascii_lowercase().contains("bindgen"))
+            || trimmed
+                .strip_prefix("pub ")
+                .and_then(|rest| {
+                    let colon = rest.find(':')?;
+                    let ident = &rest[..colon];
+                    // exclude `pub fn` / `pub unsafe fn` / tuple-struct fields (no space, no paren)
+                    if ident.contains(' ') || ident.contains('(') {
+                        return None;
+                    }
+                    Some(ident.to_ascii_lowercase().contains("bindgen"))
+                })
+                .unwrap_or(false);
+        if needs_allow {
+            result.push_str(indent);
+            result.push_str("#[allow(missing_docs)]\n");
+        }
+        result.push_str(line);
+        result.push('\n');
+    }
+    result
 }
 
 fn feature_is_enabled(feature: &str) -> bool {
