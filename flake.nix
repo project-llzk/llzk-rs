@@ -3,14 +3,14 @@
     llzk-pkgs.url = "github:project-llzk/llzk-nix-pkgs";
     nixpkgs.follows = "llzk-pkgs/nixpkgs";
     flake-utils.follows = "llzk-pkgs/flake-utils";
-    rust-overlay = { 
-      url = "github:oxalica/rust-overlay"; 
-      inputs = { 
-        nixpkgs.follows = "llzk-pkgs/nixpkgs"; 
-      }; 
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "llzk-pkgs/nixpkgs";
+      };
     };
     llzk-lib = {
-      url = "github:project-llzk/llzk-lib";
+      url = "github:project-llzk/llzk-lib?ref=th/sym_table_insert";
       inputs = {
         nixpkgs.follows = "llzk-pkgs/nixpkgs";
         flake-utils.follows = "llzk-pkgs/flake-utils";
