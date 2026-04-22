@@ -14,6 +14,8 @@ pub use crate::error::Error as LlzkError;
 pub use crate::operation::{replace_uses_of_with, verify_operation, verify_operation_with_diags};
 pub use crate::passes as llzk_passes;
 pub use crate::symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute};
+pub use crate::symbol_table;
+pub use crate::typing::{is_unifiable_with, types_equal_or_unifiable, types_unify};
 pub use crate::utils::IntoRef;
 
 /// Exports from the various llzk dialects.

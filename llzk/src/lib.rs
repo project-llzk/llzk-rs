@@ -19,9 +19,11 @@ pub mod passes;
 pub mod prelude;
 pub mod symbol_lookup;
 pub mod symbol_ref;
+pub mod symbol_table;
 pub mod targets;
 #[cfg(test)]
 mod test;
+pub mod typing;
 pub mod utils;
 pub mod value_ext;
 
