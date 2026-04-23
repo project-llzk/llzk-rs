@@ -9,8 +9,7 @@ fn identical_types_unify() {
     let context = LlzkContext::new();
     let index = Type::index(&context);
 
-    assert!(typing::types_equal_or_unifiable(index, index));
-    assert!(typing::is_unifiable_with(index, index));
+    assert!(typing::types_unify(index, index));
 }
 
 #[test]
@@ -19,7 +18,7 @@ fn identical_types_unify_with_empty_prefix() {
     let context = LlzkContext::new();
     let felt: Type = FeltType::new(&context).into();
 
-    assert!(typing::types_unify(felt, felt, &[]));
+    assert!(typing::types_unify_with_prefix(felt, felt, &[]));
 }
 
 #[test]
@@ -29,5 +28,5 @@ fn identical_types_unify_with_prefix() {
     let tvar: Type = TVarType::new(&context, StringRef::new("T")).into();
     let prefix = [StringRef::new("compute"), StringRef::new("StructA")];
 
-    assert!(typing::types_unify(tvar, tvar, &prefix));
+    assert!(typing::types_unify_with_prefix(tvar, tvar, &prefix));
 }
