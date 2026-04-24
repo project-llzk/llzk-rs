@@ -1,5 +1,6 @@
 use llzk::{
     builder::{OpBuilder, OpBuilderLike},
+    map_operands::MapOperandsBuilder,
     prelude::*,
 };
 use melior::ir::{Location, r#type::FunctionType};
@@ -65,6 +66,57 @@ fn function_call() {
                 dialect::function::call(&builder, loc, name, &[], &[felt_type])
                     .unwrap()
                     .into(),
+            )
+            .result(0)
+            .map(Value::from)
+            .unwrap();
+        // Build return operation
+        block.append_operation(dialect::function::r#return(loc, &[v]));
+        // Add Block to function
+        f.region(0)
+            .expect("function.def must have at least 1 region")
+            .append_block(block);
+    }
+
+    assert_eq!(f.region_count(), 1);
+    let f = module.body().append_operation(f.into());
+    assert_test!(f, module, @file "expected/function_call.mlir");
+}
+
+#[test]
+fn function_call_with_map_operands() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let f = dialect::function::def(
+        loc,
+        "recursive",
+        FunctionType::new(&context, &[], &[felt_type]),
+        &[],
+        None,
+    )
+    .unwrap();
+    {
+        let block = Block::new(&[]);
+        let builder =
+            OpBuilder::at_block_begin(&context, unsafe { BlockRef::from_raw(block.to_raw()) });
+        // Build call to itself
+        let name = FlatSymbolRefAttribute::new(&context, "recursive");
+        let map_operands = MapOperandsBuilder::new();
+        let v = block
+            .append_operation(
+                dialect::function::call_with_map_operands(
+                    &builder,
+                    loc,
+                    name,
+                    &[],
+                    &[felt_type],
+                    map_operands,
+                )
+                .unwrap()
+                .into(),
             )
             .result(0)
             .map(Value::from)
