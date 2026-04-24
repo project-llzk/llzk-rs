@@ -15,7 +15,7 @@ pub use crate::operation::{replace_uses_of_with, verify_operation, verify_operat
 pub use crate::passes as llzk_passes;
 pub use crate::symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute};
 pub use crate::symbol_table;
-pub use crate::typing::{is_unifiable_with, types_equal_or_unifiable, types_unify};
+pub use crate::typing::{types_unify, types_unify_with_prefix};
 pub use crate::utils::IntoRef;
 
 /// Exports from the various llzk dialects.
