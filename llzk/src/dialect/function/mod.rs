@@ -7,7 +7,7 @@ use melior::dialect::DialectHandle;
 pub use ops::{
     CallOp, CallOpLike, CallOpRef, FuncDefOp, FuncDefOpLike, FuncDefOpMutLike, FuncDefOpRef,
 };
-pub use ops::{call, def, r#return};
+pub use ops::{call, call_with_map_operands, def, r#return};
 pub use ops::{is_func_call, is_func_def, is_func_return};
 
 /// Returns a handle to the `function` dialect.
