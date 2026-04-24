@@ -4,16 +4,17 @@ use crate::{
     dialect::r#struct::StructType,
     error::Error,
     macros::llzk_op_type,
+    map_operands::MapOperandsBuilder,
     symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
 };
 
 use llzk_sys::{
-    llzkFunction_CallOpBuild, llzkFunction_CallOpCalleeIsCompute,
-    llzkFunction_CallOpCalleeIsConstrain, llzkFunction_CallOpCalleeIsStructCompute,
-    llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpGetSelfValueFromCompute,
-    llzkFunction_CallOpGetSelfValueFromConstrain, llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs,
-    llzkFunction_FuncDefOpGetFullyQualifiedName, llzkFunction_FuncDefOpGetSelfValueFromCompute,
-    llzkFunction_FuncDefOpGetSelfValueFromConstrain,
+    llzkFunction_CallOpBuild, llzkFunction_CallOpBuildWithMapOperands,
+    llzkFunction_CallOpCalleeIsCompute, llzkFunction_CallOpCalleeIsConstrain,
+    llzkFunction_CallOpCalleeIsStructCompute, llzkFunction_CallOpCalleeIsStructConstrain,
+    llzkFunction_CallOpGetSelfValueFromCompute, llzkFunction_CallOpGetSelfValueFromConstrain,
+    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetFullyQualifiedName,
+    llzkFunction_FuncDefOpGetSelfValueFromCompute, llzkFunction_FuncDefOpGetSelfValueFromConstrain,
     llzkFunction_FuncDefOpGetSingleResultTypeOfCompute,
     llzkFunction_FuncDefOpHasAllowConstraintAttr,
     llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
@@ -370,6 +371,30 @@ pub fn call<'c>(
             return_types.len() as isize,
             return_types.as_ptr() as *const _,
             name.to_raw(),
+            args.len() as isize,
+            args.as_ptr() as *const _,
+        ))
+    }
+    .try_into()
+}
+
+/// Creates a new `function.call` operation with map operands.
+pub fn call_with_map_operands<'c>(
+    builder: &OpBuilder<'c>,
+    location: Location<'c>,
+    name: impl SymbolRefAttrLike<'c>,
+    args: &[Value<'c, '_>],
+    return_types: &[impl TypeLike<'c>],
+    map_operands: MapOperandsBuilder,
+) -> Result<CallOp<'c>, Error> {
+    unsafe {
+        Operation::from_raw(llzkFunction_CallOpBuildWithMapOperands(
+            builder.to_raw(),
+            location.to_raw(),
+            return_types.len() as isize,
+            return_types.as_ptr() as *const _,
+            name.to_raw(),
+            map_operands.to_raw(),
             args.len() as isize,
             args.as_ptr() as *const _,
         ))
