@@ -1,9 +1,9 @@
 use llzk::{
     builder::OpBuilder,
     dialect::poly::{
-        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, applymap, expr, is_applymap_op,
-        is_expr_op, is_param_op, is_template_op, is_unifiable_cast_op, is_yield_op, param,
-        template, unifiable_cast, r#yield,
+        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOpRef,
+        applymap, expr, is_applymap_op, is_expr_op, is_param_op, is_template_op,
+        is_unifiable_cast_op, is_yield_op, param, template, unifiable_cast, r#yield,
     },
     prelude::*,
 };
@@ -133,6 +133,59 @@ fn create_template_with_param_and_expr() {
 "#;
     assert_eq!(ir, expected);
     assert!(tmpl.verify());
+}
+
+#[test]
+fn template_const_ops() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let c1 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 1).into(),
+        loc,
+    );
+    let c1_res = c1.result(0).unwrap();
+
+    let tmpl = template(
+        loc,
+        "tmpl",
+        [
+            param(
+                loc,
+                "T",
+                Some(TVarType::new(&context, StringRef::new("T")).into()),
+            )
+            .map(Into::into),
+            expr(
+                loc,
+                "N",
+                [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
+            )
+            .map(Into::into),
+            param(loc, "U", None).map(Into::into),
+        ],
+    )
+    .unwrap();
+
+    let ops = tmpl.const_binding_ops();
+    assert_eq!(ops.len(), 3);
+    assert!(matches!(ops[0], TemplateSymbolBindingOpRef::Param(_)));
+    assert!(matches!(ops[1], TemplateSymbolBindingOpRef::Expr(_)));
+    assert!(matches!(ops[2], TemplateSymbolBindingOpRef::Param(_)));
+    assert_eq!(
+        ops.iter().map(|op| op.name()).collect::<Vec<_>>(),
+        ["T", "N", "U"]
+    );
+    assert_eq!(
+        ops[0].type_opt().map(|ty| ty.to_string()),
+        Some(String::from("!poly.tvar<@T>"))
+    );
+    assert_eq!(
+        ops[1].type_opt().map(|ty| ty.to_string()),
+        Some(String::from("index"))
+    );
+    assert!(ops[2].type_opt().is_none());
 }
 
 #[test]

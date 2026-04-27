@@ -22,13 +22,13 @@ use llzk_sys::{
 use melior::ir::{
     Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
     RegionLike as _, RegionRef, Type, Value, ValueLike as _,
-    attribute::{FlatSymbolRefAttribute, TypeAttribute},
+    attribute::{FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
     operation::{OperationBuilder, OperationLike},
 };
 use mlir_sys::MlirAttribute;
 
 //===----------------------------------------------------------------------===//
-// TemplateOpLike
+// poly.template (TemplateOpLike)
 //===----------------------------------------------------------------------===//
 
 /// Defines the public API of the `poly.template` op.
@@ -102,102 +102,42 @@ pub trait TemplateOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             llzkPoly_TemplateOpHasConstExprNamed(self.to_raw(), find.to_raw())
         }
     }
-}
 
-//===----------------------------------------------------------------------===//
-// TemplateExprOpLike
-//===----------------------------------------------------------------------===//
-
-/// Defines the public API of the `poly.expr` op.
-pub trait TemplateExprOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
-    /// Returns the initializer region.
-    fn initializer_region(&self) -> RegionRef<'c, 'a> {
-        unsafe { RegionRef::from_raw(llzkPoly_TemplateExprOpGetInitializerRegion(self.to_raw())) }
-    }
-
-    /// Returns the type yielded from the initializer region.
-    fn expr_type(&self) -> Type<'c> {
-        unsafe { Type::from_raw(llzkPoly_TemplateExprOpGetType(self.to_raw())) }
-    }
-}
-
-//===----------------------------------------------------------------------===//
-// TemplateParamOpLike
-//===----------------------------------------------------------------------===//
-
-/// Defines the public API of the `poly.param` op.
-pub trait TemplateParamOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
-    /// Returns the optional declared type restriction on the parameter.
-    fn type_opt(&self) -> Option<Type<'c>> {
-        let raw_attr = unsafe { llzkPoly_TemplateParamOpGetTypeOpt(self.to_raw()) };
-        if raw_attr.ptr.is_null() {
-            None
-        } else {
-            let attr = unsafe { Attribute::from_raw(raw_attr) };
-            let type_attr = TypeAttribute::try_from(attr).expect("malformed poly.param type_opt");
-            Some(type_attr.value())
+    /// Returns all `poly.param` and `poly.expr` children in definition order.
+    fn const_binding_ops(&self) -> Vec<TemplateSymbolBindingOpRef<'c, 'a>> {
+        let num_ops = usize::try_from(unsafe {
+            llzkPoly_TemplateOpNumConstParamOps(self.to_raw())
+                + llzkPoly_TemplateOpNumConstExprOps(self.to_raw())
+        })
+        .unwrap();
+        let mut ops = Vec::with_capacity(num_ops);
+        let mut op = self.body().first_operation();
+        while let Some(cur) = op {
+            let raw = cur.to_raw();
+            if unsafe { llzkOperationIsA_Poly_TemplateParamOp(raw) } {
+                ops.push(TemplateSymbolBindingOpRef::Param(unsafe {
+                    TemplateParamOpRef::from_raw(raw)
+                }));
+            } else if unsafe { llzkOperationIsA_Poly_TemplateExprOp(raw) } {
+                ops.push(TemplateSymbolBindingOpRef::Expr(unsafe {
+                    TemplateExprOpRef::from_raw(raw)
+                }));
+            }
+            op = cur.next_in_block();
         }
+        ops
     }
 }
-
-//===----------------------------------------------------------------------===//
-// Typed op wrappers
-//===----------------------------------------------------------------------===//
 
 llzk_op_type!(
     TemplateOp,
     llzkOperationIsA_Poly_TemplateOp,
     "poly.template"
 );
-llzk_op_type!(
-    TemplateExprOp,
-    llzkOperationIsA_Poly_TemplateExprOp,
-    "poly.expr"
-);
-llzk_op_type!(
-    TemplateParamOp,
-    llzkOperationIsA_Poly_TemplateParamOp,
-    "poly.param"
-);
-llzk_op_type!(YieldOp, llzkOperationIsA_Poly_YieldOp, "poly.yield");
 
 impl<'a, 'c: 'a> TemplateOpLike<'c, 'a> for TemplateOp<'c> {}
 impl<'a, 'c: 'a> TemplateOpLike<'c, 'a> for TemplateOpRef<'c, 'a> {}
 impl<'a, 'c: 'a> TemplateOpLike<'c, 'a> for TemplateOpRefMut<'c, 'a> {}
-
-impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOp<'c> {}
-impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOpRef<'c, 'a> {}
-impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOpRefMut<'c, 'a> {}
-
-impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOp<'c> {}
-impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOpRef<'c, 'a> {}
-impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOpRefMut<'c, 'a> {}
-
-/// Constructs a 'poly.applymap' operation.
-pub fn applymap<'c>(
-    location: Location<'c>,
-    map: Attribute<'c>,
-    map_operands: &[Value<'c, '_>],
-) -> Operation<'c> {
-    let ctx = location.context();
-    let builder = OpBuilder::new(unsafe { ctx.to_ref() });
-    let value_range = OwningValueRange::from(map_operands);
-    assert!(unsafe { mlir_sys::mlirAttributeIsAAffineMap(map.to_raw()) });
-    unsafe {
-        Operation::from_raw(llzkPoly_ApplyMapOpBuildWithAffineMap(
-            builder.to_raw(),
-            location.to_raw(),
-            mlir_sys::mlirAffineMapAttrGetValue(map.to_raw()),
-            ValueRange::try_from(&value_range).unwrap().to_raw(),
-        ))
-    }
-}
-
-/// Return `true` iff the given op is `poly.applymap`.
-#[inline]
-pub fn is_applymap_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.applymap")
-}
 
 /// Creates a `poly.template` op and fills its body with the given operations.
 pub fn template<'c, I>(
@@ -237,24 +177,106 @@ pub fn is_template_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
     crate::operation::isa(op, "poly.template")
 }
 
-/// Constructs a 'poly.read_const' operation.
-pub fn read_const<'c>(location: Location<'c>, symbol: &str, result: Type<'c>) -> Operation<'c> {
-    let ctx = location.context();
-    OperationBuilder::new("poly.read_const", location)
-        .add_attributes(&[(
-            ident!(ctx, "const_name"),
-            FlatSymbolRefAttribute::new(unsafe { ctx.to_ref() }, symbol).into(),
-        )])
-        .add_results(&[result])
-        .build()
-        .expect("valid operation")
+//===----------------------------------------------------------------------===//
+// poly.param (TemplateParamOp*) & poly.expr (TemplateExprOp*)
+//===----------------------------------------------------------------------===//
+
+/// A non-owned reference to either a `poly.param` or `poly.expr` op.
+#[derive(Clone, Copy, Debug)]
+pub enum TemplateSymbolBindingOpRef<'c, 'a> {
+    /// A `poly.param` op reference.
+    Param(TemplateParamOpRef<'c, 'a>),
+    /// A `poly.expr` op reference.
+    Expr(TemplateExprOpRef<'c, 'a>),
 }
 
-/// Return `true` iff the given op is `poly.read_const`.
-#[inline]
-pub fn is_read_const_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.read_const")
+impl<'c: 'a, 'a> TemplateSymbolBindingOpRef<'c, 'a> {
+    /// Returns the name of the symbol.
+    ///
+    /// # Panics
+    ///
+    /// If the op doesn't have an attribute named `sym_name`.
+    pub fn name(&self) -> &'c str {
+        self.attribute("sym_name")
+            .and_then(StringAttribute::try_from)
+            .map(|a| a.value())
+            .unwrap()
+    }
+
+    /// Returns the optional type restriction on defined symbol.
+    pub fn type_opt(&self) -> Option<Type<'c>> {
+        match self {
+            Self::Param(op) => op.type_opt(),
+            Self::Expr(op) => Some(op.expr_type()),
+        }
+    }
 }
+
+impl std::fmt::Display for TemplateSymbolBindingOpRef<'_, '_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Param(op) => std::fmt::Display::fmt(op, formatter),
+            Self::Expr(op) => std::fmt::Display::fmt(op, formatter),
+        }
+    }
+}
+
+impl<'a, 'c: 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOpRef<'c, 'a> {
+    fn to_raw(&self) -> mlir_sys::MlirOperation {
+        match self {
+            Self::Param(op) => op.to_raw(),
+            Self::Expr(op) => op.to_raw(),
+        }
+    }
+}
+
+/// Defines the public API of the `poly.expr` op.
+pub trait TemplateExprOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+    /// Returns the initializer region.
+    fn initializer_region(&self) -> RegionRef<'c, 'a> {
+        unsafe { RegionRef::from_raw(llzkPoly_TemplateExprOpGetInitializerRegion(self.to_raw())) }
+    }
+
+    /// Returns the type yielded from the initializer region.
+    fn expr_type(&self) -> Type<'c> {
+        unsafe { Type::from_raw(llzkPoly_TemplateExprOpGetType(self.to_raw())) }
+    }
+}
+
+/// Defines the public API of the `poly.param` op.
+pub trait TemplateParamOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+    /// Returns the optional declared type restriction on the parameter.
+    fn type_opt(&self) -> Option<Type<'c>> {
+        let raw_attr = unsafe { llzkPoly_TemplateParamOpGetTypeOpt(self.to_raw()) };
+        if raw_attr.ptr.is_null() {
+            None
+        } else {
+            let attr = unsafe { Attribute::from_raw(raw_attr) };
+            let type_attr = TypeAttribute::try_from(attr).expect("malformed poly.param type_opt");
+            Some(type_attr.value())
+        }
+    }
+}
+
+llzk_op_type!(
+    TemplateExprOp,
+    llzkOperationIsA_Poly_TemplateExprOp,
+    "poly.expr"
+);
+
+llzk_op_type!(
+    TemplateParamOp,
+    llzkOperationIsA_Poly_TemplateParamOp,
+    "poly.param"
+);
+
+impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOp<'c> {}
+impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOpRef<'c, 'a> {}
+impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOpRefMut<'c, 'a> {}
+
+impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOp<'c> {}
+impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOpRef<'c, 'a> {}
+impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOpRefMut<'c, 'a> {}
 
 /// Creates a `poly.param` op.
 pub fn param<'c>(
@@ -327,24 +349,11 @@ pub fn is_expr_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
     crate::operation::isa(op, "poly.expr")
 }
 
-/// Constructs a 'poly.unifiable_cast' operation.
-pub fn unifiable_cast<'c>(
-    location: Location<'c>,
-    input: Value<'c, '_>,
-    result: Type<'c>,
-) -> Operation<'c> {
-    OperationBuilder::new("poly.unifiable_cast", location)
-        .add_operands(&[input])
-        .add_results(&[result])
-        .build()
-        .expect("valid operation")
-}
+//===----------------------------------------------------------------------===//
+// poly.yield (YieldOp)
+//===----------------------------------------------------------------------===//
 
-/// Return `true` iff the given op is `poly.unifiable_cast`.
-#[inline]
-pub fn is_unifiable_cast_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.unifiable_cast")
-}
+llzk_op_type!(YieldOp, llzkOperationIsA_Poly_YieldOp, "poly.yield");
 
 /// Creates a `poly.yield` op.
 pub fn r#yield<'c>(location: Location<'c>, val: Value<'c, '_>) -> Result<YieldOp<'c>, Error> {
@@ -364,4 +373,80 @@ pub fn r#yield<'c>(location: Location<'c>, val: Value<'c, '_>) -> Result<YieldOp
 #[inline]
 pub fn is_yield_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
     crate::operation::isa(op, "poly.yield")
+}
+
+//===----------------------------------------------------------------------===//
+// poly.read_const
+//===----------------------------------------------------------------------===//
+
+/// Constructs a 'poly.read_const' operation.
+pub fn read_const<'c>(location: Location<'c>, symbol: &str, result: Type<'c>) -> Operation<'c> {
+    let ctx = location.context();
+    OperationBuilder::new("poly.read_const", location)
+        .add_attributes(&[(
+            ident!(ctx, "const_name"),
+            FlatSymbolRefAttribute::new(unsafe { ctx.to_ref() }, symbol).into(),
+        )])
+        .add_results(&[result])
+        .build()
+        .expect("valid operation")
+}
+
+/// Return `true` iff the given op is `poly.read_const`.
+#[inline]
+pub fn is_read_const_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
+    crate::operation::isa(op, "poly.read_const")
+}
+
+//===----------------------------------------------------------------------===//
+// poly.unifiable_cast
+//===----------------------------------------------------------------------===//
+
+/// Constructs a 'poly.unifiable_cast' operation.
+pub fn unifiable_cast<'c>(
+    location: Location<'c>,
+    input: Value<'c, '_>,
+    result: Type<'c>,
+) -> Operation<'c> {
+    OperationBuilder::new("poly.unifiable_cast", location)
+        .add_operands(&[input])
+        .add_results(&[result])
+        .build()
+        .expect("valid operation")
+}
+
+/// Return `true` iff the given op is `poly.unifiable_cast`.
+#[inline]
+pub fn is_unifiable_cast_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
+    crate::operation::isa(op, "poly.unifiable_cast")
+}
+
+//===----------------------------------------------------------------------===//
+// poly.applymap
+//===----------------------------------------------------------------------===//
+
+/// Constructs a 'poly.applymap' operation.
+pub fn applymap<'c>(
+    location: Location<'c>,
+    map: Attribute<'c>,
+    map_operands: &[Value<'c, '_>],
+) -> Operation<'c> {
+    let ctx = location.context();
+    let builder = OpBuilder::new(unsafe { ctx.to_ref() });
+    let value_range = OwningValueRange::from(map_operands);
+    assert!(unsafe { mlir_sys::mlirAttributeIsAAffineMap(map.to_raw()) });
+    unsafe {
+        Operation::from_raw(llzkPoly_ApplyMapOpBuildWithAffineMap(
+            builder.to_raw(),
+            location.to_raw(),
+            mlir_sys::mlirAffineMapAttrGetValue(map.to_raw()),
+            ValueRange::try_from(&value_range).unwrap().to_raw(),
+        ))
+    }
+}
+
+/// Return `true` iff the given op is `poly.applymap`.
+#[inline]
+pub fn is_applymap_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
+    crate::operation::isa(op, "poly.applymap")
 }
