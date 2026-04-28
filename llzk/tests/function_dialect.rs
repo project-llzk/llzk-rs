@@ -245,3 +245,50 @@ fn call_op_self_value_of_compute() {
         "%0 = function.call @StructA::@compute() : () -> !struct.type<@StructA> "
     );
 }
+
+#[test]
+fn func_def_op_ref_from_borrow_equals_original() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+
+    let op = dialect::function::def(
+        loc,
+        "my_func",
+        FunctionType::new(&context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+
+    // Convert a shared borrow into a FuncDefOpRef
+    let op_ref = FuncDefOpRef::from(&op);
+
+    // The ref must point to the same underlying operation.
+    assert_eq!(op_ref, op);
+}
+
+#[test]
+fn func_def_op_ref_from_borrow_does_not_drop_original() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+
+    let op = dialect::function::def(
+        loc,
+        "my_func",
+        FunctionType::new(&context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+
+    {
+        let op_ref = FuncDefOpRef::from(&op);
+        // Use the ref so it isn't optimized away.
+        assert_eq!(op_ref.region_count(), 1);
+    } // `op_ref` drops here — `op` must still be alive.
+
+    // `op` is still valid: its Drop will run mlirOperationDestroy exactly once.
+    assert_eq!(op.region_count(), 1);
+}

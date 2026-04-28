@@ -167,6 +167,12 @@ macro_rules! llzk_op_type {
                 }
             }
 
+            impl<'c, 'a> From<&'a [<$type>]<'c>> for [<$type Ref>]<'c, 'a> {
+                fn from(op: &'a [<$type>]<'c>) -> Self {
+                    unsafe { Self::from_raw(op.to_raw()) }
+                }
+            }
+
             impl<'a, 'c: 'a> melior::ir::operation::OperationLike<'c, 'a> for [<$type Ref>]<'c, 'a> {
                 fn to_raw(&self) -> mlir_sys::MlirOperation {
                     self.raw
