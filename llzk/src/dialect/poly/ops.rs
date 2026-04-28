@@ -182,7 +182,7 @@ pub fn is_template_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 //===----------------------------------------------------------------------===//
 
 /// An owned `poly.param` or `poly.expr` op.
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TemplateSymbolBindingOp<'c> {
     /// A `poly.param` op.
     Param(TemplateParamOp<'c>),
@@ -251,8 +251,35 @@ impl<'a, 'c: 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOp<'c> {
     }
 }
 
+impl<'c> From<TemplateParamOp<'c>> for TemplateSymbolBindingOp<'c> {
+    fn from(op: TemplateParamOp<'c>) -> Self {
+        Self::Param(op)
+    }
+}
+
+impl<'c> From<TemplateExprOp<'c>> for TemplateSymbolBindingOp<'c> {
+    fn from(op: TemplateExprOp<'c>) -> Self {
+        Self::Expr(op)
+    }
+}
+
+impl<'c> From<TemplateSymbolBindingOp<'c>> for Operation<'c> {
+    fn from(op: TemplateSymbolBindingOp<'c>) -> Self {
+        match op {
+            TemplateSymbolBindingOp::Param(inner) => inner.into(),
+            TemplateSymbolBindingOp::Expr(inner) => inner.into(),
+        }
+    }
+}
+
+impl<'c, 'a> From<&'a TemplateSymbolBindingOp<'c>> for TemplateSymbolBindingOpRef<'c, 'a> {
+    fn from(op: &'a TemplateSymbolBindingOp<'c>) -> Self {
+        op.as_ref()
+    }
+}
+
 /// A non-owned reference to either a `poly.param` or `poly.expr` op.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TemplateSymbolBindingOpRef<'c, 'a> {
     /// A `poly.param` op reference.
     Param(TemplateParamOpRef<'c, 'a>),
@@ -305,6 +332,29 @@ impl<'a, 'c: 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOpRef<'c, 'a> {
         match self {
             Self::Param(op) => op.to_raw(),
             Self::Expr(op) => op.to_raw(),
+        }
+    }
+}
+
+impl<'c, 'a> From<TemplateParamOpRef<'c, 'a>> for TemplateSymbolBindingOpRef<'c, 'a> {
+    fn from(op: TemplateParamOpRef<'c, 'a>) -> Self {
+        Self::Param(op)
+    }
+}
+
+impl<'c, 'a> From<TemplateExprOpRef<'c, 'a>> for TemplateSymbolBindingOpRef<'c, 'a> {
+    fn from(op: TemplateExprOpRef<'c, 'a>) -> Self {
+        Self::Expr(op)
+    }
+}
+
+impl<'c, 'a> From<TemplateSymbolBindingOpRef<'c, 'a>>
+    for melior::ir::operation::OperationRef<'c, 'a>
+{
+    fn from(op: TemplateSymbolBindingOpRef<'c, 'a>) -> Self {
+        match op {
+            TemplateSymbolBindingOpRef::Param(inner) => inner.into(),
+            TemplateSymbolBindingOpRef::Expr(inner) => inner.into(),
         }
     }
 }
