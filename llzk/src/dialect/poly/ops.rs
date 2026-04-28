@@ -182,7 +182,7 @@ pub fn is_template_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 //===----------------------------------------------------------------------===//
 
 /// An owned `poly.param` or `poly.expr` op.
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TemplateSymbolBindingOp<'c> {
     /// A `poly.param` op.
     Param(TemplateParamOp<'c>),
@@ -272,8 +272,14 @@ impl<'c> From<TemplateSymbolBindingOp<'c>> for Operation<'c> {
     }
 }
 
+impl<'c, 'a> From<&'a TemplateSymbolBindingOp<'c>> for TemplateSymbolBindingOpRef<'c, 'a> {
+    fn from(op: &'a TemplateSymbolBindingOp<'c>) -> Self {
+        op.as_ref()
+    }
+}
+
 /// A non-owned reference to either a `poly.param` or `poly.expr` op.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TemplateSymbolBindingOpRef<'c, 'a> {
     /// A `poly.param` op reference.
     Param(TemplateParamOpRef<'c, 'a>),
