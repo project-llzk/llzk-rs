@@ -181,6 +181,76 @@ pub fn is_template_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 // poly.param (TemplateParamOp*) & poly.expr (TemplateExprOp*)
 //===----------------------------------------------------------------------===//
 
+/// An owned `poly.param` or `poly.expr` op.
+#[derive(Debug)]
+pub enum TemplateSymbolBindingOp<'c> {
+    /// A `poly.param` op.
+    Param(TemplateParamOp<'c>),
+    /// A `poly.expr` op.
+    Expr(TemplateExprOp<'c>),
+}
+
+impl<'c> TemplateSymbolBindingOp<'c> {
+    /// Returns a non-owned reference to this op.
+    pub fn as_ref<'a>(&'a self) -> TemplateSymbolBindingOpRef<'c, 'a> {
+        match self {
+            Self::Param(op) => TemplateSymbolBindingOpRef::Param(unsafe {
+                TemplateParamOpRef::from_raw(op.to_raw())
+            }),
+            Self::Expr(op) => TemplateSymbolBindingOpRef::Expr(unsafe {
+                TemplateExprOpRef::from_raw(op.to_raw())
+            }),
+        }
+    }
+
+    /// Returns the [StringAttribute] with the name of the symbol.
+    ///
+    /// # Panics
+    ///
+    /// If the op doesn't have a [StringAttribute] named `sym_name`.
+    pub fn name_attr(&self) -> StringAttribute<'c> {
+        self.attribute("sym_name")
+            .and_then(StringAttribute::try_from)
+            .unwrap()
+    }
+
+    /// Returns the name of the symbol.
+    ///
+    /// # Panics
+    ///
+    /// If the op doesn't have a [StringAttribute] named `sym_name`.
+    #[inline]
+    pub fn name(&self) -> &'c str {
+        self.name_attr().value()
+    }
+
+    /// Returns the optional type restriction on the defined symbol.
+    pub fn type_opt(&self) -> Option<Type<'c>> {
+        match self {
+            Self::Param(op) => op.type_opt(),
+            Self::Expr(op) => Some(op.expr_type()),
+        }
+    }
+}
+
+impl std::fmt::Display for TemplateSymbolBindingOp<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Param(op) => std::fmt::Display::fmt(op, formatter),
+            Self::Expr(op) => std::fmt::Display::fmt(op, formatter),
+        }
+    }
+}
+
+impl<'a, 'c: 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOp<'c> {
+    fn to_raw(&self) -> mlir_sys::MlirOperation {
+        match self {
+            Self::Param(op) => op.to_raw(),
+            Self::Expr(op) => op.to_raw(),
+        }
+    }
+}
+
 /// A non-owned reference to either a `poly.param` or `poly.expr` op.
 #[derive(Clone, Copy, Debug)]
 pub enum TemplateSymbolBindingOpRef<'c, 'a> {
