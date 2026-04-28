@@ -191,16 +191,25 @@ pub enum TemplateSymbolBindingOpRef<'c, 'a> {
 }
 
 impl<'c: 'a, 'a> TemplateSymbolBindingOpRef<'c, 'a> {
+    /// Returns the [StringAttribute] with the name of the symbol.
+    ///
+    /// # Panics
+    ///
+    /// If the op doesn't have a [StringAttribute] named `sym_name`.
+    pub fn name_attr(&self) -> StringAttribute<'c> {
+        self.attribute("sym_name")
+            .and_then(StringAttribute::try_from)
+            .unwrap()
+    }
+
     /// Returns the name of the symbol.
     ///
     /// # Panics
     ///
-    /// If the op doesn't have an attribute named `sym_name`.
+    /// If the op doesn't have a [StringAttribute] named `sym_name`.
+    #[inline]
     pub fn name(&self) -> &'c str {
-        self.attribute("sym_name")
-            .and_then(StringAttribute::try_from)
-            .map(|a| a.value())
-            .unwrap()
+        self.name_attr().value()
     }
 
     /// Returns the optional type restriction on defined symbol.
