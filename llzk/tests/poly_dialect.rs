@@ -1,9 +1,10 @@
 use llzk::{
     builder::OpBuilder,
     dialect::poly::{
-        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOpRef,
-        applymap, expr, is_applymap_op, is_expr_op, is_param_op, is_template_op,
-        is_unifiable_cast_op, is_yield_op, param, template, unifiable_cast, r#yield,
+        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOp,
+        TemplateSymbolBindingOpRef, applymap, expr, is_applymap_op, is_expr_op, is_param_op,
+        is_template_op, is_unifiable_cast_op, is_yield_op, param, template, unifiable_cast,
+        r#yield,
     },
     prelude::*,
 };
@@ -373,4 +374,88 @@ fn create_unifiable_cast() {
 "#;
     let ir = format!("{block}");
     assert_eq!(ir, expected);
+}
+
+#[test]
+fn owned_binding_op_param_name_and_type() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let op = TemplateSymbolBindingOp::Param(
+        param(
+            loc,
+            "T",
+            Some(TVarType::new(&context, StringRef::new("T")).into()),
+        )
+        .unwrap(),
+    );
+
+    assert!(matches!(op, TemplateSymbolBindingOp::Param(_)));
+    assert_eq!(op.name(), "T");
+    assert_eq!(
+        op.type_opt().map(|ty| ty.to_string()),
+        Some(String::from("!poly.tvar<@T>"))
+    );
+}
+
+#[test]
+fn owned_binding_op_expr_name_and_type() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let c1 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 1).into(),
+        loc,
+    );
+    let c1_res = c1.result(0).unwrap();
+    let op = TemplateSymbolBindingOp::Expr(
+        expr(
+            loc,
+            "N",
+            [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
+        )
+        .unwrap(),
+    );
+
+    assert!(matches!(op, TemplateSymbolBindingOp::Expr(_)));
+    assert_eq!(op.name(), "N");
+    assert_eq!(
+        op.type_opt().map(|ty| ty.to_string()),
+        Some(String::from("index"))
+    );
+}
+
+#[test]
+fn owned_binding_op_as_ref() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let c1 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 1).into(),
+        loc,
+    );
+    let c1_res = c1.result(0).unwrap();
+
+    let param_op = TemplateSymbolBindingOp::Param(param(loc, "T", None).unwrap());
+    let expr_op = TemplateSymbolBindingOp::Expr(
+        expr(
+            loc,
+            "N",
+            [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
+        )
+        .unwrap(),
+    );
+
+    assert!(matches!(
+        param_op.as_ref(),
+        TemplateSymbolBindingOpRef::Param(_)
+    ));
+    assert!(matches!(
+        expr_op.as_ref(),
+        TemplateSymbolBindingOpRef::Expr(_)
+    ));
+    assert_eq!(param_op.as_ref().name(), param_op.name());
+    assert_eq!(expr_op.as_ref().name(), expr_op.name());
 }

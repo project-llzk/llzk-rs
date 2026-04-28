@@ -4,9 +4,9 @@ pub mod ops;
 pub mod r#type;
 pub use ops::{
     TemplateExprOp, TemplateExprOpLike, TemplateOp, TemplateOpLike, TemplateParamOp,
-    TemplateParamOpLike, TemplateSymbolBindingOpRef, YieldOp, applymap, expr, is_applymap_op,
-    is_expr_op, is_param_op, is_read_const_op, is_template_op, is_unifiable_cast_op, is_yield_op,
-    param, read_const, template, unifiable_cast, r#yield,
+    TemplateParamOpLike, TemplateSymbolBindingOp, TemplateSymbolBindingOpRef, YieldOp, applymap,
+    expr, is_applymap_op, is_expr_op, is_param_op, is_read_const_op, is_template_op,
+    is_unifiable_cast_op, is_yield_op, param, read_const, template, unifiable_cast, r#yield,
 };
 pub use r#type::{TVarType, is_type_variable};
 
@@ -25,7 +25,8 @@ pub mod prelude {
             TemplateExprOp, TemplateExprOpLike, TemplateExprOpRef, TemplateExprOpRefMut,
             TemplateOp, TemplateOpLike, TemplateOpRef, TemplateOpRefMut, TemplateParamOp,
             TemplateParamOpLike, TemplateParamOpRef, TemplateParamOpRefMut,
-            TemplateSymbolBindingOpRef, YieldOp, YieldOpRef, YieldOpRefMut,
+            TemplateSymbolBindingOp, TemplateSymbolBindingOpRef, YieldOp, YieldOpRef,
+            YieldOpRefMut,
         },
         r#type::{TVarType, is_type_variable},
     };
