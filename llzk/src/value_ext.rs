@@ -113,17 +113,22 @@ pub fn replace_all_uses_in_block_with<'c>(
     replacement: impl ValueLike<'c> + Copy,
 ) {
     unsafe {
+        let mut owners = Vec::new();
         let mut op_use = mlir_sys::mlirValueGetFirstUse(orig.to_raw());
         while !op_use.ptr.is_null() {
-            // Save next use *before* mutating (early-inc behavior)
-            let next = mlir_sys::mlirOpOperandGetNextUse(op_use);
-            // If the use is within the given block, replace it
             let owner = mlir_sys::mlirOpOperandGetOwner(op_use);
-            if mlir_sys::mlirBlockEqual(mlir_sys::mlirOperationGetBlock(owner), block.to_raw()) {
-                replace_uses_of_with(&OperationRef::from_raw(owner), orig, replacement);
+            if mlir_sys::mlirBlockEqual(mlir_sys::mlirOperationGetBlock(owner), block.to_raw())
+                && !owners
+                    .iter()
+                    .any(|existing| mlir_sys::mlirOperationEqual(*existing, owner))
+            {
+                owners.push(owner);
             }
-            // increment to next use
-            op_use = next;
+            op_use = mlir_sys::mlirOpOperandGetNextUse(op_use);
+        }
+
+        for owner in owners {
+            replace_uses_of_with(&OperationRef::from_raw(owner), orig, replacement);
         }
     }
 }
