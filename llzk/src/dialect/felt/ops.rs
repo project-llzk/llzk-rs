@@ -111,6 +111,8 @@ mod tests {
 
     #[quickcheck]
     fn felt_const_op(value: u64) {
+        // ensure value fits in i64, which is what's internally used by FeltConstAttribute
+        let value = value % (i64::MAX as u64 + 1);
         let ctx = LlzkContext::new();
         let op = constant(
             Location::unknown(&ctx),
@@ -122,6 +124,8 @@ mod tests {
 
     #[quickcheck]
     fn felt_const_op_isa(value: u64) {
+        // ensure value fits in i64, which is what's internally used by FeltConstAttribute
+        let value = value % (i64::MAX as u64 + 1);
         let ctx = LlzkContext::new();
         let op = constant(
             Location::unknown(&ctx),

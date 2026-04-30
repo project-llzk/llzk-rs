@@ -223,6 +223,8 @@ mod tests {
 
     #[quickcheck]
     fn felt_const_attr_new(value: u64, field: FieldArg) {
+        // ensure value fits in i64, which is what's internally used by FeltConstAttribute
+        let value = value % (i64::MAX as u64 + 1);
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
         let f = FeltConstAttribute::new(&ctx, value, field.as_deref());
@@ -231,6 +233,8 @@ mod tests {
 
     #[quickcheck]
     fn felt_const_attr_conversion(value: u64, field: FieldArg) {
+        // ensure value fits in i64, which is what's internally used by FeltConstAttribute
+        let value = value % (i64::MAX as u64 + 1);
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
         let f = FeltConstAttribute::new(&ctx, value, field.as_deref());
