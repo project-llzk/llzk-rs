@@ -1,10 +1,10 @@
 use llzk::{
     builder::OpBuilder,
     dialect::poly::{
-        TemplateExprOpLike, TemplateOpLike, TemplateSymbolBindingOp, TemplateSymbolBindingOpLike,
-        TemplateSymbolBindingOpRef, applymap, expr, is_applymap_op, is_expr_op, is_param_op,
-        is_template_op, is_unifiable_cast_op, is_yield_op, param, template, unifiable_cast,
-        r#yield,
+        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOp,
+        TemplateSymbolBindingOpLike, TemplateSymbolBindingOpRef, applymap, expr, is_applymap_op,
+        is_expr_op, is_param_op, is_template_op, is_unifiable_cast_op, is_yield_op, param,
+        template, unifiable_cast, r#yield,
     },
     prelude::*,
 };
@@ -458,4 +458,235 @@ fn owned_binding_op_as_ref() {
     ));
     assert_eq!(param_op.as_ref().sym_name(), param_op.sym_name());
     assert_eq!(expr_op.as_ref().sym_name(), expr_op.sym_name());
+}
+
+// ── TemplateParamOpLike ──────────────────────────────────────────────────────
+
+#[test]
+fn param_type_restriction_some() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let op = param(
+        loc,
+        "T",
+        Some(TVarType::new(&context, StringRef::new("T")).into()),
+    )
+    .unwrap();
+    assert_eq!(
+        op.type_restriction().map(|t| t.to_string()),
+        Some(String::from("!poly.tvar<@T>"))
+    );
+}
+
+#[test]
+fn param_type_restriction_none() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let op = param(loc, "T", None).unwrap();
+    assert!(op.type_restriction().is_none());
+}
+
+// ── TemplateSymbolBindingOpLike ──────────────────────────────────────────────
+
+#[test]
+fn sym_name_attr_value() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let op = param(loc, "MyParam", None).unwrap();
+    // sym_name_attr() returns the underlying StringAttribute
+    let attr = op.sym_name_attr();
+    assert_eq!(attr.value(), "MyParam");
+    // sym_name() must agree
+    assert_eq!(op.sym_name(), attr.value());
+}
+
+// ── TemplateOpLike ───────────────────────────────────────────────────────────
+
+#[test]
+fn body_region_and_body() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let tmpl = template(loc, "tmpl", [param(loc, "T", None).map(Into::into)]).unwrap();
+
+    // body_region() contains exactly one block
+    let region = tmpl.body_region();
+    let first = region.first_block();
+    assert!(first.is_some());
+    assert!(first.unwrap().next_in_region().is_none());
+
+    // body() returns the single block with no block arguments
+    let block = tmpl.body();
+    assert_eq!(block.argument_count(), 0);
+    // The param op we inserted must be present
+    assert!(block.first_operation().is_some());
+}
+
+#[test]
+fn has_const_named_negative() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let tmpl = template(loc, "tmpl", [param(loc, "T", None).map(Into::into)]).unwrap();
+
+    assert!(!tmpl.has_const_param_named("NotHere"));
+    // "T" is a param, not an expr
+    assert!(!tmpl.has_const_expr_named("T"));
+}
+
+#[test]
+fn has_const_ops_false() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+
+    // Template with only params — has_const_expr_ops must be false
+    let params_only =
+        template(loc, "params_only", [param(loc, "T", None).map(Into::into)]).unwrap();
+    assert!(params_only.has_const_param_ops());
+    assert!(!params_only.has_const_expr_ops());
+
+    // Template with only an expr — has_const_param_ops must be false
+    let c1 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 1).into(),
+        loc,
+    );
+    let c1_res = c1.result(0).unwrap();
+    let exprs_only = template(
+        loc,
+        "exprs_only",
+        [expr(
+            loc,
+            "N",
+            [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
+        )
+        .map(Into::into)],
+    )
+    .unwrap();
+    assert!(!exprs_only.has_const_param_ops());
+    assert!(exprs_only.has_const_expr_ops());
+}
+
+#[test]
+fn const_names_content() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let c1 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 1).into(),
+        loc,
+    );
+    let c1_res = c1.result(0).unwrap();
+    let tmpl = template(
+        loc,
+        "tmpl",
+        [
+            param(loc, "T", None).map(Into::into),
+            param(loc, "U", None).map(Into::into),
+            expr(
+                loc,
+                "N",
+                [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
+            )
+            .map(Into::into),
+        ],
+    )
+    .unwrap();
+
+    let param_names: Vec<String> = tmpl
+        .const_param_names()
+        .into_iter()
+        .map(|a| a.value().to_owned())
+        .collect();
+    assert_eq!(param_names, ["T", "U"]);
+
+    let expr_names: Vec<String> = tmpl
+        .const_expr_names()
+        .into_iter()
+        .map(|a| a.value().to_owned())
+        .collect();
+    assert_eq!(expr_names, ["N"]);
+}
+
+#[test]
+fn const_binding_ops_empty_template() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let no_ops: Vec<Result<Operation<'_>, LlzkError>> = vec![];
+    let tmpl = template(loc, "empty", no_ops).unwrap();
+    assert!(tmpl.const_binding_ops().is_empty());
+    assert!(!tmpl.has_const_param_ops());
+    assert!(!tmpl.has_const_expr_ops());
+}
+
+// ── Display impls ────────────────────────────────────────────────────────────
+
+#[test]
+fn display_template_symbol_binding_op() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+
+    let owned = TemplateSymbolBindingOp::Param(param(loc, "T", None).unwrap());
+    let s_owned = format!("{owned}");
+    // Ref Display must produce the same output as the owned Display
+    let s_ref = format!("{}", owned.as_ref());
+    assert_eq!(s_owned, s_ref);
+    assert!(s_owned.contains("poly.param"));
+    assert!(s_owned.contains("sym_name = \"T\""));
+}
+
+// ── From conversions ─────────────────────────────────────────────────────────
+
+#[test]
+fn from_conversions_for_binding_op_ref() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let c1 = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 1).into(),
+        loc,
+    );
+    let c1_res = c1.result(0).unwrap();
+    let tmpl = template(
+        loc,
+        "tmpl",
+        [
+            param(loc, "T", None).map(Into::into),
+            expr(
+                loc,
+                "N",
+                [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
+            )
+            .map(Into::into),
+        ],
+    )
+    .unwrap();
+
+    let ops = tmpl.const_binding_ops();
+    let TemplateSymbolBindingOpRef::Param(param_ref) = ops[0] else {
+        panic!("expected param at index 0");
+    };
+    let TemplateSymbolBindingOpRef::Expr(expr_ref) = ops[1] else {
+        panic!("expected expr at index 1");
+    };
+
+    // From<TemplateParamOpRef> for TemplateSymbolBindingOpRef
+    let from_param: TemplateSymbolBindingOpRef = param_ref.into();
+    assert!(matches!(from_param, TemplateSymbolBindingOpRef::Param(_)));
+
+    // From<TemplateExprOpRef> for TemplateSymbolBindingOpRef
+    let from_expr: TemplateSymbolBindingOpRef = expr_ref.into();
+    assert!(matches!(from_expr, TemplateSymbolBindingOpRef::Expr(_)));
+
+    // From<TemplateSymbolBindingOpRef> for OperationRef — pointer must be non-null
+    let op_ref: OperationRef = from_param.into();
+    assert!(!op_ref.to_raw().ptr.is_null());
 }
