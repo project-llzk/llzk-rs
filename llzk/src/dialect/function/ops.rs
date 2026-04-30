@@ -314,7 +314,7 @@ fn prepare_arg_attrs<'c>(
             unsafe {
                 mlirDictionaryAttrGet(
                     ctx.to_raw(),
-                    named_attrs.len() as isize,
+                    isize::try_from(named_attrs.len()).expect("named_attrs too large"),
                     named_attrs.as_ptr(),
                 )
             }
@@ -341,9 +341,9 @@ pub fn def<'c>(
             location.to_raw(),
             name.to_raw(),
             r#type.to_raw(),
-            attrs.len() as isize,
+            isize::try_from(attrs.len()).expect("attrs too large"),
             attrs.as_ptr(),
-            arg_attrs.len() as isize,
+            isize::try_from(arg_attrs.len()).expect("arg_attrs too large"),
             arg_attrs.as_ptr(),
         ))
     }
@@ -368,10 +368,10 @@ pub fn call<'c>(
         Operation::from_raw(llzkFunction_CallOpBuild(
             builder.to_raw(),
             location.to_raw(),
-            return_types.len() as isize,
+            isize::try_from(return_types.len()).expect("return_types too large"),
             return_types.as_ptr() as *const _,
             name.to_raw(),
-            args.len() as isize,
+            isize::try_from(args.len()).expect("args too large"),
             args.as_ptr() as *const _,
         ))
     }
@@ -391,11 +391,11 @@ pub fn call_with_map_operands<'c>(
         Operation::from_raw(llzkFunction_CallOpBuildWithMapOperands(
             builder.to_raw(),
             location.to_raw(),
-            return_types.len() as isize,
+            isize::try_from(return_types.len()).expect("return_types too large"),
             return_types.as_ptr() as *const _,
             name.to_raw(),
             map_operands.to_raw(),
-            args.len() as isize,
+            isize::try_from(args.len()).expect("args too large"),
             args.as_ptr() as *const _,
         ))
     }

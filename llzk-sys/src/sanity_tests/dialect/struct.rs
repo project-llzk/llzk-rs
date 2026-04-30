@@ -55,7 +55,11 @@ fn test_llzk_struct_type_get_with_array_attr(context: TestContext) {
         let s = str_ref("T");
         let s = mlirFlatSymbolRefAttrGet(context.ctx, s);
         let attrs = [mlirFlatSymbolRefAttrGet(context.ctx, str_ref("A"))];
-        let a = mlirArrayAttrGet(context.ctx, attrs.len() as isize, attrs.as_ptr());
+        let a = mlirArrayAttrGet(
+            context.ctx,
+            isize::try_from(attrs.len()).expect("attrs too large"),
+            attrs.as_ptr(),
+        );
         let t = llzkStruct_StructTypeGetWithArrayAttr(s, a);
         assert_ne!(t.ptr, null());
     }
@@ -67,7 +71,11 @@ fn test_llzk_struct_type_get_with_attrs(context: TestContext) {
         let s = str_ref("T");
         let s = mlirFlatSymbolRefAttrGet(context.ctx, s);
         let attrs = [mlirFlatSymbolRefAttrGet(context.ctx, str_ref("A"))];
-        let t = llzkStruct_StructTypeGetWithAttrs(s, attrs.len() as isize, attrs.as_ptr());
+        let t = llzkStruct_StructTypeGetWithAttrs(
+            s,
+            isize::try_from(attrs.len()).expect("attrs too large"),
+            attrs.as_ptr(),
+        );
         assert_ne!(t.ptr, null());
     }
 }
@@ -100,7 +108,11 @@ fn test_llzk_struct_type_get_params(context: TestContext) {
         let s = str_ref("T");
         let s = mlirFlatSymbolRefAttrGet(context.ctx, s);
         let attrs = [mlirFlatSymbolRefAttrGet(context.ctx, str_ref("A"))];
-        let a = mlirArrayAttrGet(context.ctx, attrs.len() as isize, attrs.as_ptr());
+        let a = mlirArrayAttrGet(
+            context.ctx,
+            isize::try_from(attrs.len()).expect("attrs too large"),
+            attrs.as_ptr(),
+        );
         let t = llzkStruct_StructTypeGetWithArrayAttr(s, a);
         assert_ne!(t.ptr, null());
         assert!(mlirAttributeEqual(a, llzkStruct_StructTypeGetParams(t)));
@@ -216,10 +228,9 @@ fn test_llzk_struct_def_op_get_header_string(test_op: TestOp) {
                 unsafe { alloc(layout) as *mut c_char }
             }
             let mut size = 0;
-
             let str = llzkStruct_StructDefOpGetHeaderString(test_op.op, &mut size, Some(allocator));
-            let layout =
-                Layout::array::<c_char>(size as usize).expect("failed to define string layout");
+            let size = usize::try_from(size).expect("string size is negative or too large");
+            let layout = Layout::array::<c_char>(size).expect("failed to define string layout");
             dealloc(str as *mut u8, layout);
         }
     }
@@ -309,8 +320,13 @@ fn test_llzk_field_read_op_build_with_affine_map_distance(context: TestContext) 
         let struct_value = mlirOperationGetResult(r#struct, 0);
 
         let mut exprs = [mlirAffineConstantExprGet(context.ctx, 1)];
-        let affine_map =
-            mlirAffineMapGet(context.ctx, 0, 0, exprs.len() as isize, exprs.as_mut_ptr());
+        let affine_map = mlirAffineMapGet(
+            context.ctx,
+            0,
+            0,
+            isize::try_from(exprs.len()).expect("exprs too large"),
+            exprs.as_mut_ptr(),
+        );
         let values = &[];
         let op = llzkStruct_MemberReadOpBuildWithAffineMapDistance(
             builder,
@@ -321,7 +337,7 @@ fn test_llzk_field_read_op_build_with_affine_map_distance(context: TestContext) 
             affine_map,
             MlirValueRange {
                 values: values.as_ptr(),
-                size: values.len() as isize,
+                size: isize::try_from(values.len()).expect("values too large"),
             },
         );
 

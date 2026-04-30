@@ -50,7 +50,7 @@ fn test_llzk_felt_const_attr_get_from_parts(context: TestContext) {
             context.ctx,
             128,
             parts.as_ptr(),
-            parts.len() as isize,
+            isize::try_from(parts.len()).expect("parts too large"),
         );
         assert_ne!(attr.ptr, null());
     };

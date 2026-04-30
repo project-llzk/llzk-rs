@@ -83,8 +83,13 @@ fn test_llzk_apply_map_op_build(context: TestContext) {
         let builder = mlirOpBuilderCreate(context.ctx);
         let location = mlirLocationUnknownGet(context.ctx);
         let mut exprs = [mlirAffineConstantExprGet(context.ctx, 1)];
-        let affine_map =
-            mlirAffineMapGet(context.ctx, 0, 0, exprs.len() as isize, exprs.as_mut_ptr());
+        let affine_map = mlirAffineMapGet(
+            context.ctx,
+            0,
+            0,
+            isize::try_from(exprs.len()).expect("exprs too large"),
+            exprs.as_mut_ptr(),
+        );
         let affine_map = mlirAffineMapAttrGet(affine_map);
         let op = llzkPoly_ApplyMapOpBuild(
             builder,
@@ -108,8 +113,13 @@ fn test_llzk_apply_map_op_build_with_affine_map(context: TestContext) {
         let builder = mlirOpBuilderCreate(context.ctx);
         let location = mlirLocationUnknownGet(context.ctx);
         let mut exprs = [mlirAffineConstantExprGet(context.ctx, 1)];
-        let affine_map =
-            mlirAffineMapGet(context.ctx, 0, 0, exprs.len() as isize, exprs.as_mut_ptr());
+        let affine_map = mlirAffineMapGet(
+            context.ctx,
+            0,
+            0,
+            isize::try_from(exprs.len()).expect("exprs too large"),
+            exprs.as_mut_ptr(),
+        );
         let op = llzkPoly_ApplyMapOpBuildWithAffineMap(
             builder,
             location,
@@ -177,8 +187,13 @@ fn test_llzk_apply_map_op_get_affine_map(context: TestContext) {
         let builder = mlirOpBuilderCreate(context.ctx);
         let location = mlirLocationUnknownGet(context.ctx);
         let mut exprs = [mlirAffineConstantExprGet(context.ctx, 1)];
-        let affine_map =
-            mlirAffineMapGet(context.ctx, 0, 0, exprs.len() as isize, exprs.as_mut_ptr());
+        let affine_map = mlirAffineMapGet(
+            context.ctx,
+            0,
+            0,
+            isize::try_from(exprs.len()).expect("exprs too large"),
+            exprs.as_mut_ptr(),
+        );
         let op = llzkPoly_ApplyMapOpBuildWithAffineMap(
             builder,
             location,
@@ -198,7 +213,8 @@ fn test_llzk_apply_map_op_get_affine_map(context: TestContext) {
 }
 
 fn boxed_value_range(size: isize) -> Box<[MlirValue]> {
-    vec![MlirValue { ptr: null() }; size as usize].into_boxed_slice()
+    let size = usize::try_from(size).expect("size is negative or too large");
+    vec![MlirValue { ptr: null() }; size].into_boxed_slice()
 }
 
 #[rstest]
@@ -207,8 +223,13 @@ fn test_llzk_apply_map_op_get_dim_operands(context: TestContext) {
         let builder = mlirOpBuilderCreate(context.ctx);
         let location = mlirLocationUnknownGet(context.ctx);
         let mut exprs = [mlirAffineConstantExprGet(context.ctx, 1)];
-        let affine_map =
-            mlirAffineMapGet(context.ctx, 0, 0, exprs.len() as isize, exprs.as_mut_ptr());
+        let affine_map = mlirAffineMapGet(
+            context.ctx,
+            0,
+            0,
+            isize::try_from(exprs.len()).expect("exprs too large"),
+            exprs.as_mut_ptr(),
+        );
         let op = llzkPoly_ApplyMapOpBuildWithAffineMap(
             builder,
             location,
@@ -235,8 +256,13 @@ fn test_llzk_apply_map_op_get_symbol_operands(context: TestContext) {
         let builder = mlirOpBuilderCreate(context.ctx);
         let location = mlirLocationUnknownGet(context.ctx);
         let mut exprs = [mlirAffineConstantExprGet(context.ctx, 1)];
-        let affine_map =
-            mlirAffineMapGet(context.ctx, 0, 0, exprs.len() as isize, exprs.as_mut_ptr());
+        let affine_map = mlirAffineMapGet(
+            context.ctx,
+            0,
+            0,
+            isize::try_from(exprs.len()).expect("exprs too large"),
+            exprs.as_mut_ptr(),
+        );
         let op = llzkPoly_ApplyMapOpBuildWithAffineMap(
             builder,
             location,

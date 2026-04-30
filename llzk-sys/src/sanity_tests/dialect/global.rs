@@ -52,7 +52,11 @@ fn create_global_def_op(
         }
         let name = str_ref("global.def");
         let mut state = mlirOperationStateGet(name, mlirLocationUnknownGet(ctx));
-        mlirOperationStateAddAttributes(&mut state, attrs.len() as isize, attrs.as_ptr());
+        mlirOperationStateAddAttributes(
+            &mut state,
+            isize::try_from(attrs.len()).expect("attrs too large"),
+            attrs.as_ptr(),
+        );
 
         mlirOperationCreate(&mut state)
     }

@@ -36,14 +36,14 @@ impl<'c> FeltConstAttribute<'c> {
             Some(field) => unsafe {
                 Self::from_raw(llzkFelt_FeltConstAttrGet(
                     ctx.to_raw(),
-                    value as i64,
+                    i64::try_from(value).expect("value is too large"),
                     FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
             None => unsafe {
                 Self::from_raw(llzkFelt_FeltConstAttrGetUnspecified(
                     ctx.to_raw(),
-                    value as i64,
+                    i64::try_from(value).expect("value is too large"),
                 ))
             },
         }
@@ -57,7 +57,7 @@ impl<'c> FeltConstAttribute<'c> {
                 Self::from_raw(llzkFelt_FeltConstAttrGetWithBits(
                     ctx.to_raw(),
                     bitlen,
-                    value as i64,
+                    i64::try_from(value).expect("value is too large"),
                     FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
@@ -65,7 +65,7 @@ impl<'c> FeltConstAttribute<'c> {
                 Self::from_raw(llzkFelt_FeltConstAttrGetWithBitsUnspecified(
                     ctx.to_raw(),
                     bitlen,
-                    value as i64,
+                    i64::try_from(value).expect("value is too large"),
                 ))
             },
         }
@@ -109,7 +109,7 @@ impl<'c> FeltConstAttribute<'c> {
                     ctx.to_raw(),
                     bitlen,
                     parts.as_ptr(),
-                    parts.len() as isize,
+                    isize::try_from(parts.len()).expect("part count too large"),
                     FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
@@ -118,7 +118,7 @@ impl<'c> FeltConstAttribute<'c> {
                     ctx.to_raw(),
                     bitlen,
                     parts.as_ptr(),
-                    parts.len() as isize,
+                    isize::try_from(parts.len()).expect("part count too large"),
                 ))
             },
         }

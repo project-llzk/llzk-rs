@@ -24,7 +24,7 @@ impl<'c> ArrayAttribute<'c> {
         Self::try_from(unsafe {
             Attribute::from_raw(mlir_sys::mlirArrayAttrGet(
                 context.to_raw(),
-                attrs.len() as isize,
+                isize::try_from(attrs.len()).expect("attribute count too large"),
                 raw_attrs.as_ptr(),
             ))
         })
@@ -33,7 +33,8 @@ impl<'c> ArrayAttribute<'c> {
 
     /// Returns the length of the array.
     pub fn len(&self) -> usize {
-        unsafe { mlir_sys::mlirArrayAttrGetNumElements(self.to_raw()) as usize }
+        usize::try_from(unsafe { mlir_sys::mlirArrayAttrGetNumElements(self.to_raw()) })
+            .expect("array length is negative or too large")
     }
 
     /// Returns true if the array has no elements.
@@ -48,7 +49,7 @@ impl<'c> ArrayAttribute<'c> {
         (idx < self.len()).then(|| unsafe {
             Attribute::from_raw(mlir_sys::mlirArrayAttrGetElement(
                 self.to_raw(),
-                idx as isize,
+                isize::try_from(idx).expect("index too large"),
             ))
         })
     }

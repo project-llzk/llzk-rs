@@ -66,7 +66,7 @@ pub fn new<'c, 'a>(
                 builder.to_raw(),
                 location.to_raw(),
                 r#type.to_raw(),
-                raw_values.len() as isize,
+                isize::try_from(raw_values.len()).expect("raw_values too large"),
                 raw_values.as_ptr(),
             ))
         }
@@ -75,7 +75,7 @@ pub fn new<'c, 'a>(
             Operation::from_raw(llzkPod_NewPodOpBuildInferredFromInitialValues(
                 builder.to_raw(),
                 location.to_raw(),
-                raw_values.len() as isize,
+                isize::try_from(raw_values.len()).expect("raw_values too large"),
                 raw_values.as_ptr(),
             ))
         }
@@ -97,7 +97,7 @@ pub fn new_with_affine_init<'c, 'a>(
             builder.to_raw(),
             location.to_raw(),
             r#type.to_raw(),
-            raw_values.len() as isize,
+            isize::try_from(raw_values.len()).expect("raw_values too large"),
             raw_values.as_ptr(),
             affine_init.to_raw(),
         ))
