@@ -20,6 +20,11 @@ impl ValueRange<'_, '_, '_> {
         self.raw
     }
 
+    /// Returns the number of values in the range.
+    pub fn len(&self) -> usize {
+        self.raw.size as usize
+    }
+
     /// Creates the value range from a raw pointer.
     pub fn from_raw(raw: MlirValueRange) -> Self {
         Self {
@@ -42,6 +47,11 @@ impl<'c, 'b> OwningValueRange<'c, 'b> {
     /// Return the value range as a slice.
     pub fn values(&self) -> &[MlirValue] {
         self.values.as_slice()
+    }
+
+    /// Returns the number of values in the range.
+    pub fn len(&self) -> usize {
+        self.values.len()
     }
 }
 
