@@ -31,6 +31,10 @@ impl<'c> FeltConstAttribute<'c> {
     }
 
     /// Creates a [`FeltConstAttribute`] from an unsigned integer and optional field specification.
+    ///
+    /// # Panics
+    ///
+    /// If `value` is greater than `i64::MAX`. This is a limitation of the underlying C API.
     pub fn new(ctx: &'c Context, value: u64, field: Option<&str>) -> Self {
         match field {
             Some(field) => unsafe {
@@ -51,6 +55,10 @@ impl<'c> FeltConstAttribute<'c> {
 
     /// Creates a [`FeltConstAttribute`] from a 64 bit value and a set bit width and optional field
     /// specification.
+    ///
+    /// # Panics
+    ///
+    /// If `value` is greater than `i64::MAX`. This is a limitation of the underlying C API.
     pub fn new_with_bitlen(ctx: &'c Context, bitlen: u32, value: u64, field: Option<&str>) -> Self {
         match field {
             Some(field) => unsafe {
