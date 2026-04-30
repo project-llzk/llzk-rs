@@ -175,7 +175,7 @@ fn template_const_ops() {
     assert!(matches!(ops[1], TemplateSymbolBindingOpRef::Expr(_)));
     assert!(matches!(ops[2], TemplateSymbolBindingOpRef::Param(_)));
     assert_eq!(
-        ops.iter().map(|op| op.name()).collect::<Vec<_>>(),
+        ops.iter().map(|op| op.sym_name()).collect::<Vec<_>>(),
         ["T", "N", "U"]
     );
     assert_eq!(
@@ -391,7 +391,7 @@ fn owned_binding_op_param_name_and_type() {
     );
 
     assert!(matches!(op, TemplateSymbolBindingOp::Param(_)));
-    assert_eq!(op.name(), "T");
+    assert_eq!(op.sym_name(), "T");
     assert_eq!(
         op.type_opt().map(|ty| ty.to_string()),
         Some(String::from("!poly.tvar<@T>"))
@@ -419,7 +419,7 @@ fn owned_binding_op_expr_name_and_type() {
     );
 
     assert!(matches!(op, TemplateSymbolBindingOp::Expr(_)));
-    assert_eq!(op.name(), "N");
+    assert_eq!(op.sym_name(), "N");
     assert_eq!(
         op.type_opt().map(|ty| ty.to_string()),
         Some(String::from("index"))
@@ -456,6 +456,6 @@ fn owned_binding_op_as_ref() {
         expr_op.as_ref(),
         TemplateSymbolBindingOpRef::Expr(_)
     ));
-    assert_eq!(param_op.as_ref().name(), param_op.name());
-    assert_eq!(expr_op.as_ref().name(), expr_op.name());
+    assert_eq!(param_op.as_ref().sym_name(), param_op.sym_name());
+    assert_eq!(expr_op.as_ref().sym_name(), expr_op.sym_name());
 }

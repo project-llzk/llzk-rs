@@ -208,7 +208,7 @@ impl<'c> TemplateSymbolBindingOp<'c> {
     /// # Panics
     ///
     /// If the op doesn't have a [StringAttribute] named `sym_name`.
-    pub fn name_attr(&self) -> StringAttribute<'c> {
+    pub fn sym_name_attr(&self) -> StringAttribute<'c> {
         self.attribute("sym_name")
             .and_then(StringAttribute::try_from)
             .unwrap()
@@ -220,8 +220,8 @@ impl<'c> TemplateSymbolBindingOp<'c> {
     ///
     /// If the op doesn't have a [StringAttribute] named `sym_name`.
     #[inline]
-    pub fn name(&self) -> &'c str {
-        self.name_attr().value()
+    pub fn sym_name(&self) -> &'c str {
+        self.sym_name_attr().value()
     }
 
     /// Returns the optional type restriction on the defined symbol.
@@ -293,7 +293,7 @@ impl<'c: 'a, 'a> TemplateSymbolBindingOpRef<'c, 'a> {
     /// # Panics
     ///
     /// If the op doesn't have a [StringAttribute] named `sym_name`.
-    pub fn name_attr(&self) -> StringAttribute<'c> {
+    pub fn sym_name_attr(&self) -> StringAttribute<'c> {
         self.attribute("sym_name")
             .and_then(StringAttribute::try_from)
             .unwrap()
@@ -305,8 +305,8 @@ impl<'c: 'a, 'a> TemplateSymbolBindingOpRef<'c, 'a> {
     ///
     /// If the op doesn't have a [StringAttribute] named `sym_name`.
     #[inline]
-    pub fn name(&self) -> &'c str {
-        self.name_attr().value()
+    pub fn sym_name(&self) -> &'c str {
+        self.sym_name_attr().value()
     }
 
     /// Returns the optional type restriction on defined symbol.
