@@ -31,7 +31,7 @@ impl<'c> PodType<'c> {
         unsafe {
             Self::from_raw(llzkPod_PodTypeGet(
                 ctx.to_raw(),
-                raw_refs.len() as isize,
+                isize::try_from(raw_refs.len()).expect("raw_refs too large"),
                 raw_refs.as_ptr(),
             ))
         }

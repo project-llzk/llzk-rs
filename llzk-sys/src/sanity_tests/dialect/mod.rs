@@ -34,8 +34,16 @@ fn test_op(context: TestContext) -> TestOp {
         let attr = mlirIntegerAttrGet(elt_type, 1);
         let attrs = [mlirNamedAttributeGet(attr_name, attr)];
         let mut op_state = mlirOperationStateGet(name, location);
-        mlirOperationStateAddResults(&mut op_state, results.len() as isize, results.as_ptr());
-        mlirOperationStateAddAttributes(&mut op_state, attrs.len() as isize, attrs.as_ptr());
+        mlirOperationStateAddResults(
+            &mut op_state,
+            isize::try_from(results.len()).expect("results too large"),
+            results.as_ptr(),
+        );
+        mlirOperationStateAddAttributes(
+            &mut op_state,
+            isize::try_from(attrs.len()).expect("attrs too large"),
+            attrs.as_ptr(),
+        );
         TestOp {
             context,
             op: mlirOperationCreate(&mut op_state),

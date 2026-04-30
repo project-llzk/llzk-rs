@@ -33,7 +33,7 @@ impl<'c> SymbolRefAttribute<'c> {
                 Attribute::from_raw(mlirSymbolRefAttrGet(
                     ctx.to_raw(),
                     root.to_raw(),
-                    raw_refs.len() as isize,
+                    isize::try_from(raw_refs.len()).expect("nested reference count too large"),
                     raw_refs.as_ptr(),
                 ))
             },

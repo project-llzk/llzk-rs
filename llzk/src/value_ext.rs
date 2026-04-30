@@ -22,7 +22,7 @@ impl ValueRange<'_, '_, '_> {
 
     /// Returns the number of values in the range.
     pub fn len(&self) -> usize {
-        self.raw.size as usize
+        usize::try_from(self.raw.size).expect("value range size is negative or too large")
     }
 
     /// Creates the value range from a raw pointer.

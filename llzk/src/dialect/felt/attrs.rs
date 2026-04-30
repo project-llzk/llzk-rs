@@ -31,19 +31,23 @@ impl<'c> FeltConstAttribute<'c> {
     }
 
     /// Creates a [`FeltConstAttribute`] from an unsigned integer and optional field specification.
+    ///
+    /// # Panics
+    ///
+    /// If `value` is greater than `i64::MAX`. This is a limitation of the underlying C API.
     pub fn new(ctx: &'c Context, value: u64, field: Option<&str>) -> Self {
         match field {
             Some(field) => unsafe {
                 Self::from_raw(llzkFelt_FeltConstAttrGet(
                     ctx.to_raw(),
-                    value as i64,
+                    i64::try_from(value).expect("value is too large"),
                     FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
             None => unsafe {
                 Self::from_raw(llzkFelt_FeltConstAttrGetUnspecified(
                     ctx.to_raw(),
-                    value as i64,
+                    i64::try_from(value).expect("value is too large"),
                 ))
             },
         }
@@ -51,13 +55,17 @@ impl<'c> FeltConstAttribute<'c> {
 
     /// Creates a [`FeltConstAttribute`] from a 64 bit value and a set bit width and optional field
     /// specification.
+    ///
+    /// # Panics
+    ///
+    /// If `value` is greater than `i64::MAX`. This is a limitation of the underlying C API.
     pub fn new_with_bitlen(ctx: &'c Context, bitlen: u32, value: u64, field: Option<&str>) -> Self {
         match field {
             Some(field) => unsafe {
                 Self::from_raw(llzkFelt_FeltConstAttrGetWithBits(
                     ctx.to_raw(),
                     bitlen,
-                    value as i64,
+                    i64::try_from(value).expect("value is too large"),
                     FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
@@ -65,7 +73,7 @@ impl<'c> FeltConstAttribute<'c> {
                 Self::from_raw(llzkFelt_FeltConstAttrGetWithBitsUnspecified(
                     ctx.to_raw(),
                     bitlen,
-                    value as i64,
+                    i64::try_from(value).expect("value is too large"),
                 ))
             },
         }
@@ -109,7 +117,7 @@ impl<'c> FeltConstAttribute<'c> {
                     ctx.to_raw(),
                     bitlen,
                     parts.as_ptr(),
-                    parts.len() as isize,
+                    isize::try_from(parts.len()).expect("part count too large"),
                     FeltType::with_field(ctx, field).to_raw(),
                 ))
             },
@@ -118,7 +126,7 @@ impl<'c> FeltConstAttribute<'c> {
                     ctx.to_raw(),
                     bitlen,
                     parts.as_ptr(),
-                    parts.len() as isize,
+                    isize::try_from(parts.len()).expect("part count too large"),
                 ))
             },
         }
@@ -223,6 +231,8 @@ mod tests {
 
     #[quickcheck]
     fn felt_const_attr_new(value: u64, field: FieldArg) {
+        // ensure value fits in i64, which is what's internally used by FeltConstAttribute
+        let value = value % (i64::MAX as u64 + 1);
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
         let f = FeltConstAttribute::new(&ctx, value, field.as_deref());
@@ -231,6 +241,8 @@ mod tests {
 
     #[quickcheck]
     fn felt_const_attr_conversion(value: u64, field: FieldArg) {
+        // ensure value fits in i64, which is what's internally used by FeltConstAttribute
+        let value = value % (i64::MAX as u64 + 1);
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
         let f = FeltConstAttribute::new(&ctx, value, field.as_deref());

@@ -29,7 +29,7 @@ pub fn types_unify_with_prefix<'c>(
         llzk_sys::llzkTypesUnify(
             lhs.to_raw(),
             rhs.to_raw(),
-            rhs_reverse_prefix.len() as isize,
+            isize::try_from(rhs_reverse_prefix.len()).expect("reverse prefix count too large"),
             rhs_reverse_prefix_ptr,
         )
     }

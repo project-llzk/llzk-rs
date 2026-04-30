@@ -124,9 +124,9 @@ fn test_llzk_type_params_unify_empty() {
         let lhs = [];
         let rhs = [];
         assert!(llzkTypeParamsUnify(
-            lhs.len() as isize,
+            isize::try_from(lhs.len()).expect("lhs too large"),
             lhs.as_ptr(),
-            rhs.len() as isize,
+            isize::try_from(rhs.len()).expect("rhs too large"),
             rhs.as_ptr()
         ));
     }
@@ -145,9 +145,9 @@ fn test_llzk_type_params_unify_pass(index_type: IndexType) {
             string_ref,
         )];
         assert!(llzkTypeParamsUnify(
-            lhs.len() as isize,
+            isize::try_from(lhs.len()).expect("lhs too large"),
             lhs.as_ptr(),
-            rhs.len() as isize,
+            isize::try_from(rhs.len()).expect("rhs too large"),
             rhs.as_ptr()
         ));
     }
@@ -159,9 +159,9 @@ fn test_llzk_type_params_unify_fail(index_type: IndexType) {
         let lhs = [mlirIntegerAttrGet(index_type.t, 0)];
         let rhs = [mlirIntegerAttrGet(index_type.t, 1)];
         assert!(!llzkTypeParamsUnify(
-            lhs.len() as isize,
+            isize::try_from(lhs.len()).expect("lhs too large"),
             lhs.as_ptr(),
-            rhs.len() as isize,
+            isize::try_from(rhs.len()).expect("rhs too large"),
             rhs.as_ptr()
         ));
     }
@@ -171,9 +171,17 @@ fn test_llzk_type_params_unify_fail(index_type: IndexType) {
 fn test_llzk_array_attr_type_params_unify_empty(context: TestContext) {
     unsafe {
         let lhs = [];
-        let lhs = mlirArrayAttrGet(context.ctx, lhs.len() as isize, lhs.as_ptr());
+        let lhs = mlirArrayAttrGet(
+            context.ctx,
+            isize::try_from(lhs.len()).expect("lhs too large"),
+            lhs.as_ptr(),
+        );
         let rhs = [];
-        let rhs = mlirArrayAttrGet(context.ctx, rhs.len() as isize, rhs.as_ptr());
+        let rhs = mlirArrayAttrGet(
+            context.ctx,
+            isize::try_from(rhs.len()).expect("rhs too large"),
+            rhs.as_ptr(),
+        );
         assert!(llzkArrayAttrTypeParamsUnify(lhs, rhs));
     }
 }
@@ -188,7 +196,7 @@ fn test_llzk_array_attr_type_params_unify_pass(index_type: IndexType) {
         let lhs = [mlirIntegerAttrGet(index_type.t, 0)];
         let lhs = mlirArrayAttrGet(
             mlirAttributeGetContext(lhs[0]),
-            lhs.len() as isize,
+            isize::try_from(lhs.len()).expect("lhs too large"),
             lhs.as_ptr(),
         );
         let rhs = [mlirFlatSymbolRefAttrGet(
@@ -197,7 +205,7 @@ fn test_llzk_array_attr_type_params_unify_pass(index_type: IndexType) {
         )];
         let rhs = mlirArrayAttrGet(
             mlirAttributeGetContext(lhs),
-            rhs.len() as isize,
+            isize::try_from(rhs.len()).expect("rhs too large"),
             rhs.as_ptr(),
         );
         assert!(llzkArrayAttrTypeParamsUnify(lhs, rhs));
@@ -211,14 +219,14 @@ fn test_llzk_array_attr_type_params_unify_fail(index_type: IndexType) {
 
         let lhs = mlirArrayAttrGet(
             mlirAttributeGetContext(lhs[0]),
-            lhs.len() as isize,
+            isize::try_from(lhs.len()).expect("lhs too large"),
             lhs.as_ptr(),
         );
         let rhs = [mlirIntegerAttrGet(index_type.t, 1)];
 
         let rhs = mlirArrayAttrGet(
             mlirAttributeGetContext(lhs),
-            rhs.len() as isize,
+            isize::try_from(rhs.len()).expect("rhs too large"),
             rhs.as_ptr(),
         );
         assert!(!llzkArrayAttrTypeParamsUnify(lhs, rhs));

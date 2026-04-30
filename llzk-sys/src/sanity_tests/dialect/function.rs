@@ -36,9 +36,9 @@ fn create_func_type(ctx: MlirContext, ins: &[MlirType], outs: &[MlirType]) -> Ml
     unsafe {
         mlirFunctionTypeGet(
             ctx,
-            ins.len() as isize,
+            isize::try_from(ins.len()).expect("ins too large"),
             ins.as_ptr(),
-            outs.len() as isize,
+            isize::try_from(outs.len()).expect("outs too large"),
             outs.as_ptr(),
         )
     }
@@ -59,9 +59,9 @@ fn create_func_def_op(
             location,
             name,
             r#type,
-            attrs.len() as isize,
+            isize::try_from(attrs.len()).expect("attrs too large"),
             attrs.as_ptr(),
-            arg_attrs.len() as isize,
+            isize::try_from(arg_attrs.len()).expect("arg_attrs too large"),
             arg_attrs.as_ptr(),
         )
     }
@@ -265,7 +265,7 @@ fn test_llzk_call_op_build(test_function0: TestFuncDefOp) {
         let call = llzkFunction_CallOpBuild(
             builder,
             location,
-            test_function0.out_types.len() as isize,
+            isize::try_from(test_function0.out_types.len()).expect("out_types too large"),
             test_function0.out_types.as_ptr(),
             callee_name,
             0,
@@ -303,7 +303,7 @@ fn llzk_call_op_build_with_map_operands(test_function0: TestFuncDefOp) {
         let call = llzkFunction_CallOpBuildWithMapOperands(
             builder,
             location,
-            test_function0.out_types.len() as isize,
+            isize::try_from(test_function0.out_types.len()).expect("out_types too large"),
             test_function0.out_types.as_ptr(),
             callee_name,
             map_operands,

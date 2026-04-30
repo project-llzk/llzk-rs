@@ -57,7 +57,7 @@ impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
                     builder.to_raw(),
                     location.to_raw(),
                     r#type.to_raw(),
-                    raw_values.len() as isize,
+                    isize::try_from(raw_values.len()).expect("value count too large"),
                     raw_values.as_ptr(),
                 )
             },

@@ -70,7 +70,11 @@ fn test_llzk_pod_type_get_non_empty(context: TestContext, index_type: IndexType)
                 index_type.t,
             ),
         ];
-        let t = llzkPod_PodTypeGet(context.ctx, records.len() as isize, records.as_ptr());
+        let t = llzkPod_PodTypeGet(
+            context.ctx,
+            isize::try_from(records.len()).expect("records too large"),
+            records.as_ptr(),
+        );
         assert_ne!(t.ptr, null());
     }
 }
@@ -97,7 +101,11 @@ fn test_llzk_pod_type_lookup_record(context: TestContext, index_type: IndexType)
                 index_type.t,
             ),
         ];
-        let t: MlirType = llzkPod_PodTypeGet(context.ctx, records.len() as isize, records.as_ptr());
+        let t: MlirType = llzkPod_PodTypeGet(
+            context.ctx,
+            isize::try_from(records.len()).expect("records too large"),
+            records.as_ptr(),
+        );
         assert_ne!(t.ptr, null());
         let num = llzkPod_PodTypeGetRecordsCount(t);
         assert_eq!(num, 2);
@@ -121,7 +129,11 @@ fn test_llzk_pod_type_get_records(context: TestContext, index_type: IndexType) {
                 index_type.t,
             ),
         ];
-        let t: MlirType = llzkPod_PodTypeGet(context.ctx, records.len() as isize, records.as_ptr());
+        let t: MlirType = llzkPod_PodTypeGet(
+            context.ctx,
+            isize::try_from(records.len()).expect("records too large"),
+            records.as_ptr(),
+        );
         assert_ne!(t.ptr, null());
 
         let num = llzkPod_PodTypeGetRecordsCount(t);
