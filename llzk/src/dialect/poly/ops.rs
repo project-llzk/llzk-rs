@@ -27,6 +27,26 @@ use melior::ir::{
 };
 use mlir_sys::MlirAttribute;
 
+/// Calls `fill` to populate a buffer of `count` raw attributes and converts
+/// each one to a [`FlatSymbolRefAttribute`].
+fn collect_flat_sym_ref_attrs<'c>(
+    count: usize,
+    fill: impl FnOnce(*mut MlirAttribute),
+) -> Vec<FlatSymbolRefAttribute<'c>> {
+    let mut raw_attrs: Vec<MlirAttribute> = Vec::with_capacity(count);
+    fill(raw_attrs.as_mut_ptr());
+    // SAFETY: `fill` must write exactly `count` valid, initialized `MlirAttribute` values
+    // starting at the pointer it receives, which points to the spare capacity of `raw_attrs`.
+    // The buffer has capacity for at least `count` elements (allocated above), so the writes
+    // are in-bounds. After `fill` returns, the first `count` elements are initialized, making
+    // it safe to advance the length to `count`.
+    unsafe { raw_attrs.set_len(count) };
+    raw_attrs
+        .into_iter()
+        .map(|attr| FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap())
+        .collect()
+}
+
 //===----------------------------------------------------------------------===//
 // poly.template (TemplateOpLike)
 //===----------------------------------------------------------------------===//
@@ -57,50 +77,32 @@ pub trait TemplateOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     fn const_param_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
         let num_attrs =
             usize::try_from(unsafe { llzkPoly_TemplateOpNumConstParamOps(self.to_raw()) }).unwrap();
-        let mut raw_attrs: Vec<MlirAttribute> = Vec::with_capacity(num_attrs);
-        unsafe {
-            llzkPoly_TemplateOpGetConstParamNames(self.to_raw(), raw_attrs.as_mut_ptr());
-            raw_attrs.set_len(num_attrs);
-        }
-        raw_attrs
-            .into_iter()
-            .map(|attr| {
-                FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap()
-            })
-            .collect()
+        let raw_op = self.to_raw();
+        collect_flat_sym_ref_attrs(num_attrs, |ptr| unsafe {
+            llzkPoly_TemplateOpGetConstParamNames(raw_op, ptr);
+        })
     }
 
     /// Returns the names of all `poly.expr` children in definition order.
     fn const_expr_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
         let num_attrs =
             usize::try_from(unsafe { llzkPoly_TemplateOpNumConstExprOps(self.to_raw()) }).unwrap();
-        let mut raw_attrs: Vec<MlirAttribute> = Vec::with_capacity(num_attrs);
-        unsafe {
-            llzkPoly_TemplateOpGetConstExprNames(self.to_raw(), raw_attrs.as_mut_ptr());
-            raw_attrs.set_len(num_attrs);
-        }
-        raw_attrs
-            .into_iter()
-            .map(|attr| {
-                FlatSymbolRefAttribute::try_from(unsafe { Attribute::from_raw(attr) }).unwrap()
-            })
-            .collect()
+        let raw_op = self.to_raw();
+        collect_flat_sym_ref_attrs(num_attrs, |ptr| unsafe {
+            llzkPoly_TemplateOpGetConstExprNames(raw_op, ptr);
+        })
     }
 
     /// Returns `true` if the template has a `poly.param` with the given name.
     fn has_const_param_named(&self, find: &str) -> bool {
-        unsafe {
-            let find = melior::StringRef::new(find);
-            llzkPoly_TemplateOpHasConstParamNamed(self.to_raw(), find.to_raw())
-        }
+        let find = melior::StringRef::new(find);
+        unsafe { llzkPoly_TemplateOpHasConstParamNamed(self.to_raw(), find.to_raw()) }
     }
 
     /// Returns `true` if the template has a `poly.expr` with the given name.
     fn has_const_expr_named(&self, find: &str) -> bool {
-        unsafe {
-            let find = melior::StringRef::new(find);
-            llzkPoly_TemplateOpHasConstExprNamed(self.to_raw(), find.to_raw())
-        }
+        let find = melior::StringRef::new(find);
+        unsafe { llzkPoly_TemplateOpHasConstExprNamed(self.to_raw(), find.to_raw()) }
     }
 
     /// Returns all `poly.param` and `poly.expr` children in definition order.
@@ -135,9 +137,9 @@ llzk_op_type!(
     "poly.template"
 );
 
-impl<'a, 'c: 'a> TemplateOpLike<'c, 'a> for TemplateOp<'c> {}
-impl<'a, 'c: 'a> TemplateOpLike<'c, 'a> for TemplateOpRef<'c, 'a> {}
-impl<'a, 'c: 'a> TemplateOpLike<'c, 'a> for TemplateOpRefMut<'c, 'a> {}
+impl<'c: 'a, 'a> TemplateOpLike<'c, 'a> for TemplateOp<'c> {}
+impl<'c: 'a, 'a> TemplateOpLike<'c, 'a> for TemplateOpRef<'c, 'a> {}
+impl<'c: 'a, 'a> TemplateOpLike<'c, 'a> for TemplateOpRefMut<'c, 'a> {}
 
 /// Creates a `poly.template` op and fills its body with the given operations.
 pub fn template<'c, I>(
@@ -181,6 +183,33 @@ pub fn is_template_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 // poly.param (TemplateParamOp*) & poly.expr (TemplateExprOp*)
 //===----------------------------------------------------------------------===//
 
+/// Defines the shared API of `poly.param` and `poly.expr` ops.
+pub trait TemplateSymbolBindingOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+    /// Returns the [StringAttribute] with the name of the symbol.
+    ///
+    /// # Panics
+    ///
+    /// If the op doesn't have a [StringAttribute] named `sym_name`.
+    fn sym_name_attr(&self) -> StringAttribute<'c> {
+        self.attribute("sym_name")
+            .and_then(StringAttribute::try_from)
+            .unwrap()
+    }
+
+    /// Returns the name of the symbol.
+    ///
+    /// # Panics
+    ///
+    /// If the op doesn't have a [StringAttribute] named `sym_name`.
+    #[inline]
+    fn sym_name(&self) -> &'c str {
+        self.sym_name_attr().value()
+    }
+
+    /// Returns the optional type restriction on the defined symbol.
+    fn type_opt(&self) -> Option<Type<'c>>;
+}
+
 /// An owned `poly.param` or `poly.expr` op.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TemplateSymbolBindingOp<'c> {
@@ -202,32 +231,13 @@ impl<'c> TemplateSymbolBindingOp<'c> {
             }),
         }
     }
+}
 
-    /// Returns the [StringAttribute] with the name of the symbol.
-    ///
-    /// # Panics
-    ///
-    /// If the op doesn't have a [StringAttribute] named `sym_name`.
-    pub fn name_attr(&self) -> StringAttribute<'c> {
-        self.attribute("sym_name")
-            .and_then(StringAttribute::try_from)
-            .unwrap()
-    }
-
-    /// Returns the name of the symbol.
-    ///
-    /// # Panics
-    ///
-    /// If the op doesn't have a [StringAttribute] named `sym_name`.
-    #[inline]
-    pub fn name(&self) -> &'c str {
-        self.name_attr().value()
-    }
-
+impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateSymbolBindingOp<'c> {
     /// Returns the optional type restriction on the defined symbol.
-    pub fn type_opt(&self) -> Option<Type<'c>> {
+    fn type_opt(&self) -> Option<Type<'c>> {
         match self {
-            Self::Param(op) => op.type_opt(),
+            Self::Param(op) => op.type_restriction(),
             Self::Expr(op) => Some(op.expr_type()),
         }
     }
@@ -242,7 +252,7 @@ impl std::fmt::Display for TemplateSymbolBindingOp<'_> {
     }
 }
 
-impl<'a, 'c: 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOp<'c> {
+impl<'c: 'a, 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOp<'c> {
     fn to_raw(&self) -> mlir_sys::MlirOperation {
         match self {
             Self::Param(op) => op.to_raw(),
@@ -272,12 +282,6 @@ impl<'c> From<TemplateSymbolBindingOp<'c>> for Operation<'c> {
     }
 }
 
-impl<'c, 'a> From<&'a TemplateSymbolBindingOp<'c>> for TemplateSymbolBindingOpRef<'c, 'a> {
-    fn from(op: &'a TemplateSymbolBindingOp<'c>) -> Self {
-        op.as_ref()
-    }
-}
-
 /// A non-owned reference to either a `poly.param` or `poly.expr` op.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TemplateSymbolBindingOpRef<'c, 'a> {
@@ -287,32 +291,11 @@ pub enum TemplateSymbolBindingOpRef<'c, 'a> {
     Expr(TemplateExprOpRef<'c, 'a>),
 }
 
-impl<'c: 'a, 'a> TemplateSymbolBindingOpRef<'c, 'a> {
-    /// Returns the [StringAttribute] with the name of the symbol.
-    ///
-    /// # Panics
-    ///
-    /// If the op doesn't have a [StringAttribute] named `sym_name`.
-    pub fn name_attr(&self) -> StringAttribute<'c> {
-        self.attribute("sym_name")
-            .and_then(StringAttribute::try_from)
-            .unwrap()
-    }
-
-    /// Returns the name of the symbol.
-    ///
-    /// # Panics
-    ///
-    /// If the op doesn't have a [StringAttribute] named `sym_name`.
-    #[inline]
-    pub fn name(&self) -> &'c str {
-        self.name_attr().value()
-    }
-
-    /// Returns the optional type restriction on defined symbol.
-    pub fn type_opt(&self) -> Option<Type<'c>> {
+impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateSymbolBindingOpRef<'c, 'a> {
+    /// Returns the optional type restriction on the defined symbol.
+    fn type_opt(&self) -> Option<Type<'c>> {
         match self {
-            Self::Param(op) => op.type_opt(),
+            Self::Param(op) => op.type_restriction(),
             Self::Expr(op) => Some(op.expr_type()),
         }
     }
@@ -327,7 +310,7 @@ impl std::fmt::Display for TemplateSymbolBindingOpRef<'_, '_> {
     }
 }
 
-impl<'a, 'c: 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOpRef<'c, 'a> {
+impl<'c: 'a, 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOpRef<'c, 'a> {
     fn to_raw(&self) -> mlir_sys::MlirOperation {
         match self {
             Self::Param(op) => op.to_raw(),
@@ -375,13 +358,14 @@ pub trait TemplateExprOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 /// Defines the public API of the `poly.param` op.
 pub trait TemplateParamOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns the optional declared type restriction on the parameter.
-    fn type_opt(&self) -> Option<Type<'c>> {
+    fn type_restriction(&self) -> Option<Type<'c>> {
         let raw_attr = unsafe { llzkPoly_TemplateParamOpGetTypeOpt(self.to_raw()) };
         if raw_attr.ptr.is_null() {
             None
         } else {
             let attr = unsafe { Attribute::from_raw(raw_attr) };
-            let type_attr = TypeAttribute::try_from(attr).expect("malformed poly.param type_opt");
+            let type_attr = TypeAttribute::try_from(attr)
+                .expect("malformed poly.param type restriction attribute");
             Some(type_attr.value())
         }
     }
@@ -399,13 +383,44 @@ llzk_op_type!(
     "poly.param"
 );
 
-impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOp<'c> {}
-impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOpRef<'c, 'a> {}
-impl<'a, 'c: 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOpRefMut<'c, 'a> {}
+impl<'c: 'a, 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOp<'c> {}
+impl<'c: 'a, 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOpRef<'c, 'a> {}
+impl<'c: 'a, 'a> TemplateExprOpLike<'c, 'a> for TemplateExprOpRefMut<'c, 'a> {}
 
-impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOp<'c> {}
-impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOpRef<'c, 'a> {}
-impl<'a, 'c: 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOpRefMut<'c, 'a> {}
+impl<'c: 'a, 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOp<'c> {}
+impl<'c: 'a, 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOpRef<'c, 'a> {}
+impl<'c: 'a, 'a> TemplateParamOpLike<'c, 'a> for TemplateParamOpRefMut<'c, 'a> {}
+
+impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateParamOp<'c> {
+    fn type_opt(&self) -> Option<Type<'c>> {
+        self.type_restriction()
+    }
+}
+impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateParamOpRef<'c, 'a> {
+    fn type_opt(&self) -> Option<Type<'c>> {
+        self.type_restriction()
+    }
+}
+impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateParamOpRefMut<'c, 'a> {
+    fn type_opt(&self) -> Option<Type<'c>> {
+        self.type_restriction()
+    }
+}
+impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateExprOp<'c> {
+    fn type_opt(&self) -> Option<Type<'c>> {
+        Some(self.expr_type())
+    }
+}
+impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateExprOpRef<'c, 'a> {
+    fn type_opt(&self) -> Option<Type<'c>> {
+        Some(self.expr_type())
+    }
+}
+impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateExprOpRefMut<'c, 'a> {
+    fn type_opt(&self) -> Option<Type<'c>> {
+        Some(self.expr_type())
+    }
+}
 
 /// Creates a `poly.param` op.
 pub fn param<'c>(
@@ -415,14 +430,12 @@ pub fn param<'c>(
 ) -> Result<TemplateParamOp<'c>, Error> {
     let ctx = location.context();
     let builder = OpBuilder::new(unsafe { ctx.to_ref() });
-    let raw_type = type_opt
-        .map(|t| TypeAttribute::new(t).into())
-        .unwrap_or_else(|| unsafe {
-            Attribute::from_raw(MlirAttribute {
-                ptr: std::ptr::null_mut(),
-            })
-        })
-        .to_raw();
+    let raw_type = match type_opt {
+        Some(t) => TypeAttribute::new(t).to_raw(),
+        None => MlirAttribute {
+            ptr: std::ptr::null_mut(),
+        },
+    };
     unsafe {
         Operation::from_raw(llzkPoly_TemplateParamOpBuild(
             builder.to_raw(),
