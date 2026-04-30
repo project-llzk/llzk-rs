@@ -1,7 +1,7 @@
 use llzk::{
     builder::OpBuilder,
     dialect::poly::{
-        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOp,
+        TemplateExprOpLike, TemplateOpLike, TemplateSymbolBindingOp, TemplateSymbolBindingOpLike,
         TemplateSymbolBindingOpRef, applymap, expr, is_applymap_op, is_expr_op, is_param_op,
         is_template_op, is_unifiable_cast_op, is_yield_op, param, template, unifiable_cast,
         r#yield,
