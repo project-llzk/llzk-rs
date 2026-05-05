@@ -23,6 +23,19 @@ impl<'c> ArrayType<'c> {
     }
 
     /// Creates a new type with the given element type and dimensions.
+    ///
+    /// It can only be instantiated with the following element types:
+    ///   - Any LLZK type other than an ArrayType (i.e., arrays cannot be nested)
+    ///   - IndexType
+    ///   - Unsigned integers of 1 bit (aka booleans)
+    ///
+    /// The dimensions of the array are specified using a list of attributes, one
+    /// per dimension. Each attribute must be one of the following:
+    ///   - IntegerAttribute (with IndexType), specifying a fixed dimension size
+    ///   - SymbolRefAttribute, specifying a dimension size defined by a struct parameter or
+    ///     global constant
+    ///   - AffineMapAttribute, specifying a dimension size computed from surrounding loop
+    ///     induction variables
     pub fn new(element_type: Type<'c>, dims: &[Attribute<'c>]) -> Self {
         unsafe {
             Self::from_raw(llzkArray_ArrayTypeGetWithDims(
