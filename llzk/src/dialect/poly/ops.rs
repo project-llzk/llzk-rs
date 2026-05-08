@@ -21,7 +21,7 @@ use llzk_sys::{
 };
 use melior::ir::{
     Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
-    RegionLike as _, RegionRef, Type, Value, ValueLike as _,
+    OperationRef, RegionLike as _, RegionRef, Type, Value, ValueLike as _,
     attribute::{FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
     operation::{OperationBuilder, OperationLike},
 };
@@ -282,6 +282,23 @@ impl<'c> From<TemplateSymbolBindingOp<'c>> for Operation<'c> {
     }
 }
 
+impl<'c, 'a> TryFrom<Operation<'c>> for TemplateSymbolBindingOp<'c> {
+    type Error = crate::error::Error;
+
+    fn try_from(op: Operation<'c>) -> Result<Self, Self::Error> {
+        if is_param_op(&op) {
+            TemplateParamOp::try_from(op).map(Self::Param)
+        } else if is_expr_op(&op) {
+            TemplateExprOp::try_from(op).map(Self::Expr)
+        } else {
+            Err(Error::OperationExpected(
+                "poly.param or poly.expr",
+                op.to_string(),
+            ))
+        }
+    }
+}
+
 /// A non-owned reference to either a `poly.param` or `poly.expr` op.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TemplateSymbolBindingOpRef<'c, 'a> {
@@ -331,13 +348,28 @@ impl<'c, 'a> From<TemplateExprOpRef<'c, 'a>> for TemplateSymbolBindingOpRef<'c, 
     }
 }
 
-impl<'c, 'a> From<TemplateSymbolBindingOpRef<'c, 'a>>
-    for melior::ir::operation::OperationRef<'c, 'a>
-{
+impl<'c, 'a> From<TemplateSymbolBindingOpRef<'c, 'a>> for OperationRef<'c, 'a> {
     fn from(op: TemplateSymbolBindingOpRef<'c, 'a>) -> Self {
         match op {
             TemplateSymbolBindingOpRef::Param(inner) => inner.into(),
             TemplateSymbolBindingOpRef::Expr(inner) => inner.into(),
+        }
+    }
+}
+
+impl<'c, 'a> TryFrom<OperationRef<'c, 'a>> for TemplateSymbolBindingOpRef<'c, 'a> {
+    type Error = crate::error::Error;
+
+    fn try_from(op: OperationRef<'c, 'a>) -> Result<Self, Self::Error> {
+        if is_param_op(&op) {
+            TemplateParamOpRef::try_from(op).map(Self::Param)
+        } else if is_expr_op(&op) {
+            TemplateExprOpRef::try_from(op).map(Self::Expr)
+        } else {
+            Err(Error::OperationExpected(
+                "poly.param or poly.expr",
+                op.to_string(),
+            ))
         }
     }
 }
