@@ -190,6 +190,41 @@ fn template_const_ops() {
 }
 
 #[test]
+fn set_type_restriction_adds_type() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+
+    let op = param(loc, "T", None).unwrap();
+    assert!(op.type_restriction().is_none());
+
+    let ty = TVarType::new(&context, StringRef::new("T"));
+    op.set_type_restriction(Some(ty.into()));
+    assert_eq!(
+        op.type_restriction().map(|t| t.to_string()),
+        Some(String::from("!poly.tvar<@T>"))
+    );
+}
+
+#[test]
+fn set_type_restriction_clears_type() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+
+    let op = param(
+        loc,
+        "T",
+        Some(TVarType::new(&context, StringRef::new("T")).into()),
+    )
+    .unwrap();
+    assert!(op.type_restriction().is_some());
+
+    op.set_type_restriction(None);
+    assert!(op.type_restriction().is_none());
+}
+
+#[test]
 fn empty_struct_with_one_param() {
     common::setup();
     let context = LlzkContext::new();

@@ -17,7 +17,8 @@ use llzk_sys::{
     llzkPoly_TemplateOpHasConstExprNamed, llzkPoly_TemplateOpHasConstExprOps,
     llzkPoly_TemplateOpHasConstParamNamed, llzkPoly_TemplateOpHasConstParamOps,
     llzkPoly_TemplateOpNumConstExprOps, llzkPoly_TemplateOpNumConstParamOps,
-    llzkPoly_TemplateParamOpBuild, llzkPoly_TemplateParamOpGetTypeOpt, llzkPoly_YieldOpBuild,
+    llzkPoly_TemplateParamOpBuild, llzkPoly_TemplateParamOpGetTypeOpt,
+    llzkPoly_TemplateParamOpSetTypeOpt, llzkPoly_YieldOpBuild,
 };
 use melior::ir::{
     Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
@@ -400,6 +401,17 @@ pub trait TemplateParamOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
                 .expect("malformed poly.param type restriction attribute");
             Some(type_attr.value())
         }
+    }
+
+    /// Sets or clears the declared type restriction on the parameter.
+    fn set_type_restriction(&self, type_opt: Option<Type<'c>>) {
+        let raw_attr = match type_opt {
+            Some(t) => TypeAttribute::new(t).to_raw(),
+            None => MlirAttribute {
+                ptr: std::ptr::null_mut(),
+            },
+        };
+        unsafe { llzkPoly_TemplateParamOpSetTypeOpt(self.to_raw(), raw_attr) }
     }
 }
 
