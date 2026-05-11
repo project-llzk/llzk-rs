@@ -1,5 +1,5 @@
 use crate::{
-    attributes::NamedAttribute,
+    attributes::{NamedAttribute, array::ArrayAttribute},
     builder::{OpBuilder, OpBuilderLike as _},
     dialect::r#struct::StructType,
     error::Error,
@@ -12,25 +12,33 @@ use llzk_sys::{
     llzkFunction_CallOpBuild, llzkFunction_CallOpBuildWithMapOperands,
     llzkFunction_CallOpCalleeIsCompute, llzkFunction_CallOpCalleeIsConstrain,
     llzkFunction_CallOpCalleeIsStructCompute, llzkFunction_CallOpCalleeIsStructConstrain,
-    llzkFunction_CallOpGetSelfValueFromCompute, llzkFunction_CallOpGetSelfValueFromConstrain,
-    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetFullyQualifiedName,
-    llzkFunction_FuncDefOpGetSelfValueFromCompute, llzkFunction_FuncDefOpGetSelfValueFromConstrain,
-    llzkFunction_FuncDefOpGetSingleResultTypeOfCompute,
+    llzkFunction_CallOpGetArgOperandsAt, llzkFunction_CallOpGetArgOperandsCount,
+    llzkFunction_CallOpGetCallee, llzkFunction_CallOpGetMapOperandsAt,
+    llzkFunction_CallOpGetMapOperandsCount, llzkFunction_CallOpGetSelfValueFromCompute,
+    llzkFunction_CallOpGetSelfValueFromConstrain, llzkFunction_CallOpGetTemplateParams,
+    llzkFunction_CallOpSetArgOperands, llzkFunction_CallOpSetCallee,
+    llzkFunction_CallOpSetMapOperands, llzkFunction_CallOpSetTemplateParams,
+    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetArgAttrs,
+    llzkFunction_FuncDefOpGetBody, llzkFunction_FuncDefOpGetFullyQualifiedName,
+    llzkFunction_FuncDefOpGetFunctionType, llzkFunction_FuncDefOpGetSelfValueFromCompute,
+    llzkFunction_FuncDefOpGetSelfValueFromConstrain,
+    llzkFunction_FuncDefOpGetSingleResultTypeOfCompute, llzkFunction_FuncDefOpGetSymName,
     llzkFunction_FuncDefOpHasAllowConstraintAttr,
     llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
-    llzkFunction_FuncDefOpHasArgPublicAttr, llzkFunction_FuncDefOpIsInStruct,
-    llzkFunction_FuncDefOpIsStructCompute, llzkFunction_FuncDefOpIsStructConstrain,
-    llzkFunction_FuncDefOpNameIsCompute, llzkFunction_FuncDefOpNameIsConstrain,
-    llzkFunction_FuncDefOpSetAllowConstraintAttr,
+    llzkFunction_FuncDefOpHasArgPublicAttr, llzkFunction_FuncDefOpIsDeclaration,
+    llzkFunction_FuncDefOpIsInStruct, llzkFunction_FuncDefOpIsStructCompute,
+    llzkFunction_FuncDefOpIsStructConstrain, llzkFunction_FuncDefOpNameIsCompute,
+    llzkFunction_FuncDefOpNameIsConstrain, llzkFunction_FuncDefOpSetAllowConstraintAttr,
     llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
-    llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
+    llzkFunction_FuncDefOpSetFunctionType, llzkFunction_FuncDefOpSetSymName,
+    llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp, mlirOpBuilderGetContext,
 };
 use melior::{
-    Context, StringRef,
+    Context, ContextRef, StringRef,
     ir::{
-        Attribute, AttributeLike, BlockLike as _, Location, Operation, RegionLike as _, Type,
-        TypeLike, Value,
-        attribute::{ArrayAttribute, TypeAttribute},
+        Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, RegionLike as _,
+        RegionRef, Type, TypeLike, Value,
+        attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
         block::BlockArgument,
         operation::{OperationBuilder, OperationLike, OperationMutLike},
         r#type::FunctionType,
@@ -169,8 +177,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns the n-th argument of the function.
     fn argument(&self, idx: usize) -> Result<BlockArgument<'c, 'a>, Error> {
-        self.region(0)
-            .map_err(Into::into)
+        self.get_body()
             .and_then(|region| {
                 region
                     .first_block()
@@ -181,7 +188,10 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Looks for an attribute in the n-th argument of the function.
     fn argument_attr(&self, idx: usize, name: &str) -> Result<Attribute<'c>, Error> {
-        let arg_attrs: ArrayAttribute = self.attribute("arg_attrs")?.try_into()?;
+        let arg_attrs = melior::ir::attribute::ArrayAttribute::try_from(unsafe {
+            Attribute::from_raw(llzkFunction_FuncDefOpGetArgAttrs(self.to_raw()))
+        })
+        .map_err(Error::Melior)?;
         let arg = arg_attrs.element(idx)?;
         let name_ref = StringRef::new(name);
         unsafe {
@@ -193,12 +203,47 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         .ok_or_else(|| Error::AttributeNotFound(name.to_string()))
     }
 
-    /// Get the [FunctionType] attribute.
-    fn get_function_type_attribute(&self) -> Result<FunctionType<'c>, Error> {
-        let attr = self.attribute("function_type")?;
+    ///  Gets the [FunctionType] attribute.
+    fn get_function_type(&self) -> Result<FunctionType<'c>, Error> {
+        let attr =
+            unsafe { Attribute::from_raw(llzkFunction_FuncDefOpGetFunctionType(self.to_raw())) };
         let type_attr: TypeAttribute<'c> = attr.try_into()?;
         let func_type: FunctionType<'c> = type_attr.value().try_into()?;
         Ok(func_type)
+    }
+
+    /// Sets the [FunctionType] attribute.
+    fn set_function_type(&self, ty: FunctionType<'c>) {
+        let type_attr = TypeAttribute::new(ty.into());
+        unsafe { llzkFunction_FuncDefOpSetFunctionType(self.to_raw(), type_attr.to_raw()) }
+    }
+
+    /// Returns the sym_name attribute.
+    fn get_sym_name(&self) -> Result<StringAttribute<'c>, Error> {
+        let attr = unsafe { Attribute::from_raw(llzkFunction_FuncDefOpGetSymName(self.to_raw())) };
+        attr.try_into().map_err(Error::Melior)
+    }
+
+    /// Sets the sym_name attribute.
+    fn set_sym_name(&self, attr: StringAttribute<'c>) {
+        unsafe { llzkFunction_FuncDefOpSetSymName(self.to_raw(), attr.to_raw()) }
+    }
+
+    /// Returns true if the function is a declaration (has no body).
+    fn is_declaration(&self) -> bool {
+        unsafe { llzkFunction_FuncDefOpIsDeclaration(self.to_raw()) }
+    }
+
+    /// Returns the body region of the function.
+    fn get_body(&self) -> Result<RegionRef<'c, 'a>, Error> {
+        let raw = unsafe { llzkFunction_FuncDefOpGetBody(self.to_raw()) };
+        if raw.ptr.is_null() {
+            Err(Error::GeneralError(
+                "no body in a declaration-only function",
+            ))
+        } else {
+            Ok(unsafe { RegionRef::from_raw(raw) })
+        }
     }
 }
 
@@ -272,6 +317,91 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             })
         } else {
             Err(Error::ExpectedFunctionName(&llzk_sys::FUNC_NAME_CONSTRAIN))
+        }
+    }
+
+    /// Returns the number of arg operands in the call op.
+    fn arg_operand_count(&self) -> usize {
+        let n = unsafe { llzkFunction_CallOpGetArgOperandsCount(self.to_raw()) };
+        usize::try_from(n).expect("size is negative or too large")
+    }
+
+    /// Returns the arg operand at the given index.
+    fn arg_operand_at(&self, index: usize) -> Value<'c, 'a> {
+        let index = isize::try_from(index).expect("index too large");
+        unsafe { Value::from_raw(llzkFunction_CallOpGetArgOperandsAt(self.to_raw(), index)) }
+    }
+
+    /// Sets the arg operands of the call op.
+    fn set_arg_operands(&self, values: &[Value<'c, '_>]) {
+        unsafe {
+            llzkFunction_CallOpSetArgOperands(
+                self.to_raw(),
+                isize::try_from(values.len()).expect("values too large"),
+                values.as_ptr() as *const _,
+            )
+        }
+    }
+
+    /// Returns the number of map operands in the call op.
+    fn map_operand_count(&self) -> usize {
+        let n = unsafe { llzkFunction_CallOpGetMapOperandsCount(self.to_raw()) };
+        usize::try_from(n).expect("size is negative or too large")
+    }
+
+    /// Returns the map operand at the given index.
+    fn map_operand_at(&self, index: usize) -> Value<'c, 'a> {
+        let index = isize::try_from(index).expect("index too large");
+        unsafe { Value::from_raw(llzkFunction_CallOpGetMapOperandsAt(self.to_raw(), index)) }
+    }
+
+    /// Sets the map operands of the call op.
+    fn set_map_operands(&self, values: &[Value<'c, '_>]) {
+        unsafe {
+            llzkFunction_CallOpSetMapOperands(
+                self.to_raw(),
+                isize::try_from(values.len()).expect("values too large"),
+                values.as_ptr() as *const _,
+            )
+        }
+    }
+
+    /// Returns the callee attribute.
+    fn get_callee(&self) -> Result<SymbolRefAttribute<'c>, Error> {
+        let a: Attribute<'_> =
+            unsafe { Attribute::from_raw(llzkFunction_CallOpGetCallee(self.to_raw())) };
+        a.try_into().map_err(Error::Melior)
+    }
+
+    /// Sets the callee attribute.
+    fn set_callee(&self, attr: SymbolRefAttribute<'c>) {
+        unsafe { llzkFunction_CallOpSetCallee(self.to_raw(), attr.to_raw()) }
+    }
+
+    /// Returns the template params attribute.
+    fn get_template_params(&self) -> Result<Option<ArrayAttribute<'c>>, Error> {
+        let raw = unsafe { llzkFunction_CallOpGetTemplateParams(self.to_raw()) };
+        if raw.ptr.is_null() {
+            Ok(None)
+        } else {
+            ArrayAttribute::try_from(unsafe { Attribute::from_raw(raw) }).map(Some)
+        }
+    }
+
+    /// Sets the template params attribute.
+    fn set_template_params(&self, attr: Option<ArrayAttribute<'c>>) {
+        match attr {
+            Some(arr) => unsafe {
+                llzkFunction_CallOpSetTemplateParams(self.to_raw(), arr.to_raw())
+            },
+            None => unsafe {
+                llzkFunction_CallOpSetTemplateParams(
+                    self.to_raw(),
+                    mlir_sys::MlirAttribute {
+                        ptr: std::ptr::null_mut(),
+                    },
+                )
+            },
         }
     }
 }
@@ -400,6 +530,60 @@ pub fn call_with_map_operands<'c>(
         ))
     }
     .try_into()
+}
+
+/// Creates a new `function.call` operation with the optional `templateParams` attribute for
+/// calling functions inside `poly.template` regions when template parameters are not bound
+/// by the call's argument or result types.
+pub fn call_with_template_params<'c>(
+    builder: &OpBuilder<'c>,
+    location: Location<'c>,
+    callee: impl SymbolRefAttrLike<'c>,
+    args: &[Value<'c, '_>],
+    return_types: &[impl TypeLike<'c>],
+    template_params: Option<&[impl AttributeLike<'c>]>,
+) -> Result<CallOp<'c>, Error> {
+    // There is no direct CAPI for this currently so we use `OperationBuilder` which ends up
+    // being a bit verbose since the signature of this wrapper function intentionally uses the
+    // same types as the other call builders for consistency and ease of use.
+    let ctx_ref = unsafe { ContextRef::from_raw(mlirOpBuilderGetContext(builder.to_raw())) };
+    let arg_count = i32::try_from(args.len()).expect("arg count too large");
+    let callee_attr = unsafe { Attribute::from_raw(callee.to_raw()) };
+    let return_types: Vec<_> = return_types
+        .iter()
+        .map(|ty| unsafe { Type::from_raw(ty.to_raw()) })
+        .collect();
+    let mut attrs = vec![
+        (
+            Identifier::new(unsafe { ctx_ref.to_ref() }, "callee"),
+            callee_attr,
+        ),
+        (
+            Identifier::new(unsafe { ctx_ref.to_ref() }, "mapOpGroupSizes"),
+            DenseI32ArrayAttribute::new(unsafe { ctx_ref.to_ref() }, &[]).into(),
+        ),
+        (
+            Identifier::new(unsafe { ctx_ref.to_ref() }, "operandSegmentSizes"),
+            DenseI32ArrayAttribute::new(unsafe { ctx_ref.to_ref() }, &[arg_count, 0]).into(),
+        ),
+    ];
+    if let Some(params) = template_params {
+        let params: Vec<_> = params
+            .iter()
+            .map(|param| unsafe { Attribute::from_raw(param.to_raw()) })
+            .collect();
+        attrs.push((
+            Identifier::new(unsafe { ctx_ref.to_ref() }, "templateParams"),
+            ArrayAttribute::new(unsafe { ctx_ref.to_ref() }, &params).into(),
+        ));
+    }
+    OperationBuilder::new("function.call", location)
+        .add_attributes(&attrs)
+        .add_operands(args)
+        .add_results(&return_types)
+        .build()
+        .map_err(Error::Melior)
+        .and_then(CallOp::try_from)
 }
 
 /// Return `true` iff the given op is `function.call`.
