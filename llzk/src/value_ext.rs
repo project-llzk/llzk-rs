@@ -25,6 +25,11 @@ impl ValueRange<'_, '_, '_> {
         usize::try_from(self.raw.size).expect("value range size is negative or too large")
     }
 
+    /// Returns true if the value range is empty.
+    pub fn is_empty(&self) -> bool {
+        self.raw.size == 0
+    }
+
     /// Creates the value range from a raw pointer.
     pub fn from_raw(raw: MlirValueRange) -> Self {
         Self {
@@ -52,6 +57,11 @@ impl<'c, 'b> OwningValueRange<'c, 'b> {
     /// Returns the number of values in the range.
     pub fn len(&self) -> usize {
         self.values.len()
+    }
+
+    /// Returns true if the value range is empty.
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
     }
 }
 

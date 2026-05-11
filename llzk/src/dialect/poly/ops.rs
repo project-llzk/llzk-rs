@@ -283,7 +283,7 @@ impl<'c> From<TemplateSymbolBindingOp<'c>> for Operation<'c> {
     }
 }
 
-impl<'c, 'a> TryFrom<Operation<'c>> for TemplateSymbolBindingOp<'c> {
+impl<'c> TryFrom<Operation<'c>> for TemplateSymbolBindingOp<'c> {
     type Error = crate::error::Error;
 
     fn try_from(op: Operation<'c>) -> Result<Self, Self::Error> {
