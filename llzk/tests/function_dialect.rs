@@ -1,4 +1,5 @@
 use llzk::{
+    attributes::array::ArrayAttribute,
     builder::{OpBuilder, OpBuilderLike},
     map_operands::MapOperandsBuilder,
     prelude::*,
@@ -291,4 +292,358 @@ fn func_def_op_ref_from_borrow_does_not_drop_original() {
 
     // `op` is still valid: its Drop will run mlirOperationDestroy exactly once.
     assert_eq!(op.region_count(), 1);
+}
+
+// Tests for FuncDefOpLike methods added in e2157c6
+
+#[test]
+fn func_def_op_get_function_type() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let op = dialect::function::def(
+        loc,
+        "my_func",
+        FunctionType::new(&context, &[felt_type], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    let result = op.get_function_type().unwrap();
+    assert_eq!(result.input_count(), 1);
+    assert_eq!(result.result_count(), 0);
+}
+
+#[test]
+fn func_def_op_set_function_type() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let op = dialect::function::def(
+        loc,
+        "my_func",
+        FunctionType::new(&context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    assert_eq!(op.get_function_type().unwrap().input_count(), 0);
+    op.set_function_type(FunctionType::new(&context, &[felt_type], &[]));
+    assert_eq!(op.get_function_type().unwrap().input_count(), 1);
+}
+
+#[test]
+fn func_def_op_get_sym_name() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let op = dialect::function::def(
+        loc,
+        "my_func",
+        FunctionType::new(&context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    assert_eq!(op.get_sym_name().unwrap().value(), "my_func");
+}
+
+#[test]
+fn func_def_op_set_sym_name() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let op = dialect::function::def(
+        loc,
+        "my_func",
+        FunctionType::new(&context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    assert_eq!(op.get_sym_name().unwrap().value(), "my_func");
+    op.set_sym_name(StringAttribute::new(&context, "new_name"));
+    assert_eq!(op.get_sym_name().unwrap().value(), "new_name");
+}
+
+#[test]
+fn func_def_op_is_declaration() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let op = dialect::function::def(
+        loc,
+        "my_func",
+        FunctionType::new(&context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    // A freshly created FuncDefOp has no body blocks — it is a declaration.
+    assert!(op.is_declaration());
+
+    // After appending a block, it is no longer a declaration.
+    let block = Block::new(&[]);
+    block.append_operation(dialect::function::r#return(loc, &[]));
+    op.region(0)
+        .expect("function.def must have at least 1 region")
+        .append_block(block);
+    assert!(!op.is_declaration());
+}
+
+#[test]
+fn func_def_op_get_body() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let op = dialect::function::def(
+        loc,
+        "my_func",
+        FunctionType::new(&context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    // A freshly created FuncDefOp already has a (empty) region; get_body returns Ok.
+    assert!(op.get_body().is_ok());
+
+    // After appending a block, get_body still succeeds.
+    let block = Block::new(&[]);
+    block.append_operation(dialect::function::r#return(loc, &[]));
+    op.region(0)
+        .expect("function.def must have at least 1 region")
+        .append_block(block);
+    assert!(op.get_body().is_ok());
+}
+
+// Tests for CallOpLike methods added in e2157c6
+
+fn make_call_op_in_block<'c, 'a>(
+    context: &'c LlzkContext,
+    loc: Location<'c>,
+    block: &Block<'c>,
+    args: &[Value<'c, '_>],
+) -> CallOpRef<'c, 'a> {
+    let builder = OpBuilder::new(context);
+    let name = FlatSymbolRefAttribute::new(context, "callee");
+    let call = block.append_operation(
+        dialect::function::call(&builder, loc, name, args, &[] as &[Type])
+            .unwrap()
+            .into(),
+    );
+    CallOpRef::try_from(call).unwrap()
+}
+
+#[test]
+fn call_op_arg_operand_count_zero() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let block = Block::new(&[]);
+    let call = make_call_op_in_block(&context, loc, &block, &[]);
+    assert_eq!(call.arg_operand_count(), 0);
+}
+
+#[test]
+fn call_op_arg_operand_count_nonzero() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let block = Block::new(&[(felt_type, loc)]);
+    let arg: Value = block.argument(0).unwrap().into();
+    let call = make_call_op_in_block(&context, loc, &block, &[arg]);
+    assert_eq!(call.arg_operand_count(), 1);
+}
+
+#[test]
+fn call_op_arg_operand_at() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let block = Block::new(&[(felt_type, loc)]);
+    let arg: Value = block.argument(0).unwrap().into();
+    let call = make_call_op_in_block(&context, loc, &block, &[arg]);
+    assert_eq!(call.arg_operand_at(0), arg);
+}
+
+#[test]
+fn call_op_set_arg_operands() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let block = Block::new(&[(felt_type, loc)]);
+    let arg: Value = block.argument(0).unwrap().into();
+    // Build call with no args initially.
+    let call = make_call_op_in_block(&context, loc, &block, &[]);
+    assert_eq!(call.arg_operand_count(), 0);
+    call.set_arg_operands(&[arg]);
+    assert_eq!(call.arg_operand_count(), 1);
+}
+
+#[test]
+fn call_op_map_operand_count_zero() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let block = Block::new(&[]);
+    let builder = OpBuilder::new(&context);
+    let name = FlatSymbolRefAttribute::new(&context, "callee");
+    let call = block.append_operation(
+        dialect::function::call_with_map_operands(
+            &builder,
+            loc,
+            name,
+            &[],
+            &[] as &[Type],
+            MapOperandsBuilder::new(),
+        )
+        .unwrap()
+        .into(),
+    );
+    let call = CallOpRef::try_from(call).unwrap();
+    assert_eq!(call.map_operand_count(), 0);
+}
+
+#[test]
+fn call_op_set_map_operands() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let block = Block::new(&[]);
+    let call = make_call_op_in_block(&context, loc, &block, &[]);
+    assert_eq!(call.map_operand_count(), 0);
+    call.set_map_operands(&[]);
+    assert_eq!(call.map_operand_count(), 0);
+}
+
+#[test]
+fn call_op_get_callee() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let block = Block::new(&[]);
+    let call = make_call_op_in_block(&context, loc, &block, &[]);
+    let callee = call.get_callee().unwrap();
+    assert_eq!(callee.root().as_str().unwrap(), "callee");
+}
+
+#[test]
+fn call_op_set_callee() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let block = Block::new(&[]);
+    let call = make_call_op_in_block(&context, loc, &block, &[]);
+    assert_eq!(
+        call.get_callee().unwrap().root().as_str().unwrap(),
+        "callee"
+    );
+    call.set_callee(SymbolRefAttribute::new_from_str(
+        &context,
+        "new_callee",
+        &[],
+    ));
+    assert_eq!(
+        call.get_callee().unwrap().root().as_str().unwrap(),
+        "new_callee"
+    );
+}
+
+#[test]
+fn call_op_get_template_params_none() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let block = Block::new(&[]);
+    let call = make_call_op_in_block(&context, loc, &block, &[]);
+    assert!(call.get_template_params().unwrap().is_none());
+}
+
+#[test]
+fn call_op_set_template_params() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let block = Block::new(&[]);
+    let call = make_call_op_in_block(&context, loc, &block, &[]);
+    assert!(call.get_template_params().unwrap().is_none());
+    // Set a non-None value.
+    call.set_template_params(Some(ArrayAttribute::new(&context, &[])));
+    assert!(call.get_template_params().unwrap().is_some());
+    // Clear back to None.
+    call.set_template_params(None);
+    assert!(call.get_template_params().unwrap().is_none());
+}
+
+#[test]
+fn call_with_template_params_none() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let builder = OpBuilder::new(&context);
+    let name = FlatSymbolRefAttribute::new(&context, "callee");
+    let call = dialect::function::call_with_template_params(
+        &builder,
+        loc,
+        name,
+        &[],
+        &[] as &[Type],
+        None::<&[Attribute]>,
+    )
+    .unwrap();
+    assert!(call.get_template_params().unwrap().is_none());
+}
+
+#[test]
+fn call_with_template_params_some() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let builder = OpBuilder::new(&context);
+    let name = FlatSymbolRefAttribute::new(&context, "callee");
+    let felt_type: Type = FeltType::new(&context).into();
+    let param = TypeAttribute::new(felt_type.into());
+    let call = dialect::function::call_with_template_params(
+        &builder,
+        loc,
+        name,
+        &[],
+        &[] as &[Type],
+        Some(&[param]),
+    )
+    .unwrap();
+    let template_params = call.get_template_params().unwrap().unwrap();
+    assert_eq!(template_params.len(), 1);
+}
+
+#[test]
+fn call_with_template_params_with_args() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let block = Block::new(&[(felt_type, loc)]);
+    let arg: Value = block.argument(0).unwrap().into();
+    let builder = OpBuilder::new(&context);
+    let name = FlatSymbolRefAttribute::new(&context, "callee");
+    let call = block.append_operation(
+        dialect::function::call_with_template_params(
+            &builder,
+            loc,
+            name,
+            &[arg],
+            &[] as &[Type],
+            None::<&[Attribute]>,
+        )
+        .unwrap()
+        .into(),
+    );
+    let call = CallOpRef::try_from(call).unwrap();
+    assert_eq!(call.arg_operand_count(), 1);
+    assert!(call.get_template_params().unwrap().is_none());
 }
