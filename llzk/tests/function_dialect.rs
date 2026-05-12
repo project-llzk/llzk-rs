@@ -638,7 +638,6 @@ fn call_with_template_params_no_empties() {
     let arg: Value = block.argument(0).unwrap().into();
     let builder = OpBuilder::new(&context);
     let name = FlatSymbolRefAttribute::new(&context, "callee");
-    let felt_type: Type = FeltType::new(&context).into();
     let call = block.append_operation(
         dialect::function::call_with_template_params(
             &builder,
