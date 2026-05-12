@@ -106,6 +106,24 @@ pub fn has_uses<'c>(val: impl ValueLike<'c> + Copy) -> bool {
     }
 }
 
+/// Returns the operations that use the given value.
+///
+/// SAFETY: MLIR owns the value use-list and the owning operations. This helper only walks the
+/// list and creates non-owning references while the surrounding module is still alive.
+pub fn users_of<'ctx: 'a, 'a>(val: impl ValueLike<'ctx> + Copy) -> Vec<OperationRef<'ctx, 'a>> {
+    let mut users = Vec::new();
+    unsafe {
+        let mut op_use = mlir_sys::mlirValueGetFirstUse(val.to_raw());
+        while !op_use.ptr.is_null() {
+            users.push(OperationRef::from_raw(mlir_sys::mlirOpOperandGetOwner(
+                op_use,
+            )));
+            op_use = mlir_sys::mlirOpOperandGetNextUse(op_use);
+        }
+    }
+    users
+}
+
 /// Returns the one user of a value.
 ///
 /// Error if the value has more than one use or not at all.
