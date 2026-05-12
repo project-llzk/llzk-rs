@@ -16,7 +16,7 @@ use super::ArrayType;
 #[rstest]
 fn type_new_with_dims(ctx: Context) {
     let idx_typ = Type::index(&ctx);
-    let arr_typ = ArrayType::new_with_dims(idx_typ.clone(), &[2]);
+    let arr_typ = ArrayType::new_with_dims(idx_typ, &[2]);
 
     assert_eq!(arr_typ.element_type(), idx_typ);
     assert_eq!(arr_typ.num_dims(), 1);

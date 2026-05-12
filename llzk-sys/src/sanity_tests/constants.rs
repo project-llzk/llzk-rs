@@ -5,10 +5,7 @@ use crate::{
 };
 
 fn unwrap(s: *const c_char) -> String {
-    unsafe { CStr::from_ptr(s.clone()) }
-        .to_str()
-        .unwrap()
-        .to_string()
+    unsafe { CStr::from_ptr(s) }.to_str().unwrap().to_string()
 }
 
 #[test]
