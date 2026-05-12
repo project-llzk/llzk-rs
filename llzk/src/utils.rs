@@ -59,8 +59,9 @@ pub fn print_operation<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) {
     // Melior does not currently have a wrapper for `mlirOpPrintingFlagsAssumeVerified()`
     unsafe extern "C" fn print_chunk(s: mlir_sys::MlirStringRef, _user_data: *mut c_void) {
         unsafe {
-            let slice = std::slice::from_raw_parts(s.data as *const u8, s.length);
-            print!("{}", std::str::from_utf8_unchecked(slice));
+            if let Ok(string) = StringRef::from_raw(s).as_str() {
+                print!("{}", string);
+            }
         }
     }
     unsafe {
