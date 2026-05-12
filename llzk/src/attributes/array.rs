@@ -141,7 +141,7 @@ impl<'c> Iterator for ArrayAttributeIter<'c> {
 }
 
 /// Represents an affine map attribute in MLIR.
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct AffineMapAttribute<'ctx> {
     /// Inner attribute.
     inner: Attribute<'ctx>,
@@ -157,10 +157,61 @@ impl<'ctx> AffineMapAttribute<'ctx> {
             inner: unsafe { Attribute::from_option_raw(raw_attr) }.unwrap(),
         }
     }
+
+    /// Create an [AffineMapAttribute] from a string definition.
+    pub fn parse(context: &'ctx Context, definition: &str) -> Result<Self, Error> {
+        let Some(a) = Attribute::parse(context, definition) else {
+            return Err(Error::GeneralError(
+                "could not parse attribute from definition",
+            ));
+        };
+        Self::try_from(a)
+    }
+}
+
+impl<'ctx> AttributeLike<'ctx> for AffineMapAttribute<'ctx> {
+    fn to_raw(&self) -> MlirAttribute {
+        self.inner.to_raw()
+    }
+}
+
+impl<'ctx> TryFrom<Attribute<'ctx>> for AffineMapAttribute<'ctx> {
+    type Error = Error;
+
+    fn try_from(inner: Attribute<'ctx>) -> Result<Self, Self::Error> {
+        if inner.is_affine_map() {
+            Ok(Self { inner })
+        } else {
+            Err(Error::AttributeExpected("affine_map", inner.to_string()))
+        }
+    }
 }
 
 impl<'ctx> From<AffineMapAttribute<'ctx>> for Attribute<'ctx> {
     fn from(value: AffineMapAttribute<'ctx>) -> Self {
         value.inner
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use melior::Context;
+
+    #[test]
+    fn parse_affine_map_attribute() {
+        let context = Context::new();
+        let attr = AffineMapAttribute::parse(&context, "affine_map<(d0) -> (d0)>").unwrap();
+        assert!(attr.is_affine_map());
+    }
+
+    #[test]
+    fn parse_non_affine_map_attribute_returns_error() {
+        let context = Context::new();
+        let err = AffineMapAttribute::parse(&context, "unit").unwrap_err();
+        assert_eq!(
+            err,
+            Error::AttributeExpected("affine_map", "unit".to_string())
+        );
     }
 }
