@@ -86,6 +86,8 @@ fn run() -> Result<()> {
 ///
 /// - `pub fn mlir*`: tablegen-generated dialect/pass registration functions.
 /// - `pub struct <name>` where the name contains "bindgen": anonymous types emitted by bindgen.
+/// - `impl <type>` where the type contains "bindgen": impl blocks for bindgen types (e.g.
+///   `impl<T> __BindgenUnionField<T>`).
 /// - `pub <field>:` where the field name contains "bindgen": padding/bitfield fields emitted by
 ///   bindgen (e.g. `__bindgen_padding_0`).
 fn suppress_missing_docs(source: &str) -> String {
@@ -94,6 +96,7 @@ fn suppress_missing_docs(source: &str) -> String {
         let trimmed = line.trim_start();
         let indent = &line[..line.len() - trimmed.len()];
         let needs_allow = trimmed.starts_with("pub fn mlir")
+            || (trimmed.starts_with("impl") && trimmed.to_ascii_lowercase().contains("bindgen"))
             || trimmed
                 .strip_prefix("pub struct ")
                 .and_then(|rest| rest.split_whitespace().next())
