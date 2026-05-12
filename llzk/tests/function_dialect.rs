@@ -607,14 +607,13 @@ fn call_with_template_params_some() {
     let builder = OpBuilder::new(&context);
     let name = FlatSymbolRefAttribute::new(&context, "callee");
     let felt_type: Type = FeltType::new(&context).into();
-    let param = TypeAttribute::new(felt_type.into());
     let call = dialect::function::call_with_template_params(
         &builder,
         loc,
         name,
         &[],
         &[] as &[Type],
-        Some(&[param]),
+        Some(&[TypeAttribute::new(felt_type)]),
     )
     .unwrap();
     let template_params = call.get_template_params().unwrap().unwrap();
