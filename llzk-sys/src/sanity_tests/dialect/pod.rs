@@ -60,7 +60,7 @@ fn test_llzk_pod_type_get_empty(context: TestContext) {
 #[rstest]
 fn test_llzk_pod_type_get_non_empty(context: TestContext, index_type: IndexType) {
     unsafe {
-        let records = vec![
+        let records = [
             llzkPod_RecordAttrGetInferredContext(
                 identifier(index_type.context.as_ref(), "rec1"),
                 index_type.t,
@@ -91,7 +91,7 @@ fn test_llzk_pod_type_num_records(context: TestContext) {
 #[rstest]
 fn test_llzk_pod_type_lookup_record(context: TestContext, index_type: IndexType) {
     unsafe {
-        let records = vec![
+        let records = [
             llzkPod_RecordAttrGetInferredContext(
                 identifier(index_type.context.as_ref(), "rec1"),
                 index_type.t,
@@ -119,7 +119,7 @@ fn test_llzk_pod_type_lookup_record(context: TestContext, index_type: IndexType)
 #[rstest]
 fn test_llzk_pod_type_get_records(context: TestContext, index_type: IndexType) {
     unsafe {
-        let records = vec![
+        let records = [
             llzkPod_RecordAttrGetInferredContext(
                 identifier(index_type.context.as_ref(), "rec1"),
                 index_type.t,
