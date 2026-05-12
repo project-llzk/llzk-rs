@@ -10,18 +10,18 @@ use crate::{
 
 use llzk_sys::{
     llzkFunction_CallOpBuild, llzkFunction_CallOpBuildWithMapOperands,
-    llzkFunction_CallOpCalleeIsCompute, llzkFunction_CallOpCalleeIsConstrain,
-    llzkFunction_CallOpCalleeIsStructCompute, llzkFunction_CallOpCalleeIsStructConstrain,
-    llzkFunction_CallOpGetArgOperandsAt, llzkFunction_CallOpGetArgOperandsCount,
-    llzkFunction_CallOpGetCallee, llzkFunction_CallOpGetMapOperandsAt,
-    llzkFunction_CallOpGetMapOperandsCount, llzkFunction_CallOpGetSelfValueFromCompute,
-    llzkFunction_CallOpGetSelfValueFromConstrain, llzkFunction_CallOpGetTemplateParams,
-    llzkFunction_CallOpSetArgOperands, llzkFunction_CallOpSetCallee,
-    llzkFunction_CallOpSetMapOperands, llzkFunction_CallOpSetTemplateParams,
-    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetArgAttrs,
-    llzkFunction_FuncDefOpGetBody, llzkFunction_FuncDefOpGetFullyQualifiedName,
-    llzkFunction_FuncDefOpGetFunctionType, llzkFunction_FuncDefOpGetSelfValueFromCompute,
-    llzkFunction_FuncDefOpGetSelfValueFromConstrain,
+    llzkFunction_CallOpBuildWithTemplateParams, llzkFunction_CallOpCalleeIsCompute,
+    llzkFunction_CallOpCalleeIsConstrain, llzkFunction_CallOpCalleeIsStructCompute,
+    llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpGetArgOperandsAt,
+    llzkFunction_CallOpGetArgOperandsCount, llzkFunction_CallOpGetCallee,
+    llzkFunction_CallOpGetMapOperandsAt, llzkFunction_CallOpGetMapOperandsCount,
+    llzkFunction_CallOpGetSelfValueFromCompute, llzkFunction_CallOpGetSelfValueFromConstrain,
+    llzkFunction_CallOpGetTemplateParams, llzkFunction_CallOpSetArgOperands,
+    llzkFunction_CallOpSetCallee, llzkFunction_CallOpSetMapOperands,
+    llzkFunction_CallOpSetTemplateParams, llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs,
+    llzkFunction_FuncDefOpGetArgAttrs, llzkFunction_FuncDefOpGetBody,
+    llzkFunction_FuncDefOpGetFullyQualifiedName, llzkFunction_FuncDefOpGetFunctionType,
+    llzkFunction_FuncDefOpGetSelfValueFromCompute, llzkFunction_FuncDefOpGetSelfValueFromConstrain,
     llzkFunction_FuncDefOpGetSingleResultTypeOfCompute, llzkFunction_FuncDefOpGetSymName,
     llzkFunction_FuncDefOpHasAllowConstraintAttr,
     llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
@@ -31,14 +31,14 @@ use llzk_sys::{
     llzkFunction_FuncDefOpNameIsConstrain, llzkFunction_FuncDefOpSetAllowConstraintAttr,
     llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
     llzkFunction_FuncDefOpSetFunctionType, llzkFunction_FuncDefOpSetSymName,
-    llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp, mlirOpBuilderGetContext,
+    llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
 };
 use melior::{
-    Context, ContextRef, StringRef,
+    Context, StringRef,
     ir::{
-        Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, RegionLike as _,
-        RegionRef, Type, TypeLike, Value,
-        attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
+        Attribute, AttributeLike, BlockLike as _, Location, Operation, RegionLike as _, RegionRef,
+        Type, TypeLike, Value,
+        attribute::{StringAttribute, TypeAttribute},
         block::BlockArgument,
         operation::{OperationBuilder, OperationLike, OperationMutLike},
         r#type::FunctionType,
@@ -490,7 +490,7 @@ pub fn is_func_def<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 pub fn call<'c>(
     builder: &OpBuilder<'c>,
     location: Location<'c>,
-    name: impl SymbolRefAttrLike<'c>,
+    callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],
     return_types: &[impl TypeLike<'c>],
 ) -> Result<CallOp<'c>, Error> {
@@ -500,7 +500,7 @@ pub fn call<'c>(
             location.to_raw(),
             isize::try_from(return_types.len()).expect("return_types too large"),
             return_types.as_ptr() as *const _,
-            name.to_raw(),
+            callee.to_raw(),
             isize::try_from(args.len()).expect("args too large"),
             args.as_ptr() as *const _,
         ))
@@ -512,7 +512,7 @@ pub fn call<'c>(
 pub fn call_with_map_operands<'c>(
     builder: &OpBuilder<'c>,
     location: Location<'c>,
-    name: impl SymbolRefAttrLike<'c>,
+    callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],
     return_types: &[impl TypeLike<'c>],
     map_operands: MapOperandsBuilder,
@@ -523,7 +523,7 @@ pub fn call_with_map_operands<'c>(
             location.to_raw(),
             isize::try_from(return_types.len()).expect("return_types too large"),
             return_types.as_ptr() as *const _,
-            name.to_raw(),
+            callee.to_raw(),
             map_operands.to_raw(),
             isize::try_from(args.len()).expect("args too large"),
             args.as_ptr() as *const _,
@@ -541,49 +541,22 @@ pub fn call_with_template_params<'c>(
     callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],
     return_types: &[impl TypeLike<'c>],
-    template_params: Option<&[impl AttributeLike<'c>]>,
+    template_params: &[impl AttributeLike<'c>],
 ) -> Result<CallOp<'c>, Error> {
-    // There is no direct CAPI for this currently so we use `OperationBuilder` which ends up
-    // being a bit verbose since the signature of this wrapper function intentionally uses the
-    // same types as the other call builders for consistency and ease of use.
-    let ctx_ref = unsafe { ContextRef::from_raw(mlirOpBuilderGetContext(builder.to_raw())) };
-    let arg_count = i32::try_from(args.len()).expect("arg count too large");
-    let callee_attr = unsafe { Attribute::from_raw(callee.to_raw()) };
-    let return_types: Vec<_> = return_types
-        .iter()
-        .map(|ty| unsafe { Type::from_raw(ty.to_raw()) })
-        .collect();
-    let mut attrs = vec![
-        (
-            Identifier::new(unsafe { ctx_ref.to_ref() }, "callee"),
-            callee_attr,
-        ),
-        (
-            Identifier::new(unsafe { ctx_ref.to_ref() }, "mapOpGroupSizes"),
-            DenseI32ArrayAttribute::new(unsafe { ctx_ref.to_ref() }, &[]).into(),
-        ),
-        (
-            Identifier::new(unsafe { ctx_ref.to_ref() }, "operandSegmentSizes"),
-            DenseI32ArrayAttribute::new(unsafe { ctx_ref.to_ref() }, &[arg_count, 0]).into(),
-        ),
-    ];
-    if let Some(params) = template_params {
-        let params: Vec<_> = params
-            .iter()
-            .map(|param| unsafe { Attribute::from_raw(param.to_raw()) })
-            .collect();
-        attrs.push((
-            Identifier::new(unsafe { ctx_ref.to_ref() }, "templateParams"),
-            ArrayAttribute::new(unsafe { ctx_ref.to_ref() }, &params).into(),
-        ));
+    unsafe {
+        Operation::from_raw(llzkFunction_CallOpBuildWithTemplateParams(
+            builder.to_raw(),
+            location.to_raw(),
+            isize::try_from(return_types.len()).expect("return_types too large"),
+            return_types.as_ptr() as *const _,
+            callee.to_raw(),
+            isize::try_from(template_params.len()).expect("template_params too large"),
+            template_params.as_ptr() as *const _,
+            isize::try_from(args.len()).expect("args too large"),
+            args.as_ptr() as *const _,
+        ))
     }
-    OperationBuilder::new("function.call", location)
-        .add_attributes(&attrs)
-        .add_operands(args)
-        .add_results(&return_types)
-        .build()
-        .map_err(Error::Melior)
-        .and_then(CallOp::try_from)
+    .try_into()
 }
 
 /// Return `true` iff the given op is `function.call`.

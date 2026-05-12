@@ -581,26 +581,7 @@ fn call_op_set_template_params() {
 }
 
 #[test]
-fn call_with_template_params_none() {
-    common::setup();
-    let context = LlzkContext::new();
-    let loc = Location::unknown(&context);
-    let builder = OpBuilder::new(&context);
-    let name = FlatSymbolRefAttribute::new(&context, "callee");
-    let call = dialect::function::call_with_template_params(
-        &builder,
-        loc,
-        name,
-        &[],
-        &[] as &[Type],
-        None::<&[Attribute]>,
-    )
-    .unwrap();
-    assert!(call.get_template_params().unwrap().is_none());
-}
-
-#[test]
-fn call_with_template_params_some() {
+fn call_with_template_params_only_attrs() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
@@ -613,7 +594,7 @@ fn call_with_template_params_some() {
         name,
         &[],
         &[] as &[Type],
-        Some(&[TypeAttribute::new(felt_type)]),
+        &[TypeAttribute::new(felt_type)],
     )
     .unwrap();
     let template_params = call.get_template_params().unwrap().unwrap();
@@ -621,7 +602,7 @@ fn call_with_template_params_some() {
 }
 
 #[test]
-fn call_with_template_params_with_args() {
+fn call_with_template_params_only_args() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
@@ -637,7 +618,7 @@ fn call_with_template_params_with_args() {
             name,
             &[arg],
             &[] as &[Type],
-            None::<&[Attribute]>,
+            &[] as &[Attribute],
         )
         .unwrap()
         .into(),
@@ -645,4 +626,32 @@ fn call_with_template_params_with_args() {
     let call = CallOpRef::try_from(call).unwrap();
     assert_eq!(call.arg_operand_count(), 1);
     assert!(call.get_template_params().unwrap().is_none());
+}
+
+#[test]
+fn call_with_template_params_no_empties() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let block = Block::new(&[(felt_type, loc)]);
+    let arg: Value = block.argument(0).unwrap().into();
+    let builder = OpBuilder::new(&context);
+    let name = FlatSymbolRefAttribute::new(&context, "callee");
+    let felt_type: Type = FeltType::new(&context).into();
+    let call = block.append_operation(
+        dialect::function::call_with_template_params(
+            &builder,
+            loc,
+            name,
+            &[arg],
+            &[felt_type],
+            &[TypeAttribute::new(felt_type)],
+        )
+        .unwrap()
+        .into(),
+    );
+    let call = CallOpRef::try_from(call).unwrap();
+    assert_eq!(call.arg_operand_count(), 1);
+    assert!(call.get_template_params().unwrap().is_some());
 }
