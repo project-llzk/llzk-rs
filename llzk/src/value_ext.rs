@@ -115,9 +115,12 @@ pub fn users_of<'ctx: 'a, 'a>(val: impl ValueLike<'ctx> + Copy) -> Vec<Operation
     unsafe {
         let mut op_use = mlir_sys::mlirValueGetFirstUse(val.to_raw());
         while !op_use.ptr.is_null() {
-            users.push(OperationRef::from_raw(mlir_sys::mlirOpOperandGetOwner(
-                op_use,
-            )));
+            let owner = mlir_sys::mlirOpOperandGetOwner(op_use);
+            if !users.iter().any(|existing: &OperationRef| {
+                mlir_sys::mlirOperationEqual(existing.to_raw(), owner)
+            }) {
+                users.push(OperationRef::from_raw(owner));
+            }
             op_use = mlir_sys::mlirOpOperandGetNextUse(op_use);
         }
     }

@@ -151,7 +151,12 @@ impl<'ctx> AffineMapAttribute<'ctx> {
     /// Creates an identity map with the given number of dimensions
     /// (i.e. for 1 creates `(d0)[] -> (d0)`.)
     pub fn identity(context: &'ctx Context, dims: usize) -> Self {
-        let raw_map = unsafe { mlirAffineMapMultiDimIdentityGet(context.to_raw(), dims as isize) };
+        let raw_map = unsafe {
+            mlirAffineMapMultiDimIdentityGet(
+                context.to_raw(),
+                isize::try_from(dims).expect("dims too large"),
+            )
+        };
         let raw_attr = unsafe { mlirAffineMapAttrGet(raw_map) };
         Self {
             inner: unsafe { Attribute::from_option_raw(raw_attr) }.unwrap(),
