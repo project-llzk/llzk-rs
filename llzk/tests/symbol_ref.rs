@@ -10,7 +10,7 @@ fn append_sym_attr() {
     let append = "D";
 
     let mut tail = base.nested();
-    tail.push(FlatSymbolRefAttribute::new(&context, append).into());
+    tail.push(FlatSymbolRefAttribute::new(&context, append));
     let result = SymbolRefAttribute::new(&context, base.root(), &tail);
 
     let ir = format!("{result}");

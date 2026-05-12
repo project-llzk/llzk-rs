@@ -136,8 +136,8 @@ fn function_call_with_map_operands() {
 }
 
 fn make_empty_struct<'c>(context: &'c LlzkContext, name: &str) -> StructDefOp<'c> {
-    let loc = Location::unknown(&context);
-    let typ = StructType::from_str(&context, name);
+    let loc = Location::unknown(context);
+    let typ = StructType::from_str(context, name);
     dialect::r#struct::def(loc, name, {
         [
             dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),

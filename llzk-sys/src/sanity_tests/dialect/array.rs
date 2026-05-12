@@ -126,7 +126,7 @@ fn test_llzk_array_type_get_dim(index_type: IndexType) {
 fn test_llzk_create_array_op_build_with_values(context: TestContext, #[values(&[1])] dims: &[i64]) {
     unsafe {
         let elt_type = mlirIndexTypeGet(context.ctx);
-        let test_type = test_array(elt_type, &dims);
+        let test_type = test_array(elt_type, dims);
         let n_elements: i64 = dims.iter().product();
         let ops = create_n_ops(context.ctx, n_elements, elt_type);
         let values = ops
@@ -163,7 +163,7 @@ fn test_llzk_create_array_op_build_with_map_operands(
     load_llzk_dialects(&context);
     unsafe {
         let elt_type = mlirIndexTypeGet(context.ctx);
-        let test_type = test_array(elt_type, &dims);
+        let test_type = test_array(elt_type, dims);
 
         let builder = mlirOpBuilderCreate(context.ctx);
         let location = mlirLocationUnknownGet(context.ctx);
@@ -203,10 +203,7 @@ fn create_n_ops(ctx: MlirContext, n_ops: i64, elt_type: MlirType) -> Vec<MlirOpe
                 let mut op_state = mlirOperationStateGet(name, location);
                 mlirOperationStateAddAttributes(&mut op_state, 1, &attr);
                 mlirOperationStateEnableResultTypeInference(&mut op_state);
-
-                let created_op = mlirOperationCreate(&mut op_state);
-
-                created_op
+                mlirOperationCreate(&mut op_state)
             })
             .collect()
     }

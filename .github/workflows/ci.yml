@@ -147,4 +147,4 @@ jobs:
             target
           key: ${{ runner.os }}-clippy-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Run clippy
-        run: cargo clippy --all-features -- --no-deps
+        run: cargo clippy --all-features --tests -- --no-deps
