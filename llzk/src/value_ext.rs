@@ -5,7 +5,7 @@ use crate::prelude::replace_uses_of_with;
 use llzk_sys::MlirValueRange;
 use melior::ir::{BlockRef, OperationRef, Value, ValueLike};
 use mlir_sys::MlirValue;
-use std::{marker::PhantomData, num::TryFromIntError};
+use std::{collections::HashSet, marker::PhantomData, num::TryFromIntError};
 
 /// Wrapper around a MLIR `ValueRange`, a non-owned iterator of MLIR values.
 #[derive(Debug, Copy, Clone)]
@@ -111,14 +111,13 @@ pub fn has_uses<'c>(val: impl ValueLike<'c> + Copy) -> bool {
 /// SAFETY: MLIR owns the value use-list and the owning operations. This helper only walks the
 /// list and creates non-owning references while the surrounding module is still alive.
 pub fn users_of<'ctx: 'a, 'a>(val: impl ValueLike<'ctx> + Copy) -> Vec<OperationRef<'ctx, 'a>> {
+    let mut seen = HashSet::new(); // avoid duplicate in the return
     let mut users = Vec::new();
     unsafe {
         let mut op_use = mlir_sys::mlirValueGetFirstUse(val.to_raw());
         while !op_use.ptr.is_null() {
             let owner = mlir_sys::mlirOpOperandGetOwner(op_use);
-            if !users.iter().any(|existing: &OperationRef| {
-                mlir_sys::mlirOperationEqual(existing.to_raw(), owner)
-            }) {
+            if seen.insert(owner.ptr) {
                 users.push(OperationRef::from_raw(owner));
             }
             op_use = mlir_sys::mlirOpOperandGetNextUse(op_use);
@@ -154,14 +153,13 @@ pub fn replace_all_uses_in_block_with<'c>(
     replacement: impl ValueLike<'c> + Copy,
 ) {
     unsafe {
+        let mut seen = HashSet::new(); // avoid duplicate in 'owners'
         let mut owners = Vec::new();
         let mut op_use = mlir_sys::mlirValueGetFirstUse(orig.to_raw());
         while !op_use.ptr.is_null() {
             let owner = mlir_sys::mlirOpOperandGetOwner(op_use);
             if mlir_sys::mlirBlockEqual(mlir_sys::mlirOperationGetBlock(owner), block.to_raw())
-                && !owners
-                    .iter()
-                    .any(|existing| mlir_sys::mlirOperationEqual(*existing, owner))
+                && seen.insert(owner.ptr)
             {
                 owners.push(owner);
             }
