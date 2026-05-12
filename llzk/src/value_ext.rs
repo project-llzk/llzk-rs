@@ -27,7 +27,7 @@ impl ValueRange<'_, '_, '_> {
 
     /// Returns true if the value range is empty.
     pub fn is_empty(&self) -> bool {
-        self.raw.size == 0
+        self.len() == 0
     }
 
     /// Creates the value range from a raw pointer.
