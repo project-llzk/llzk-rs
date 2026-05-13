@@ -3,7 +3,7 @@
 use melior::{
     StringRef,
     ir::{
-        Block, BlockRef, Operation, OperationRef, Region, RegionLike, RegionRef,
+        Block, BlockLike, BlockRef, Operation, OperationRef, Region, RegionLike, RegionRef,
         operation::OperationLike,
     },
 };
@@ -51,6 +51,49 @@ macro_rules! ident {
         let ctx = $ctx;
         melior::ir::Identifier::new(unsafe { ctx.to_ref() }, $name)
     }};
+}
+
+/// Print a single operation using "assume verified" flag to avoid verification errors on
+/// in-progress IR.
+pub fn print_operation<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) {
+    // Melior does not currently have a wrapper for `mlirOpPrintingFlagsAssumeVerified()`
+    unsafe extern "C" fn print_chunk(s: mlir_sys::MlirStringRef, _user_data: *mut c_void) {
+        unsafe {
+            if let Ok(string) = StringRef::from_raw(s).as_str() {
+                print!("{}", string);
+            }
+        }
+    }
+    unsafe {
+        let flags = mlir_sys::mlirOpPrintingFlagsCreate();
+        mlir_sys::mlirOpPrintingFlagsAssumeVerified(flags);
+        mlir_sys::mlirOperationPrintWithFlags(
+            op.to_raw(),
+            flags,
+            Some(print_chunk),
+            std::ptr::null_mut(),
+        );
+        mlir_sys::mlirOpPrintingFlagsDestroy(flags);
+    }
+    println!();
+}
+
+/// Print all operations in a block using [`print_operation`].
+pub fn print_block<'c: 'a, 'a>(block: &impl BlockLike<'c, 'a>) {
+    let mut op = block.first_operation();
+    while let Some(o) = op {
+        print_operation(&o);
+        op = o.next_in_block();
+    }
+}
+
+/// Print all blocks (and their operations) in a region using [`print_block`].
+pub fn print_region<'c: 'a, 'a>(region: &impl RegionLike<'c, 'a>) {
+    let mut block = region.first_block();
+    while let Some(b) = block {
+        print_block(&b);
+        block = b.next_in_region();
+    }
 }
 
 /// Trait for converting melior types to their reference counterparts.

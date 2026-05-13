@@ -16,7 +16,7 @@ pub use crate::passes as llzk_passes;
 pub use crate::symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute};
 pub use crate::symbol_table;
 pub use crate::typing::{types_unify, types_unify_with_prefix};
-pub use crate::utils::IntoRef;
+pub use crate::utils::{IntoRef, print_block, print_operation, print_region};
 
 /// Exports from the various llzk dialects.
 pub mod dialect {
@@ -66,7 +66,9 @@ pub mod dialect {
 
     /// Exports functions from the 'function' dialect
     pub mod function {
-        pub use crate::dialect::function::{call, call_with_map_operands, def, r#return};
+        pub use crate::dialect::function::{
+            call, call_with_map_operands, call_with_template_params, def, r#return,
+        };
         pub use crate::dialect::function::{is_func_call, is_func_def, is_func_return};
     }
 
