@@ -27,7 +27,7 @@ jobs:
           git config --global 'url.https://api@github.com/'.insteadOf 'https://github.com/'
           git config --global 'url.https://ssh@github.com/'.insteadOf 'ssh://git@github.com/'
           git config --global 'url.https://git@github.com/'.insteadOf 'git@github.com:'
-      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+      - uses: cachix/cachix-action@v17
         with:
           name: veridise-public
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
@@ -36,7 +36,7 @@ jobs:
         env:
           CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
       - name: Cache cargo crates
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -77,7 +77,7 @@ jobs:
           git config --global 'url.https://api@github.com/'.insteadOf 'https://github.com/'
           git config --global 'url.https://ssh@github.com/'.insteadOf 'ssh://git@github.com/'
           git config --global 'url.https://git@github.com/'.insteadOf 'git@github.com:'
-      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+      - uses: cachix/cachix-action@v17
         with:
           name: veridise-public
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
@@ -99,7 +99,7 @@ jobs:
         run: |
           echo RUSTFLAGS="$RUSTFLAGS -Zsanitizer=address" >> $GITHUB_ENV
       - name: Cache cargo crates
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -130,7 +130,7 @@ jobs:
           git config --global 'url.https://api@github.com/'.insteadOf 'https://github.com/'
           git config --global 'url.https://ssh@github.com/'.insteadOf 'ssh://git@github.com/'
           git config --global 'url.https://git@github.com/'.insteadOf 'git@github.com:'
-      - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+      - uses: cachix/cachix-action@v17
         with:
           name: veridise-public
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
@@ -139,7 +139,7 @@ jobs:
         env:
           CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
       - name: Cache cargo crates
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
