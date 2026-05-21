@@ -6,7 +6,7 @@ pub use crate::dialect::bool::prelude::*;
 pub use crate::dialect::felt::prelude::*;
 pub use crate::dialect::function::prelude::*;
 pub use crate::dialect::llzk::prelude::*;
-pub use crate::dialect::module::llzk_module;
+pub use crate::dialect::module::{ModuleExt, llzk_module};
 pub use crate::dialect::pod::prelude::*;
 pub use crate::dialect::poly::prelude::*;
 pub use crate::dialect::r#struct::prelude::*;
