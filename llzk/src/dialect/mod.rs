@@ -15,10 +15,15 @@ pub mod r#struct;
 
 /// Functions for working with `builtin.module` in LLZK.
 pub mod module {
-    use std::ffi::CStr;
+    use std::{
+        ffi::CStr,
+        io::{self, Write},
+        os::raw::c_void,
+    };
 
     use llzk_sys::LLZK_LANG_ATTR_NAME;
     use melior::ir::{Location, Module, attribute::Attribute, operation::OperationMutLike};
+    use mlir_sys::{MlirModule, MlirStringRef, mlirModuleGetOperation, mlirOperationWriteBytecode};
 
     /// Creates a new `builtin.module` operation preconfigured to meet LLZK's specifications.
     pub fn llzk_module<'c>(location: Location<'c>) -> Module<'c> {
@@ -30,6 +35,45 @@ pub mod module {
             .unwrap();
         op.set_attribute(attr_name, Attribute::unit(unsafe { ctx.to_ref() }));
         module
+    }
+
+    /// Extension methods for [`Module`].
+    pub trait ModuleExt {
+        /// Return the raw representation of the module.
+        fn to_raw(&self) -> MlirModule;
+
+        /// Dump the module's bytecode representation.
+        fn write_bytecode(&self, dest: &mut dyn Write) -> std::io::Result<()> {
+            struct Wrap<'w>(&'w mut dyn Write, io::Result<()>);
+
+            unsafe extern "C" fn callback(s: MlirStringRef, user_data: *mut c_void) {
+                let wrap = unsafe { &mut *(user_data as *mut Wrap) };
+                if wrap.1.is_err() {
+                    return;
+                }
+                let buf = unsafe { std::slice::from_raw_parts(s.data as *const u8, s.length) };
+                wrap.1 = wrap.0.write_all(buf);
+            }
+
+            let mut wrap = Wrap(dest, Ok(()));
+
+            unsafe {
+                let op = mlirModuleGetOperation(self.to_raw());
+                mlirOperationWriteBytecode(
+                    op,
+                    Some(callback),
+                    &mut wrap as *mut Wrap as *mut c_void,
+                );
+            }
+
+            wrap.1
+        }
+    }
+
+    impl ModuleExt for Module<'_> {
+        fn to_raw(&self) -> MlirModule {
+            self.to_raw()
+        }
     }
 }
 
