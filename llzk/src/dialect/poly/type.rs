@@ -35,7 +35,7 @@ impl<'c> TVarType<'c> {
     }
 
     /// Returns the name of the type variable.
-    pub fn name(&self) -> StringRef<'_> {
+    pub fn name(&self) -> StringRef<'c> {
         unsafe { StringRef::from_raw(llzkPoly_TypeVarTypeGetRefName(self.r#type.to_raw())) }
     }
 }
