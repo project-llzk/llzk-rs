@@ -3,9 +3,9 @@ use llzk_sys::{
     llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetPublicAttr,
     llzkStruct_MemberReadOpBuild, llzkStruct_StructDefOpGetBody,
     llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
-    llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetMemberDef,
-    llzkStruct_StructDefOpGetMemberDefs, llzkStruct_StructDefOpGetNumMemberDefs,
-    llzkStruct_StructDefOpGetNumTemplateExprOpNames,
+    llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetFullyQualifiedName,
+    llzkStruct_StructDefOpGetMemberDef, llzkStruct_StructDefOpGetMemberDefs,
+    llzkStruct_StructDefOpGetNumMemberDefs, llzkStruct_StructDefOpGetNumTemplateExprOpNames,
     llzkStruct_StructDefOpGetNumTemplateParamOpNames, llzkStruct_StructDefOpGetTemplateExprOpNames,
     llzkStruct_StructDefOpGetTemplateParamOpNames, llzkStruct_StructDefOpGetType,
     llzkStruct_StructDefOpGetTypeWithParams, llzkStruct_StructDefOpHasColumns,
@@ -25,6 +25,7 @@ use crate::{
     error::Error,
     ident,
     macros::llzk_op_type,
+    prelude::SymbolRefAttribute,
 };
 
 use super::StructType;
@@ -234,9 +235,15 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .collect()
     }
 
-    /// Returns a StringAttr with the fully qualified name of the struct.
-    fn get_fully_qualified_name(&self) -> Attribute<'_> {
-        todo!("melior does not have a SymbolRefAttribute type")
+    /// Returns a [`SymbolRefAttribute`] with the fully qualified name of the struct.
+    ///
+    /// # Panics
+    ///
+    /// If the fully qualified name is not a [`SymbolRefAttribute`].
+    fn get_fully_qualified_name(&self) -> SymbolRefAttribute<'_> {
+        unsafe { Attribute::from_raw(llzkStruct_StructDefOpGetFullyQualifiedName(self.to_raw())) }
+            .try_into()
+            .expect("symbol ref attribute")
     }
 
     /// Returns true if the struct is the main entry point of the circuit.
