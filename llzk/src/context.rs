@@ -84,14 +84,14 @@ impl LlzkContext {
     ///
     /// If you need to create one with a different field that the default use [`FeltType::new`] or
     /// [`FeltType::with_field`] instead.
-    pub fn felt_type(&self) -> FeltType {
+    pub fn felt_type(&self) -> FeltType<'_> {
         self.field()
             .map(|field| FeltType::with_field(self, field))
             .unwrap_or_else(|| FeltType::new(self))
     }
 
     /// Returns an instance of the type used for representing booleans in LLZK.
-    pub fn bool_type(&self) -> Type {
+    pub fn bool_type(&self) -> Type<'_> {
         IntegerType::new(self, 1).into()
     }
 }

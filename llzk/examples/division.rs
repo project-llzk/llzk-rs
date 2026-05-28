@@ -14,7 +14,7 @@ use llzk::{builder::OpBuilder, prelude::*};
 
 type Result<T> = StdResult<T, Box<dyn StdError>>;
 
-const MAIN_STRUCT_NAME: &'static str = "Entry";
+const MAIN_STRUCT_NAME: &str = "Entry";
 
 fn main() -> Result<()> {
     // The context preloads the LLZK dialects for convenience.
@@ -52,8 +52,8 @@ fn main() -> Result<()> {
     let constrain_fn = constraints(&context, location, felt_type.into(), &out_field)?;
 
     main_st.body().append_operation(out_field.into());
-    main_st.body().append_operation(compute_fn.into());
-    main_st.body().append_operation(constrain_fn.into());
+    main_st.body().append_operation(compute_fn);
+    main_st.body().append_operation(constrain_fn);
 
     // Now that we have filled out the struct we can add it to the module, verify it, and print it.
     module.body().append_operation(main_st.into());

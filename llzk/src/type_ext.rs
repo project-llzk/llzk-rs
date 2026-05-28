@@ -6,7 +6,8 @@ mod function_type_ext {
     use melior::ir::{Type, r#type::FunctionType};
 
     /// Iterator over the inputs of a function type.
-    pub(super) struct InputsIter<'ctx> {
+    #[derive(Debug)]
+    pub struct InputsIter<'ctx> {
         pub(super) fn_type: FunctionType<'ctx>,
         pub(super) count: usize,
     }
@@ -25,7 +26,8 @@ mod function_type_ext {
     }
 
     /// Iterator over the results of a function type.
-    pub(super) struct ResultsIter<'ctx> {
+    #[derive(Debug)]
+    pub struct ResultsIter<'ctx> {
         pub(super) fn_type: FunctionType<'ctx>,
         pub(super) count: usize,
     }
@@ -44,7 +46,7 @@ mod function_type_ext {
     }
 
     /// Sealed trait to avoid additional implementations of `FunctionTypeExt`.
-    pub(super) trait FunctionTypeExtSealed {}
+    pub trait FunctionTypeExtSealed {}
 }
 
 /// Extension methods for [`FunctionType`].
