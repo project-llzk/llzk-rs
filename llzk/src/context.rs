@@ -82,7 +82,7 @@ impl LlzkContext {
 
     /// Returns an instance of `!felt.type` using the default prime field.
     ///
-    /// If you need to create one with a different field that the default use [`FeltType::new`] or
+    /// If you need to create one with a different field than the default use [`FeltType::new`] or
     /// [`FeltType::with_field`] instead.
     pub fn felt_type(&self) -> FeltType<'_> {
         self.field()
