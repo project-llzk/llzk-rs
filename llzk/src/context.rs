@@ -3,14 +3,20 @@
 use std::{borrow::Borrow, ops::Deref};
 
 use log::Log;
-use melior::{Context, diagnostic::DiagnosticHandlerId, dialect::DialectRegistry};
+use melior::{
+    Context,
+    diagnostic::DiagnosticHandlerId,
+    dialect::DialectRegistry,
+    ir::{Type, r#type::IntegerType},
+};
 
-use crate::{diagnostics::log_diagnostic, register_all_llzk_dialects};
+use crate::{diagnostics::log_diagnostic, prelude::FeltType, register_all_llzk_dialects};
 
 /// A batteries-included MLIR context that automatically loads all the LLZK dialects.
 pub struct LlzkContext {
     ctx: Context,
     diagnostics_handler: Option<DiagnosticHandlerId>,
+    field: Option<String>,
     _registry: DialectRegistry,
 }
 
@@ -38,6 +44,7 @@ impl LlzkContext {
         Self {
             ctx,
             diagnostics_handler: None,
+            field: None,
             _registry: registry,
         }
     }
@@ -61,6 +68,31 @@ impl LlzkContext {
         if let Some(id) = self.diagnostics_handler.take() {
             self.ctx.detach_diagnostic_handler(id);
         }
+    }
+
+    /// Returns the name of the default prime field.
+    pub fn field(&self) -> Option<&str> {
+        self.field.as_deref()
+    }
+
+    /// Sets the default prime field.
+    pub fn set_field(&mut self, field: &str) {
+        self.field = Some(field.to_owned())
+    }
+
+    /// Returns an instance of `!felt.type` using the default prime field.
+    ///
+    /// If you need to create one with a different field than the default use [`FeltType::new`] or
+    /// [`FeltType::with_field`] instead.
+    pub fn felt_type(&self) -> FeltType<'_> {
+        self.field()
+            .map(|field| FeltType::with_field(self, field))
+            .unwrap_or_else(|| FeltType::new(self))
+    }
+
+    /// Returns an instance of the type used for representing booleans in LLZK.
+    pub fn bool_type(&self) -> Type<'_> {
+        IntegerType::new(self, 1).into()
     }
 }
 
@@ -104,6 +136,7 @@ impl std::fmt::Debug for LlzkContext {
             .field("ctx", &self.ctx)
             .field("registry", &self._registry)
             .field("diagnostics_handler", &self.diagnostics_handler)
+            .field("field", &self.field)
             .finish()
     }
 }

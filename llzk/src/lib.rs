@@ -23,6 +23,7 @@ pub mod symbol_table;
 pub mod targets;
 #[cfg(test)]
 mod test;
+pub mod type_ext;
 pub mod typing;
 pub mod utils;
 pub mod value_ext;
