@@ -216,15 +216,15 @@ pub fn contract<'c, 'a>(
             Identifier::new(context, target).to_raw(),
         ))
     };
-    if let Ok(region) = op.get_body() {
-        if region.first_block().is_none() {
-            let args = op
-                .get_function_type()?
-                .inputs()
-                .map(|ty| (ty, location))
-                .collect::<Vec<(Type<'c>, Location<'c>)>>();
-            region.append_block(Block::new(&args));
-        }
+    if let Ok(region) = op.get_body()
+        && region.first_block().is_none()
+    {
+        let args = op
+            .get_function_type()?
+            .inputs()
+            .map(|ty| (ty, location))
+            .collect::<Vec<(Type<'c>, Location<'c>)>>();
+        region.append_block(Block::new(&args));
     }
     Ok(op)
 }
