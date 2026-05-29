@@ -32,14 +32,15 @@ use llzk_sys::{
 use melior::ir::{
     Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
     RegionLike as _, RegionRef, Type, ValueLike as _,
-    attribute::{ArrayAttribute, DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
+    attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
     block::{Block, BlockArgument},
     operation::OperationLike,
     r#type::FunctionType,
 };
-use mlir_sys::MlirAttribute;
 
 use crate::{
+    attributes::{null_attr, rebuild_array_attr},
+    attributes::array::ArrayAttribute,
     builder::{OpBuilder, OpBuilderLike},
     error::Error,
     macros::llzk_op_type,
@@ -47,21 +48,6 @@ use crate::{
     type_ext::FunctionTypeExt as _,
     value_ext::ValueRange,
 };
-
-fn null_attr() -> MlirAttribute {
-    MlirAttribute {
-        ptr: std::ptr::null_mut(),
-    }
-}
-
-fn rebuild_array_attr<'c>(context: &'c melior::Context, attr: Attribute<'c>) -> ArrayAttribute<'c> {
-    let elements = (0..unsafe { mlir_sys::mlirArrayAttrGetNumElements(attr.to_raw()) })
-        .map(|idx| unsafe {
-            Attribute::from_raw(mlir_sys::mlirArrayAttrGetElement(attr.to_raw(), idx))
-        })
-        .collect::<Vec<_>>();
-    ArrayAttribute::new(context, &elements)
-}
 
 fn create_out_of_bounds_error<'c: 'a, 'a>(
     contract: &(impl ContractOpLike<'c, 'a> + ?Sized),
