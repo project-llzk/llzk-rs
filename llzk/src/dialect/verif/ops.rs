@@ -28,24 +28,17 @@ use llzk_sys::{
     llzkVerif_RequireComputeOpSetCondition, llzkVerif_RequireConstrainOpBuild,
     llzkVerif_RequireConstrainOpGetCondition, llzkVerif_RequireConstrainOpSetCondition,
 };
-use melior::ir::{
+use melior::{Context, ir::{
     Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
     RegionLike as _, RegionRef, Type, ValueLike as _,
     attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
     block::{Block, BlockArgument},
     operation::OperationLike,
     r#type::FunctionType,
-};
+}};
 
 use crate::{
-    attributes::array::ArrayAttribute,
-    attributes::{null_attr, rebuild_array_attr},
-    builder::{OpBuilder, OpBuilderLike},
-    error::Error,
-    macros::llzk_op_type,
-    symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
-    type_ext::FunctionTypeExt as _,
-    value_ext::ValueRange,
+    attributes::{array::ArrayAttribute, null_attr, rebuild_array_attr}, builder::{OpBuilder, OpBuilderLike}, error::Error, macros::llzk_op_type, symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute}, type_ext::FunctionTypeExt as _, value_ext::ValueRange
 };
 
 fn create_out_of_bounds_error<'c: 'a, 'a>(
@@ -207,13 +200,13 @@ pub fn contract<'c, 'a>(
     name: &str,
     target: &str,
 ) -> Result<ContractOp<'c>, Error> {
-    let context = unsafe { location.context().to_ref() };
+    let context = location.context();
     let op = unsafe {
         ContractOp::from_raw(llzkVerif_ContractOpBuildFromTarget(
             builder.to_raw(),
             location.to_raw(),
-            Identifier::new(context, name).to_raw(),
-            Identifier::new(context, target).to_raw(),
+            Identifier::new(context.to_ref(), name).to_raw(),
+            Identifier::new(context.to_ref(), target).to_raw(),
         ))
     };
     if let Ok(region) = op.get_body()
@@ -429,7 +422,12 @@ pub fn include_with_map_operands<'c, 'g, 'v>(
 
 /// Creates a `verif.include` op with grouped map operands and dimension counts
 /// provided as a Rust slice.
+///
+/// TODO: There's a weird segfault that occurs when you use the `unsafe { location.context().to_ref() }`
+/// pattern specifically in conjunction with `DenseI32ArrayAttribute::new`. To bypass
+/// this, we take the `context` parameter explicitly from the caller.
 pub fn include_with_map_operands_slice<'c, 'g, 'v>(
+    context: &'c Context,
     builder: &OpBuilder<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
@@ -438,7 +436,6 @@ pub fn include_with_map_operands_slice<'c, 'g, 'v>(
     map_operands: &'g [ValueRange<'c, 'v, '_>],
     num_dims_per_map: &[i32],
 ) -> Result<IncludeOp<'c>, Error> {
-    let context = unsafe { location.context().to_ref() };
     include_with_map_operands(
         builder,
         location,

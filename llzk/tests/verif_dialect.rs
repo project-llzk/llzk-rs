@@ -219,6 +219,7 @@ fn include_with_map_operands_empty_groups() {
     let arg1: Value = contract_a.argument(1).unwrap().into();
     let builder = OpBuilder::new(&context);
     let include = dialect::verif::include_with_map_operands_slice(
+        &context,
         &builder,
         Location::unknown(&context),
         SymbolRefAttribute::new_from_str(&context, "map_contract_b", &[]),
