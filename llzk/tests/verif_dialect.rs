@@ -1,0 +1,388 @@
+use llzk::{
+    attributes::NamedAttribute,
+    builder::OpBuilder,
+    prelude::*,
+    value_ext::{OwningValueRange, ValueRange},
+};
+use melior::{dialect::arith, ir::{Identifier, attribute::DenseI32ArrayAttribute}};
+
+mod common;
+
+fn function_arg_name_attr<'c>(context: &'c LlzkContext, name: &str) -> NamedAttribute<'c> {
+    (
+        Identifier::new(context, "function.arg_name"),
+        StringAttribute::new(context, name).into(),
+    )
+}
+
+fn make_function_target<'c>(
+    context: &'c LlzkContext,
+    module: &'c Module<'c>,
+    name: &str,
+    arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
+) -> FuncDefOpRef<'c, 'c> {
+    let loc = Location::unknown(context);
+    let felt_type: Type = FeltType::new(context).into();
+    let func = dialect::function::def(
+        loc,
+        name,
+        FunctionType::new(context, &[felt_type], &[felt_type]),
+        &[],
+        arg_attrs,
+    )
+    .unwrap();
+    {
+        let block = Block::new(&[(felt_type, loc)]);
+        let arg: Value = block.argument(0).unwrap().into();
+        block.append_operation(dialect::function::r#return(loc, &[arg]));
+        func.region(0).unwrap().append_block(block);
+    }
+    FuncDefOpRef::try_from(module.body().append_operation(func.into())).unwrap()
+}
+
+fn make_struct_target<'c>(
+    context: &'c LlzkContext,
+    module: &'c Module<'c>,
+    name: &str,
+    arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
+) -> StructDefOpRef<'c, 'c> {
+    let loc = Location::unknown(context);
+    let typ = StructType::from_str_params(context, name, &[]);
+    let felt_type: Type = FeltType::new(context).into();
+    let inputs = [(felt_type, loc)];
+    let ops = [
+        dialect::r#struct::helpers::compute_fn(loc, typ, &inputs, arg_attrs).map(Into::into),
+        dialect::r#struct::helpers::constrain_fn(loc, typ, &inputs, arg_attrs).map(Into::into),
+    ];
+    let strukt = dialect::r#struct::def(loc, name, ops).unwrap();
+    StructDefOpRef::try_from(module.body().append_operation(strukt.into())).unwrap()
+}
+
+fn bool_constant<'c>(context: &'c LlzkContext, value: bool) -> Operation<'c> {
+    let loc = Location::unknown(context);
+    let bool_type: Type = IntegerType::new(context, 1).into();
+    arith::constant(context, IntegerAttribute::new(bool_type, i64::from(value)).into(), loc)
+}
+
+#[test]
+fn contract_from_function_target() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_function_target(
+        &context,
+        &module,
+        "target_fn",
+        Some(&[vec![function_arg_name_attr(&context, "input")]]),
+    );
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let contract = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "target_contract",
+        "target_fn",
+    )
+    .unwrap();
+
+    verify_operation_with_diags(&contract).unwrap();
+    assert_eq!(ContractOpLike::name(&contract), "target_contract");
+    assert_eq!(contract.target().unwrap().to_string(), "@target_fn");
+    assert!(contract.has_func_target());
+    assert!(!contract.has_struct_target());
+    assert!(contract.has_arg_name(0));
+    assert_eq!(
+        contract.get_function_type().unwrap().to_string(),
+        "(!felt.type, !felt.type) -> ()"
+    );
+    assert_eq!(contract.fully_qualified_name().to_string(), "@target_contract");
+    assert!(format!("{contract}").contains("verif.contract @target_contract"));
+    assert!(dialect::verif::is_contract(&contract));
+}
+
+#[test]
+fn contract_from_struct_target() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let arg_attrs = [vec![
+        PublicAttribute::new_named_attr(&context),
+        function_arg_name_attr(&context, "input"),
+    ]];
+    let _target = make_struct_target(&context, &module, "StructTarget", Some(&arg_attrs));
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let contract = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "struct_contract",
+        "StructTarget",
+    )
+    .unwrap();
+
+    verify_operation_with_diags(&contract).unwrap();
+    assert!(contract.has_struct_target());
+    assert!(!contract.has_func_target());
+    assert!(contract.argument(0).is_ok());
+    assert!(contract.has_arg_name(1));
+    assert!(contract.arg_is_pub(1));
+}
+
+#[test]
+fn include_flat() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_function_target(&context, &module, "callee_fn", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let contract_a =
+        dialect::verif::contract(&builder, Location::unknown(&context), "contract_a", "callee_fn")
+            .unwrap();
+    let contract_b =
+        dialect::verif::contract(&builder, Location::unknown(&context), "contract_b", "callee_fn")
+            .unwrap();
+
+    let body = contract_a.get_body().unwrap().first_block().unwrap();
+    let arg0: Value = contract_a.argument(0).unwrap().into();
+    let arg1: Value = contract_a.argument(1).unwrap().into();
+    let builder = OpBuilder::new(&context);
+    let include = dialect::verif::include(
+        &builder,
+        Location::unknown(&context),
+        SymbolRefAttribute::new_from_str(&context, "contract_b", &[]),
+        &[arg0, arg1],
+        None,
+    )
+    .unwrap();
+    let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
+
+    verify_operation_with_diags(&contract_a).unwrap();
+    assert!(dialect::verif::is_include(&include));
+    assert_eq!(include.arg_operand_count(), 2);
+    assert_eq!(include.arg_operand_at(0), arg0);
+    assert_eq!(include.arg_operand_at(1), arg1);
+    assert_eq!(include.get_callee().unwrap().to_string(), "@contract_b");
+    assert_eq!(
+        include.type_signature().unwrap().to_string(),
+        contract_b.get_function_type().unwrap().to_string()
+    );
+    assert_eq!(
+        include.resolve_callable().unwrap(),
+        OperationRef::from(ContractOpRef::from(&contract_b))
+    );
+}
+
+#[test]
+fn include_with_map_operands_empty_groups() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_function_target(&context, &module, "map_callee_fn", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let contract_a = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "map_contract_a",
+        "map_callee_fn",
+    )
+    .unwrap();
+    let _contract_b = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "map_contract_b",
+        "map_callee_fn",
+    )
+    .unwrap();
+
+    let body = contract_a.get_body().unwrap().first_block().unwrap();
+    let arg0: Value = contract_a.argument(0).unwrap().into();
+    let arg1: Value = contract_a.argument(1).unwrap().into();
+    let builder = OpBuilder::new(&context);
+    let include = dialect::verif::include_with_map_operands_slice(
+        &builder,
+        Location::unknown(&context),
+        SymbolRefAttribute::new_from_str(&context, "map_contract_b", &[]),
+        &[arg0, arg1],
+        None,
+        &[],
+        &[],
+    )
+    .unwrap();
+    let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
+
+    verify_operation_with_diags(&contract_a).unwrap();
+    assert_eq!(include.map_operand_count(), 0);
+    assert_eq!(
+        include.get_num_dims_per_map().unwrap().to_string(),
+        DenseI32ArrayAttribute::new(&context, &[]).to_string()
+    );
+    assert_eq!(
+        include.get_map_op_group_sizes().unwrap().to_string(),
+        DenseI32ArrayAttribute::new(&context, &[]).to_string()
+    );
+}
+
+#[test]
+fn require_compute_op() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_function_target(&context, &module, "cond_target", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let contract = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "require_compute_contract",
+        "cond_target",
+    )
+    .unwrap();
+    let body = contract.get_body().unwrap().first_block().unwrap();
+    let true_op = bool_constant(&context, true);
+    let false_op = bool_constant(&context, false);
+    let true_val: Value = true_op.result(0).unwrap().into();
+    let false_val: Value = false_op.result(0).unwrap().into();
+    body.append_operation(true_op);
+    body.append_operation(false_op);
+    let builder = OpBuilder::new(&context);
+    let op = dialect::verif::require_compute(&builder, Location::unknown(&context), true_val).unwrap();
+    let op = RequireComputeOpRef::try_from(body.append_operation(op.into())).unwrap();
+    assert!(dialect::verif::is_require_compute(&op));
+    assert_eq!(op.condition(), true_val);
+    op.set_condition(false_val);
+    assert_eq!(op.condition(), false_val);
+    verify_operation_with_diags(&contract).unwrap();
+}
+
+#[test]
+fn require_constrain_op() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_function_target(&context, &module, "cond_target", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let contract = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "require_constrain_contract",
+        "cond_target",
+    )
+    .unwrap();
+    let body = contract.get_body().unwrap().first_block().unwrap();
+    let true_op = bool_constant(&context, true);
+    let false_op = bool_constant(&context, false);
+    let true_val: Value = true_op.result(0).unwrap().into();
+    let false_val: Value = false_op.result(0).unwrap().into();
+    body.append_operation(true_op);
+    body.append_operation(false_op);
+    let builder = OpBuilder::new(&context);
+    let op = dialect::verif::require_constrain(&builder, Location::unknown(&context), true_val)
+        .unwrap();
+    let op = RequireConstrainOpRef::try_from(body.append_operation(op.into())).unwrap();
+    assert!(dialect::verif::is_require_constrain(&op));
+    assert_eq!(op.condition(), true_val);
+    op.set_condition(false_val);
+    assert_eq!(op.condition(), false_val);
+    verify_operation_with_diags(&contract).unwrap();
+}
+
+#[test]
+fn ensure_compute_op() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_function_target(&context, &module, "cond_target", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let contract = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "ensure_compute_contract",
+        "cond_target",
+    )
+    .unwrap();
+    let body = contract.get_body().unwrap().first_block().unwrap();
+    let true_op = bool_constant(&context, true);
+    let false_op = bool_constant(&context, false);
+    let true_val: Value = true_op.result(0).unwrap().into();
+    let false_val: Value = false_op.result(0).unwrap().into();
+    body.append_operation(true_op);
+    body.append_operation(false_op);
+    let builder = OpBuilder::new(&context);
+    let op = dialect::verif::ensure_compute(&builder, Location::unknown(&context), true_val).unwrap();
+    let op = EnsureComputeOpRef::try_from(body.append_operation(op.into())).unwrap();
+    assert!(dialect::verif::is_ensure_compute(&op));
+    assert_eq!(op.condition(), true_val);
+    op.set_condition(false_val);
+    assert_eq!(op.condition(), false_val);
+    verify_operation_with_diags(&contract).unwrap();
+}
+
+#[test]
+fn ensure_constrain_op() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_function_target(&context, &module, "cond_target", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let contract = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "ensure_constrain_contract",
+        "cond_target",
+    )
+    .unwrap();
+    let body = contract.get_body().unwrap().first_block().unwrap();
+    let true_op = bool_constant(&context, true);
+    let false_op = bool_constant(&context, false);
+    let true_val: Value = true_op.result(0).unwrap().into();
+    let false_val: Value = false_op.result(0).unwrap().into();
+    body.append_operation(true_op);
+    body.append_operation(false_op);
+    let builder = OpBuilder::new(&context);
+    let op = dialect::verif::ensure_constrain(&builder, Location::unknown(&context), true_val)
+        .unwrap();
+    let op = EnsureConstrainOpRef::try_from(body.append_operation(op.into())).unwrap();
+    assert!(dialect::verif::is_ensure_constrain(&op));
+    assert_eq!(op.condition(), true_val);
+    op.set_condition(false_val);
+    assert_eq!(op.condition(), false_val);
+    verify_operation_with_diags(&contract).unwrap();
+}
+
+#[test]
+fn include_map_operand_setter_roundtrip() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_function_target(&context, &module, "setter_target", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let contract = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "setter_contract",
+        "setter_target",
+    )
+    .unwrap();
+    let body = contract.get_body().unwrap().first_block().unwrap();
+
+    let builder = OpBuilder::new(&context);
+    let arg0: Value = contract.argument(0).unwrap().into();
+    let arg1: Value = contract.argument(1).unwrap().into();
+    let include = dialect::verif::include(
+        &builder,
+        Location::unknown(&context),
+        SymbolRefAttribute::new_from_str(&context, "setter_contract", &[]),
+        &[arg0, arg1],
+        None,
+    )
+    .unwrap();
+    let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
+
+    let group = OwningValueRange::from([arg0].as_slice());
+    let group = ValueRange::try_from(&group).unwrap();
+    include.set_map_operands(&[group]);
+    include.set_num_dims_per_map(DenseI32ArrayAttribute::new(&context, &[0]));
+    assert_eq!(include.map_operand_count(), 1);
+    assert_eq!(include.map_operand_at(0), arg0);
+}

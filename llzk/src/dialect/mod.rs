@@ -12,6 +12,7 @@ pub mod pod;
 pub mod poly;
 pub mod ram;
 pub mod r#struct;
+pub mod verif;
 
 /// Functions for working with `builtin.module` in LLZK.
 pub mod module {

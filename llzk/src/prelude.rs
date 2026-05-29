@@ -10,6 +10,7 @@ pub use crate::dialect::module::{ModuleExt, llzk_module};
 pub use crate::dialect::pod::prelude::*;
 pub use crate::dialect::poly::prelude::*;
 pub use crate::dialect::r#struct::prelude::*;
+pub use crate::dialect::verif::prelude::*;
 pub use crate::error::Error as LlzkError;
 pub use crate::operation::{replace_uses_of_with, verify_operation, verify_operation_with_diags};
 pub use crate::passes as llzk_passes;
@@ -111,6 +112,16 @@ pub mod dialect {
         pub use crate::dialect::r#struct::{
             is_struct_def, is_struct_member, is_struct_new, is_struct_readm, is_struct_type,
             is_struct_writem,
+        };
+    }
+
+    /// Exports functions from the 'verif' dialect
+    pub mod verif {
+        pub use crate::dialect::verif::{
+            contract, ensure_compute, ensure_constrain, include, include_with_map_operands,
+            include_with_map_operands_slice, is_contract, is_ensure_compute,
+            is_ensure_constrain, is_include, is_require_compute, is_require_constrain,
+            require_compute, require_constrain,
         };
     }
 }
