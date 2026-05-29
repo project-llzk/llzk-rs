@@ -28,17 +28,26 @@ use llzk_sys::{
     llzkVerif_RequireComputeOpSetCondition, llzkVerif_RequireConstrainOpBuild,
     llzkVerif_RequireConstrainOpGetCondition, llzkVerif_RequireConstrainOpSetCondition,
 };
-use melior::{Context, ir::{
-    Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
-    RegionLike as _, RegionRef, Type, ValueLike as _,
-    attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
-    block::{Block, BlockArgument},
-    operation::OperationLike,
-    r#type::FunctionType,
-}};
+use melior::{
+    Context,
+    ir::{
+        Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
+        RegionLike as _, RegionRef, Type, ValueLike as _,
+        attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
+        block::{Block, BlockArgument},
+        operation::OperationLike,
+        r#type::FunctionType,
+    },
+};
 
 use crate::{
-    attributes::{array::ArrayAttribute, null_attr, rebuild_array_attr}, builder::{OpBuilder, OpBuilderLike}, error::Error, macros::llzk_op_type, symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute}, type_ext::FunctionTypeExt as _, value_ext::ValueRange
+    attributes::{array::ArrayAttribute, null_attr, rebuild_array_attr},
+    builder::{OpBuilder, OpBuilderLike},
+    error::Error,
+    macros::llzk_op_type,
+    symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
+    type_ext::FunctionTypeExt as _,
+    value_ext::ValueRange,
 };
 
 fn create_out_of_bounds_error<'c: 'a, 'a>(
