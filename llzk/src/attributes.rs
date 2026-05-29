@@ -19,7 +19,10 @@ pub(crate) fn null_attr() -> MlirAttribute {
 }
 
 /// Rebuilds an ArrayAttribute from a generic Attribute.
-pub(crate) fn rebuild_array_attr<'c>(context: &'c Context, attr: Attribute<'c>) -> array::ArrayAttribute<'c> {
+pub(crate) fn rebuild_array_attr<'c>(
+    context: &'c Context,
+    attr: Attribute<'c>,
+) -> array::ArrayAttribute<'c> {
     let elements = (0..unsafe { mlir_sys::mlirArrayAttrGetNumElements(attr.to_raw()) })
         .map(|idx| unsafe {
             Attribute::from_raw(mlir_sys::mlirArrayAttrGetElement(attr.to_raw(), idx))

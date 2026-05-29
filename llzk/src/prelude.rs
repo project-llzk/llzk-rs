@@ -119,9 +119,9 @@ pub mod dialect {
     pub mod verif {
         pub use crate::dialect::verif::{
             contract, ensure_compute, ensure_constrain, include, include_with_map_operands,
-            include_with_map_operands_slice, is_contract, is_ensure_compute,
-            is_ensure_constrain, is_include, is_require_compute, is_require_constrain,
-            require_compute, require_constrain,
+            include_with_map_operands_slice, is_contract, is_ensure_compute, is_ensure_constrain,
+            is_include, is_require_compute, is_require_constrain, require_compute,
+            require_constrain,
         };
     }
 }

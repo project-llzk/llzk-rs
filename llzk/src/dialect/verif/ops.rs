@@ -4,26 +4,25 @@ use llzk_sys::{
     llzkOperationIsA_Verif_ContractOp, llzkOperationIsA_Verif_EnsureComputeOp,
     llzkOperationIsA_Verif_EnsureConstrainOp, llzkOperationIsA_Verif_IncludeOp,
     llzkOperationIsA_Verif_RequireComputeOp, llzkOperationIsA_Verif_RequireConstrainOp,
-    llzkVerif_ContractOpBuildFromTarget, llzkVerif_ContractOpGetArgAttrs, llzkVerif_ContractOpGetBody,
-    llzkVerif_ContractOpGetCallableRegion,
+    llzkVerif_ContractOpBuildFromTarget, llzkVerif_ContractOpGetArgAttrs,
+    llzkVerif_ContractOpGetBody, llzkVerif_ContractOpGetCallableRegion,
     llzkVerif_ContractOpGetFullyQualifiedName, llzkVerif_ContractOpGetFunctionType,
-    llzkVerif_ContractOpGetSymName, llzkVerif_ContractOpGetTarget,
-    llzkVerif_ContractOpHasArgName, llzkVerif_ContractOpHasArgPublicAttr,
-    llzkVerif_ContractOpHasFuncTarget, llzkVerif_ContractOpHasStructTarget,
-    llzkVerif_ContractOpIsDeclaration, llzkVerif_ContractOpSetArgAttrs,
-    llzkVerif_ContractOpSetFunctionType, llzkVerif_ContractOpSetSymName,
-    llzkVerif_ContractOpSetTarget, llzkVerif_EnsureComputeOpBuild,
+    llzkVerif_ContractOpGetSymName, llzkVerif_ContractOpGetTarget, llzkVerif_ContractOpHasArgName,
+    llzkVerif_ContractOpHasArgPublicAttr, llzkVerif_ContractOpHasFuncTarget,
+    llzkVerif_ContractOpHasStructTarget, llzkVerif_ContractOpIsDeclaration,
+    llzkVerif_ContractOpSetArgAttrs, llzkVerif_ContractOpSetFunctionType,
+    llzkVerif_ContractOpSetSymName, llzkVerif_ContractOpSetTarget, llzkVerif_EnsureComputeOpBuild,
     llzkVerif_EnsureComputeOpGetCondition, llzkVerif_EnsureComputeOpSetCondition,
     llzkVerif_EnsureConstrainOpBuild, llzkVerif_EnsureConstrainOpGetCondition,
     llzkVerif_EnsureConstrainOpSetCondition, llzkVerif_IncludeOpBuild,
     llzkVerif_IncludeOpContractTargetsStruct, llzkVerif_IncludeOpGetArgOperandsAt,
     llzkVerif_IncludeOpGetArgOperandsCount, llzkVerif_IncludeOpGetCallee,
-    llzkVerif_IncludeOpGetMapOperandsAt, llzkVerif_IncludeOpGetMapOperandsCount,
-    llzkVerif_IncludeOpGetMapOpGroupSizes, llzkVerif_IncludeOpGetNumDimsPerMap,
+    llzkVerif_IncludeOpGetMapOpGroupSizes, llzkVerif_IncludeOpGetMapOperandsAt,
+    llzkVerif_IncludeOpGetMapOperandsCount, llzkVerif_IncludeOpGetNumDimsPerMap,
     llzkVerif_IncludeOpGetSelfValue, llzkVerif_IncludeOpGetTemplateParams,
     llzkVerif_IncludeOpGetTypeSignature, llzkVerif_IncludeOpResolveCallable,
     llzkVerif_IncludeOpSetArgOperands, llzkVerif_IncludeOpSetCallee,
-    llzkVerif_IncludeOpSetMapOperands, llzkVerif_IncludeOpSetMapOpGroupSizes,
+    llzkVerif_IncludeOpSetMapOpGroupSizes, llzkVerif_IncludeOpSetMapOperands,
     llzkVerif_IncludeOpSetNumDimsPerMap, llzkVerif_IncludeOpSetTemplateParams,
     llzkVerif_RequireComputeOpBuild, llzkVerif_RequireComputeOpGetCondition,
     llzkVerif_RequireComputeOpSetCondition, llzkVerif_RequireConstrainOpBuild,
@@ -39,8 +38,8 @@ use melior::ir::{
 };
 
 use crate::{
-    attributes::{null_attr, rebuild_array_attr},
     attributes::array::ArrayAttribute,
+    attributes::{null_attr, rebuild_array_attr},
     builder::{OpBuilder, OpBuilderLike},
     error::Error,
     macros::llzk_op_type,
@@ -125,7 +124,9 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     fn get_body(&self) -> Result<RegionRef<'c, 'a>, Error> {
         let raw = unsafe { llzkVerif_ContractOpGetBody(self.to_raw()) };
         if raw.ptr.is_null() {
-            Err(Error::GeneralError("no body in a declaration-only contract"))
+            Err(Error::GeneralError(
+                "no body in a declaration-only contract",
+            ))
         } else {
             Ok(unsafe { RegionRef::from_raw(raw) })
         }
@@ -207,14 +208,14 @@ pub fn contract<'c, 'a>(
     target: &str,
 ) -> Result<ContractOp<'c>, Error> {
     let context = unsafe { location.context().to_ref() };
-    let op = unsafe { ContractOp::from_raw(
-        llzkVerif_ContractOpBuildFromTarget(
+    let op = unsafe {
+        ContractOp::from_raw(llzkVerif_ContractOpBuildFromTarget(
             builder.to_raw(),
             location.to_raw(),
             Identifier::new(context, name).to_raw(),
             Identifier::new(context, target).to_raw(),
-        )
-    ) };
+        ))
+    };
     if let Ok(region) = op.get_body() {
         if region.first_block().is_none() {
             let args = op
@@ -249,7 +250,9 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns the call operand at `index`.
     fn arg_operand_at(&self, index: usize) -> melior::ir::Value<'c, 'a> {
         let index = isize::try_from(index).expect("index too large");
-        unsafe { melior::ir::Value::from_raw(llzkVerif_IncludeOpGetArgOperandsAt(self.to_raw(), index)) }
+        unsafe {
+            melior::ir::Value::from_raw(llzkVerif_IncludeOpGetArgOperandsAt(self.to_raw(), index))
+        }
     }
 
     /// Sets the call operands.
@@ -272,7 +275,9 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns the flattened map operand at `index`.
     fn map_operand_at(&self, index: usize) -> melior::ir::Value<'c, 'a> {
         let index = isize::try_from(index).expect("index too large");
-        unsafe { melior::ir::Value::from_raw(llzkVerif_IncludeOpGetMapOperandsAt(self.to_raw(), index)) }
+        unsafe {
+            melior::ir::Value::from_raw(llzkVerif_IncludeOpGetMapOperandsAt(self.to_raw(), index))
+        }
     }
 
     /// Sets grouped map operands. Each [`ValueRange`] corresponds to one group.
@@ -349,7 +354,9 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns the `self` value when the callee contract targets a struct.
     fn self_value(&self) -> Result<melior::ir::Value<'c, 'a>, Error> {
         if self.contract_targets_struct() {
-            Ok(unsafe { melior::ir::Value::from_raw(llzkVerif_IncludeOpGetSelfValue(self.to_raw())) })
+            Ok(unsafe {
+                melior::ir::Value::from_raw(llzkVerif_IncludeOpGetSelfValue(self.to_raw()))
+            })
         } else {
             Err(Error::GeneralError(
                 "include op callee does not target a struct contract",

@@ -11,8 +11,8 @@ pub use ops::{
     IncludeOpRef, IncludeOpRefMut, RequireComputeOp, RequireComputeOpRef, RequireConstrainOp,
     RequireConstrainOpRef, contract, ensure_compute, ensure_constrain, include,
     include_with_map_operands, include_with_map_operands_slice, is_contract, is_ensure_compute,
-    is_ensure_constrain, is_include, is_require_compute, is_require_constrain,
-    require_compute, require_constrain,
+    is_ensure_constrain, is_include, is_require_compute, is_require_constrain, require_compute,
+    require_constrain,
 };
 
 /// Returns a handle to the `verif` dialect.

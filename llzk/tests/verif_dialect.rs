@@ -4,7 +4,10 @@ use llzk::{
     prelude::*,
     value_ext::{OwningValueRange, ValueRange},
 };
-use melior::{dialect::arith, ir::{Identifier, attribute::DenseI32ArrayAttribute}};
+use melior::{
+    dialect::arith,
+    ir::{Identifier, attribute::DenseI32ArrayAttribute},
+};
 
 mod common;
 
@@ -61,7 +64,11 @@ fn make_struct_target<'c>(
 fn bool_constant<'c>(context: &'c LlzkContext, value: bool) -> Operation<'c> {
     let loc = Location::unknown(context);
     let bool_type: Type = IntegerType::new(context, 1).into();
-    arith::constant(context, IntegerAttribute::new(bool_type, i64::from(value)).into(), loc)
+    arith::constant(
+        context,
+        IntegerAttribute::new(bool_type, i64::from(value)).into(),
+        loc,
+    )
 }
 
 #[test]
@@ -95,7 +102,10 @@ fn contract_from_function_target() {
         contract.get_function_type().unwrap().to_string(),
         "(!felt.type, !felt.type) -> ()"
     );
-    assert_eq!(contract.fully_qualified_name().to_string(), "@target_contract");
+    assert_eq!(
+        contract.fully_qualified_name().to_string(),
+        "@target_contract"
+    );
     assert!(format!("{contract}").contains("verif.contract @target_contract"));
     assert!(dialect::verif::is_contract(&contract));
 }
@@ -136,12 +146,20 @@ fn include_flat() {
     let _target = make_function_target(&context, &module, "callee_fn", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
-    let contract_a =
-        dialect::verif::contract(&builder, Location::unknown(&context), "contract_a", "callee_fn")
-            .unwrap();
-    let contract_b =
-        dialect::verif::contract(&builder, Location::unknown(&context), "contract_b", "callee_fn")
-            .unwrap();
+    let contract_a = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "contract_a",
+        "callee_fn",
+    )
+    .unwrap();
+    let contract_b = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "contract_b",
+        "callee_fn",
+    )
+    .unwrap();
 
     let body = contract_a.get_body().unwrap().first_block().unwrap();
     let arg0: Value = contract_a.argument(0).unwrap().into();
@@ -246,7 +264,8 @@ fn require_compute_op() {
     body.append_operation(true_op);
     body.append_operation(false_op);
     let builder = OpBuilder::new(&context);
-    let op = dialect::verif::require_compute(&builder, Location::unknown(&context), true_val).unwrap();
+    let op =
+        dialect::verif::require_compute(&builder, Location::unknown(&context), true_val).unwrap();
     let op = RequireComputeOpRef::try_from(body.append_operation(op.into())).unwrap();
     assert!(dialect::verif::is_require_compute(&op));
     assert_eq!(op.condition(), true_val);
@@ -277,8 +296,8 @@ fn require_constrain_op() {
     body.append_operation(true_op);
     body.append_operation(false_op);
     let builder = OpBuilder::new(&context);
-    let op = dialect::verif::require_constrain(&builder, Location::unknown(&context), true_val)
-        .unwrap();
+    let op =
+        dialect::verif::require_constrain(&builder, Location::unknown(&context), true_val).unwrap();
     let op = RequireConstrainOpRef::try_from(body.append_operation(op.into())).unwrap();
     assert!(dialect::verif::is_require_constrain(&op));
     assert_eq!(op.condition(), true_val);
@@ -309,7 +328,8 @@ fn ensure_compute_op() {
     body.append_operation(true_op);
     body.append_operation(false_op);
     let builder = OpBuilder::new(&context);
-    let op = dialect::verif::ensure_compute(&builder, Location::unknown(&context), true_val).unwrap();
+    let op =
+        dialect::verif::ensure_compute(&builder, Location::unknown(&context), true_val).unwrap();
     let op = EnsureComputeOpRef::try_from(body.append_operation(op.into())).unwrap();
     assert!(dialect::verif::is_ensure_compute(&op));
     assert_eq!(op.condition(), true_val);
@@ -340,8 +360,8 @@ fn ensure_constrain_op() {
     body.append_operation(true_op);
     body.append_operation(false_op);
     let builder = OpBuilder::new(&context);
-    let op = dialect::verif::ensure_constrain(&builder, Location::unknown(&context), true_val)
-        .unwrap();
+    let op =
+        dialect::verif::ensure_constrain(&builder, Location::unknown(&context), true_val).unwrap();
     let op = EnsureConstrainOpRef::try_from(body.append_operation(op.into())).unwrap();
     assert!(dialect::verif::is_ensure_constrain(&op));
     assert_eq!(op.condition(), true_val);
