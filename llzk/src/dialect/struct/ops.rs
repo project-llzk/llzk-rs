@@ -240,7 +240,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// # Panics
     ///
     /// If the fully qualified name is not a [`SymbolRefAttribute`].
-    fn get_fully_qualified_name(&self) -> SymbolRefAttribute<'_> {
+    fn get_fully_qualified_name(&self) -> SymbolRefAttribute<'c> {
         unsafe { Attribute::from_raw(llzkStruct_StructDefOpGetFullyQualifiedName(self.to_raw())) }
             .try_into()
             .expect("symbol ref attribute")
