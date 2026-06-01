@@ -99,10 +99,7 @@ impl MapOperandsBuilder {
     }
 
     /// Returns the dimensions as an attribute.
-    pub fn dims_per_map_attr<'ctx>(
-        &self,
-        context: &'ctx Context,
-    ) -> DenseI32ArrayAttribute<'ctx> {
+    pub fn dims_per_map_attr<'ctx>(&self, context: &'ctx Context) -> DenseI32ArrayAttribute<'ctx> {
         DenseI32ArrayAttribute::try_from(unsafe {
             Attribute::from_option_raw(llzkAffineMapOperandsBuilderGetDimsPerMapAttr(
                 self.raw,

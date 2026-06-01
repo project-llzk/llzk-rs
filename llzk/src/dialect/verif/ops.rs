@@ -29,12 +29,12 @@ use llzk_sys::{
     llzkVerif_RequireConstrainOpGetCondition, llzkVerif_RequireConstrainOpSetCondition,
 };
 use melior::ir::{
-        Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
-        RegionLike as _, RegionRef, Type, ValueLike as _,
-        attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
-        block::{Block, BlockArgument},
-        operation::OperationLike,
-        r#type::FunctionType,
+    Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
+    RegionLike as _, RegionRef, Type, ValueLike as _,
+    attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
+    block::{Block, BlockArgument},
+    operation::OperationLike,
+    r#type::FunctionType,
 };
 
 use crate::{
@@ -303,7 +303,9 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
                 self.to_raw(),
                 false,
             ))
-        }.try_into().expect("symbol ref attribute")
+        }
+        .try_into()
+        .expect("symbol ref attribute")
     }
 
     /// Returns the n-th argument of the contract.
@@ -455,9 +457,7 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         if raw.ptr.is_null() {
             Ok(None)
         } else {
-            Ok(Some(
-                unsafe { Attribute::from_raw(raw) }.try_into()?,
-            ))
+            Ok(Some(unsafe { Attribute::from_raw(raw) }.try_into()?))
         }
     }
 

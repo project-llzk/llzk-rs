@@ -70,7 +70,7 @@ pub mod dialect {
     pub mod function {
         pub use crate::dialect::function::{
             arg_name_attr, call, call_with_map_operands, call_with_template_params, def,
-            r#return, res_name_attr,
+            res_name_attr, r#return,
         };
         pub use crate::dialect::function::{is_func_call, is_func_def, is_func_return};
     }

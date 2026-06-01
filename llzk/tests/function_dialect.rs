@@ -159,9 +159,7 @@ fn func_def_op_self_value_of_compute() {
     llzk::operation::verify_operation_with_diags(&s).expect("verification failed");
     log::info!("Struct passed verification");
 
-    let compute_fn = s
-        .compute_func()
-        .expect("failed to get compute function");
+    let compute_fn = s.compute_func().expect("failed to get compute function");
     let self_val = compute_fn.self_value_of_compute().unwrap();
     // Get the expected value. The first operation in the compute function is
     // the CreateStructOp, whose first result is the self value.
@@ -539,10 +537,7 @@ fn call_op_set_callee() {
     let loc = Location::unknown(&context);
     let block = Block::new(&[]);
     let call = make_call_op_in_block(&context, loc, &block, &[]);
-    assert_eq!(
-        call.callee().unwrap().root().as_str().unwrap(),
-        "callee"
-    );
+    assert_eq!(call.callee().unwrap().root().as_str().unwrap(), "callee");
     call.set_callee(SymbolRefAttribute::new_from_str(
         &context,
         "new_callee",

@@ -42,14 +42,8 @@ fn make_zero_arg_function_target<'c>(
     name: &str,
 ) -> FuncDefOpRef<'c, 'c> {
     let loc = Location::unknown(context);
-    let func = dialect::function::def(
-        loc,
-        name,
-        FunctionType::new(context, &[], &[]),
-        &[],
-        None,
-    )
-    .unwrap();
+    let func =
+        dialect::function::def(loc, name, FunctionType::new(context, &[], &[]), &[], None).unwrap();
     {
         let block = Block::new(&[]);
         block.append_operation(dialect::function::r#return(loc, &[]));
@@ -115,8 +109,14 @@ fn contract_from_function_target() {
     assert!(contract.has_arg_name(0));
     let collected = contract.inputs().collect::<Vec<_>>();
     assert_eq!(collected.len(), 2);
-    assert_eq!(Value::from(collected[0]), Value::from(contract.argument(0).unwrap()));
-    assert_eq!(Value::from(collected[1]), Value::from(contract.argument(1).unwrap()));
+    assert_eq!(
+        Value::from(collected[0]),
+        Value::from(contract.argument(0).unwrap())
+    );
+    assert_eq!(
+        Value::from(collected[1]),
+        Value::from(contract.argument(1).unwrap())
+    );
     let mut iter = contract.inputs();
     assert_eq!(iter.len(), 2);
     assert_eq!(
@@ -170,8 +170,14 @@ fn contract_from_struct_target() {
     assert!(contract.arg_is_pub(1));
     let collected = contract.inputs().collect::<Vec<_>>();
     assert_eq!(collected.len(), 2);
-    assert_eq!(Value::from(collected[0]), Value::from(contract.argument(0).unwrap()));
-    assert_eq!(Value::from(collected[1]), Value::from(contract.argument(1).unwrap()));
+    assert_eq!(
+        Value::from(collected[0]),
+        Value::from(contract.argument(0).unwrap())
+    );
+    assert_eq!(
+        Value::from(collected[1]),
+        Value::from(contract.argument(1).unwrap())
+    );
     let mut iter = contract.inputs();
     assert_eq!(
         Value::from(iter.next_back().unwrap()),
