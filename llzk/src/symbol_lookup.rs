@@ -29,7 +29,7 @@ impl<'ctx> SymbolLookupResult<'ctx> {
     }
 
     /// Returns a reference to the operation obtained from the lookup.
-    pub fn get_operation<'a>(&'a self) -> Option<OperationRef<'ctx, 'a>> {
+    pub fn operation<'a>(&'a self) -> Option<OperationRef<'ctx, 'a>> {
         unsafe {
             OperationRef::from_option_raw(llzk_sys::LlzkSymbolLookupResultGetOperation(self.raw))
         }

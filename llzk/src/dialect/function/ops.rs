@@ -177,7 +177,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns the n-th argument of the function.
     fn argument(&self, idx: usize) -> Result<BlockArgument<'c, 'a>, Error> {
-        self.get_body()
+        self.body()
             .and_then(|region| {
                 region
                     .first_block()
@@ -204,7 +204,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     ///  Gets the [FunctionType] attribute.
-    fn get_function_type(&self) -> Result<FunctionType<'c>, Error> {
+    fn function_type(&self) -> Result<FunctionType<'c>, Error> {
         let attr =
             unsafe { Attribute::from_raw(llzkFunction_FuncDefOpGetFunctionType(self.to_raw())) };
         let type_attr: TypeAttribute<'c> = attr.try_into()?;
@@ -219,7 +219,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the sym_name attribute.
-    fn get_sym_name(&self) -> Result<StringAttribute<'c>, Error> {
+    fn sym_name(&self) -> Result<StringAttribute<'c>, Error> {
         let attr = unsafe { Attribute::from_raw(llzkFunction_FuncDefOpGetSymName(self.to_raw())) };
         attr.try_into().map_err(Error::Melior)
     }
@@ -235,7 +235,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the body region of the function.
-    fn get_body(&self) -> Result<RegionRef<'c, 'a>, Error> {
+    fn body(&self) -> Result<RegionRef<'c, 'a>, Error> {
         let raw = unsafe { llzkFunction_FuncDefOpGetBody(self.to_raw()) };
         if raw.ptr.is_null() {
             Err(Error::GeneralError(
@@ -367,7 +367,7 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the callee attribute.
-    fn get_callee(&self) -> Result<SymbolRefAttribute<'c>, Error> {
+    fn callee(&self) -> Result<SymbolRefAttribute<'c>, Error> {
         let a: Attribute<'_> =
             unsafe { Attribute::from_raw(llzkFunction_CallOpGetCallee(self.to_raw())) };
         a.try_into().map_err(Error::Melior)
@@ -379,7 +379,7 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the template params attribute.
-    fn get_template_params(&self) -> Result<Option<ArrayAttribute<'c>>, Error> {
+    fn template_params(&self) -> Result<Option<ArrayAttribute<'c>>, Error> {
         let raw = unsafe { llzkFunction_CallOpGetTemplateParams(self.to_raw()) };
         if raw.ptr.is_null() {
             Ok(None)

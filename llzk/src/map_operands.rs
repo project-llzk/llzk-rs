@@ -99,7 +99,7 @@ impl MapOperandsBuilder {
     }
 
     /// Returns the dimensions as an attribute.
-    pub fn get_dims_per_map_attr<'ctx>(
+    pub fn dims_per_map_attr<'ctx>(
         &self,
         context: &'ctx Context,
     ) -> DenseI32ArrayAttribute<'ctx> {

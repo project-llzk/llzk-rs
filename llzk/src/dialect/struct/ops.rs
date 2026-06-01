@@ -130,12 +130,12 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
     }
 
-    /// Fills the given array with the MemberDefOp operations inside this struct.
+    /// Returns a vector of MemberDefOp operations inside this struct.
     ///
     /// # Panics
     ///
     /// If any of the result operations is not a `struct.member` op.
-    fn get_member_defs(&self) -> Vec<MemberDefOpRef<'c, '_>> {
+    fn member_defs(&self) -> Vec<MemberDefOpRef<'c, 'a>> {
         let num_members =
             usize::try_from(unsafe { llzkStruct_StructDefOpGetNumMemberDefs(self.to_raw()) })
                 .unwrap();
@@ -165,7 +165,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// # Panics
     ///
     /// If the result operation is not a `function.def`.
-    fn get_compute_func<'b>(&self) -> Option<FuncDefOpRef<'c, 'b>> {
+    fn compute_func<'b>(&self) -> Option<FuncDefOpRef<'c, 'b>> {
         let raw_op = unsafe { llzkStruct_StructDefOpGetComputeFuncOp(self.to_raw()) };
         if raw_op.ptr.is_null() {
             return None;
@@ -183,7 +183,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// # Panics
     ///
     /// If the result operation is not a `function.def`.
-    fn get_constrain_func<'b>(&self) -> Option<FuncDefOpRef<'c, 'b>> {
+    fn constrain_func<'b>(&self) -> Option<FuncDefOpRef<'c, 'b>> {
         let raw_op = unsafe { llzkStruct_StructDefOpGetConstrainFuncOp(self.to_raw()) };
         if raw_op.ptr.is_null() {
             return None;
@@ -197,7 +197,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns the names of all template parameters accessible by the struct,
     /// if the struct is within a template op. Otherwise, returns an empty vec.
-    fn get_template_param_op_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
+    fn template_param_op_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
         let num_attrs = usize::try_from(unsafe {
             llzkStruct_StructDefOpGetNumTemplateParamOpNames(self.to_raw())
         })
@@ -217,7 +217,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns the names of all template expressions accessible by the struct,
     /// if the struct is within a template op. Otherwise, returns an empty vec.
-    fn get_template_expr_op_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
+    fn template_expr_op_names(&self) -> Vec<FlatSymbolRefAttribute<'c>> {
         let num_attrs = usize::try_from(unsafe {
             llzkStruct_StructDefOpGetNumTemplateExprOpNames(self.to_raw())
         })
@@ -240,7 +240,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// # Panics
     ///
     /// If the fully qualified name is not a [`SymbolRefAttribute`].
-    fn get_fully_qualified_name(&self) -> SymbolRefAttribute<'c> {
+    fn fully_qualified_name(&self) -> SymbolRefAttribute<'c> {
         unsafe { Attribute::from_raw(llzkStruct_StructDefOpGetFullyQualifiedName(self.to_raw())) }
             .try_into()
             .expect("symbol ref attribute")
