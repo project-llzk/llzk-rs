@@ -14,6 +14,7 @@
 #include "llzk-c/Dialect/RAM.h"
 #include "llzk-c/Dialect/String.h"
 #include "llzk-c/Dialect/Struct.h"
+#include "llzk-c/Dialect/Verif.h"
 #include "llzk-c/InitDialects.h"
 #include "llzk-c/Support.h"
 #include "llzk-c/Target/PCL.h"
