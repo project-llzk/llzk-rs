@@ -64,7 +64,7 @@ fn struct_with_one_member() {
 
     let s = dialect::r#struct::def(loc, name, region_ops).unwrap();
     assert!(s.get_member_def("foo").is_some());
-    assert_eq!(s.get_member_defs().len(), 1);
+    assert_eq!(s.member_defs().len(), 1);
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/struct_with_one_member.mlir");
@@ -124,7 +124,7 @@ fn struct_readm() {
     let s = StructDefOpRef::try_from(module.body().append_operation(s.into())).unwrap();
 
     let constrain_body = s
-        .get_constrain_func()
+        .constrain_func()
         .expect("failed to get constrain function")
         .region(0)
         .expect("failed to get first region")

@@ -159,9 +159,7 @@ fn func_def_op_self_value_of_compute() {
     llzk::operation::verify_operation_with_diags(&s).expect("verification failed");
     log::info!("Struct passed verification");
 
-    let compute_fn = s
-        .get_compute_func()
-        .expect("failed to get compute function");
+    let compute_fn = s.compute_func().expect("failed to get compute function");
     let self_val = compute_fn.self_value_of_compute().unwrap();
     // Get the expected value. The first operation in the compute function is
     // the CreateStructOp, whose first result is the self value.
@@ -191,7 +189,7 @@ fn func_def_op_self_value_of_constrain() {
     log::info!("Struct passed verification");
 
     let constrain_fn = s
-        .get_constrain_func()
+        .constrain_func()
         .expect("failed to get constrain function");
     let self_val = constrain_fn.self_value_of_constrain().unwrap();
     // Get the expected value. The first argument of the function is the self value.
@@ -220,7 +218,7 @@ fn call_op_self_value_of_compute() {
     log::info!("Struct 2 passed verification");
 
     let s2_compute_body = s2
-        .get_compute_func()
+        .compute_func()
         .expect("failed to get compute function")
         .region(0)
         .expect("failed to get first region")
@@ -310,7 +308,7 @@ fn func_def_op_get_function_type() {
         None,
     )
     .unwrap();
-    let result = op.get_function_type().unwrap();
+    let result = op.function_type().unwrap();
     assert_eq!(result.input_count(), 1);
     assert_eq!(result.result_count(), 0);
 }
@@ -329,9 +327,9 @@ fn func_def_op_set_function_type() {
         None,
     )
     .unwrap();
-    assert_eq!(op.get_function_type().unwrap().input_count(), 0);
+    assert_eq!(op.function_type().unwrap().input_count(), 0);
     op.set_function_type(FunctionType::new(&context, &[felt_type], &[]));
-    assert_eq!(op.get_function_type().unwrap().input_count(), 1);
+    assert_eq!(op.function_type().unwrap().input_count(), 1);
 }
 
 #[test]
@@ -347,7 +345,7 @@ fn func_def_op_get_sym_name() {
         None,
     )
     .unwrap();
-    assert_eq!(op.get_sym_name().unwrap().value(), "my_func");
+    assert_eq!(op.sym_name().unwrap().value(), "my_func");
 }
 
 #[test]
@@ -363,9 +361,9 @@ fn func_def_op_set_sym_name() {
         None,
     )
     .unwrap();
-    assert_eq!(op.get_sym_name().unwrap().value(), "my_func");
+    assert_eq!(op.sym_name().unwrap().value(), "my_func");
     op.set_sym_name(StringAttribute::new(&context, "new_name"));
-    assert_eq!(op.get_sym_name().unwrap().value(), "new_name");
+    assert_eq!(op.sym_name().unwrap().value(), "new_name");
 }
 
 #[test]
@@ -407,7 +405,7 @@ fn func_def_op_get_body() {
     )
     .unwrap();
     // A freshly created FuncDefOp already has a (empty) region; get_body returns Ok.
-    assert!(op.get_body().is_ok());
+    assert!(op.body().is_ok());
 
     // After appending a block, get_body still succeeds.
     let block = Block::new(&[]);
@@ -415,7 +413,7 @@ fn func_def_op_get_body() {
     op.region(0)
         .expect("function.def must have at least 1 region")
         .append_block(block);
-    assert!(op.get_body().is_ok());
+    assert!(op.body().is_ok());
 }
 
 // Tests for CallOpLike methods added in e2157c6
@@ -528,7 +526,7 @@ fn call_op_get_callee() {
     let loc = Location::unknown(&context);
     let block = Block::new(&[]);
     let call = make_call_op_in_block(&context, loc, &block, &[]);
-    let callee = call.get_callee().unwrap();
+    let callee = call.callee().unwrap();
     assert_eq!(callee.root().as_str().unwrap(), "callee");
 }
 
@@ -539,17 +537,14 @@ fn call_op_set_callee() {
     let loc = Location::unknown(&context);
     let block = Block::new(&[]);
     let call = make_call_op_in_block(&context, loc, &block, &[]);
-    assert_eq!(
-        call.get_callee().unwrap().root().as_str().unwrap(),
-        "callee"
-    );
+    assert_eq!(call.callee().unwrap().root().as_str().unwrap(), "callee");
     call.set_callee(SymbolRefAttribute::new_from_str(
         &context,
         "new_callee",
         &[],
     ));
     assert_eq!(
-        call.get_callee().unwrap().root().as_str().unwrap(),
+        call.callee().unwrap().root().as_str().unwrap(),
         "new_callee"
     );
 }
@@ -561,7 +556,7 @@ fn call_op_get_template_params_none() {
     let loc = Location::unknown(&context);
     let block = Block::new(&[]);
     let call = make_call_op_in_block(&context, loc, &block, &[]);
-    assert!(call.get_template_params().unwrap().is_none());
+    assert!(call.template_params().unwrap().is_none());
 }
 
 #[test]
@@ -571,13 +566,13 @@ fn call_op_set_template_params() {
     let loc = Location::unknown(&context);
     let block = Block::new(&[]);
     let call = make_call_op_in_block(&context, loc, &block, &[]);
-    assert!(call.get_template_params().unwrap().is_none());
+    assert!(call.template_params().unwrap().is_none());
     // Set a non-None value.
     call.set_template_params(Some(ArrayAttribute::new(&context, &[])));
-    assert!(call.get_template_params().unwrap().is_some());
+    assert!(call.template_params().unwrap().is_some());
     // Clear back to None.
     call.set_template_params(None);
-    assert!(call.get_template_params().unwrap().is_none());
+    assert!(call.template_params().unwrap().is_none());
 }
 
 #[test]
@@ -597,7 +592,7 @@ fn call_with_template_params_only_attrs() {
         &[TypeAttribute::new(felt_type)],
     )
     .unwrap();
-    let template_params = call.get_template_params().unwrap().unwrap();
+    let template_params = call.template_params().unwrap().unwrap();
     assert_eq!(template_params.len(), 1);
 }
 
@@ -625,7 +620,7 @@ fn call_with_template_params_only_args() {
     );
     let call = CallOpRef::try_from(call).unwrap();
     assert_eq!(call.arg_operand_count(), 1);
-    assert!(call.get_template_params().unwrap().is_none());
+    assert!(call.template_params().unwrap().is_none());
 }
 
 #[test]
@@ -652,5 +647,5 @@ fn call_with_template_params_no_empties() {
     );
     let call = CallOpRef::try_from(call).unwrap();
     assert_eq!(call.arg_operand_count(), 1);
-    assert!(call.get_template_params().unwrap().is_some());
+    assert!(call.template_params().unwrap().is_some());
 }

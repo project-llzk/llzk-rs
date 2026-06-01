@@ -29,12 +29,12 @@ use llzk_sys::{
     llzkVerif_RequireConstrainOpGetCondition, llzkVerif_RequireConstrainOpSetCondition,
 };
 use melior::ir::{
-        Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
-        RegionLike as _, RegionRef, Type, ValueLike as _,
-        attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
-        block::{Block, BlockArgument},
-        operation::OperationLike,
-        r#type::FunctionType,
+    Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
+    RegionLike as _, RegionRef, Type, ValueLike as _,
+    attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
+    block::{Block, BlockArgument},
+    operation::OperationLike,
+    r#type::FunctionType,
 };
 
 use crate::{
@@ -182,14 +182,13 @@ mod include_op_ext {
 
 pub use include_op_ext::IncludeArgOperandsIter;
 
+#[inline]
 fn create_out_of_bounds_error<'c: 'a, 'a>(
     contract: &(impl ContractOpLike<'c, 'a> + ?Sized),
     idx: usize,
 ) -> Error {
-    match SymbolRefAttribute::try_from(contract.fully_qualified_name()) {
-        Ok(fqn) => Error::OutOfBoundsArgument(Some(fqn.to_string()), idx),
-        Err(err) => err.into(),
-    }
+    let fqn = contract.fully_qualified_name();
+    Error::OutOfBoundsArgument(Some(fqn.to_string()), idx)
 }
 
 //===----------------------------------------------------------------------===//
@@ -303,7 +302,9 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
                 self.to_raw(),
                 false,
             ))
-        }.try_into().expect("symbol ref attribute")
+        }
+        .try_into()
+        .expect("symbol ref attribute")
     }
 
     /// Returns the n-th argument of the contract.
@@ -455,9 +456,7 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         if raw.ptr.is_null() {
             Ok(None)
         } else {
-            Ok(Some(
-                unsafe { Attribute::from_raw(raw) }.try_into()?,
-            ))
+            Ok(Some(unsafe { Attribute::from_raw(raw) }.try_into()?))
         }
     }
 
