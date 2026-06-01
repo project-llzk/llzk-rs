@@ -11,7 +11,9 @@ pub mod array;
 /// An attribute associated to a name.
 pub type NamedAttribute<'c> = (Identifier<'c>, Attribute<'c>);
 
-/// Returns a null MLIR attribute handle.
+/// Returns a null MLIR attribute handle. Used for CAPI function calls that
+/// expect an optional attribute, with a null attribute used for an unspecified
+/// attribute.
 pub(crate) fn null_attr() -> MlirAttribute {
     MlirAttribute {
         ptr: std::ptr::null_mut(),

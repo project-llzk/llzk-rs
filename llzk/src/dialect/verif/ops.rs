@@ -28,16 +28,13 @@ use llzk_sys::{
     llzkVerif_RequireComputeOpSetCondition, llzkVerif_RequireConstrainOpBuild,
     llzkVerif_RequireConstrainOpGetCondition, llzkVerif_RequireConstrainOpSetCondition,
 };
-use melior::{
-    Context,
-    ir::{
+use melior::ir::{
         Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
         RegionLike as _, RegionRef, Type, ValueLike as _,
         attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
         block::{Block, BlockArgument},
         operation::OperationLike,
         r#type::FunctionType,
-    },
 };
 
 use crate::{
@@ -49,6 +46,141 @@ use crate::{
     type_ext::FunctionTypeExt as _,
     value_ext::ValueRange,
 };
+
+mod contract_op_ext {
+    use std::iter::FusedIterator;
+
+    use melior::ir::{BlockLike as _, RegionLike as _, block::BlockArgument};
+
+    use super::{ContractOpLike, ContractOpRef};
+
+    /// Iterator over the input arguments of a contract op.
+    #[derive(Debug)]
+    pub struct ContractInputsIter<'c: 'a, 'a> {
+        contract: ContractOpRef<'c, 'a>,
+        start: usize,
+        end: usize,
+    }
+
+    impl<'c: 'a, 'a> ContractInputsIter<'c, 'a> {
+        pub(super) fn new(contract: &'a (impl ContractOpLike<'c, 'a> + ?Sized)) -> Self {
+            let contract = unsafe { ContractOpRef::from_raw(contract.to_raw()) };
+            let end = contract
+                .body()
+                .ok()
+                .and_then(|region| region.first_block())
+                .map(|block| block.argument_count())
+                .unwrap_or(0);
+            Self {
+                contract,
+                start: 0,
+                end,
+            }
+        }
+    }
+
+    impl<'c: 'a, 'a> Iterator for ContractInputsIter<'c, 'a> {
+        type Item = BlockArgument<'c, 'a>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.start >= self.end {
+                return None;
+            }
+            let idx = self.start;
+            self.start += 1;
+            Some(self.contract.argument(idx).unwrap())
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            if self.start >= self.end {
+                return (0, Some(0));
+            }
+            let size = self.end - self.start;
+            (size, Some(size))
+        }
+    }
+
+    impl ExactSizeIterator for ContractInputsIter<'_, '_> {}
+
+    impl DoubleEndedIterator for ContractInputsIter<'_, '_> {
+        fn next_back(&mut self) -> Option<Self::Item> {
+            if self.start >= self.end {
+                return None;
+            }
+            self.end -= 1;
+            Some(self.contract.argument(self.end).unwrap())
+        }
+    }
+
+    impl FusedIterator for ContractInputsIter<'_, '_> {}
+}
+
+pub use contract_op_ext::ContractInputsIter;
+
+mod include_op_ext {
+    use std::iter::FusedIterator;
+
+    use melior::ir::Value;
+
+    use super::{IncludeOpLike, IncludeOpRef};
+
+    /// Iterator over the direct arg operands of an include op.
+    #[derive(Debug)]
+    pub struct IncludeArgOperandsIter<'c: 'a, 'a> {
+        include: IncludeOpRef<'c, 'a>,
+        start: usize,
+        end: usize,
+    }
+
+    impl<'c: 'a, 'a> IncludeArgOperandsIter<'c, 'a> {
+        pub(super) fn new(include: &'a (impl IncludeOpLike<'c, 'a> + ?Sized)) -> Self {
+            let include = unsafe { IncludeOpRef::from_raw(include.to_raw()) };
+            let end = include.arg_operand_count();
+            Self {
+                include,
+                start: 0,
+                end,
+            }
+        }
+    }
+
+    impl<'c: 'a, 'a> Iterator for IncludeArgOperandsIter<'c, 'a> {
+        type Item = Value<'c, 'a>;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.start >= self.end {
+                return None;
+            }
+            let idx = self.start;
+            self.start += 1;
+            Some(self.include.arg_operand_at(idx))
+        }
+
+        fn size_hint(&self) -> (usize, Option<usize>) {
+            if self.start >= self.end {
+                return (0, Some(0));
+            }
+            let size = self.end - self.start;
+            (size, Some(size))
+        }
+    }
+
+    impl ExactSizeIterator for IncludeArgOperandsIter<'_, '_> {}
+
+    impl DoubleEndedIterator for IncludeArgOperandsIter<'_, '_> {
+        fn next_back(&mut self) -> Option<Self::Item> {
+            if self.start >= self.end {
+                return None;
+            }
+            self.end -= 1;
+            Some(self.include.arg_operand_at(self.end))
+        }
+    }
+
+    impl FusedIterator for IncludeArgOperandsIter<'_, '_> {}
+}
+
+pub use include_op_ext::IncludeArgOperandsIter;
 
 fn create_out_of_bounds_error<'c: 'a, 'a>(
     contract: &(impl ContractOpLike<'c, 'a> + ?Sized),
@@ -72,11 +204,11 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     ///
     /// If the `verif.contract` op does not have a `sym_name` attribute.
     fn name(&'a self) -> &'c str {
-        self.get_sym_name().map(|attr| attr.value()).unwrap()
+        self.sym_name().map(|attr| attr.value()).unwrap()
     }
 
     /// Returns the sym_name attribute.
-    fn get_sym_name(&self) -> Result<StringAttribute<'c>, Error> {
+    fn sym_name(&self) -> Result<StringAttribute<'c>, Error> {
         let attr = unsafe { Attribute::from_raw(llzkVerif_ContractOpGetSymName(self.to_raw())) };
         attr.try_into().map_err(Error::Melior)
     }
@@ -98,7 +230,7 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the function type of the contract.
-    fn get_function_type(&self) -> Result<FunctionType<'c>, Error> {
+    fn function_type(&self) -> Result<FunctionType<'c>, Error> {
         let attr =
             unsafe { Attribute::from_raw(llzkVerif_ContractOpGetFunctionType(self.to_raw())) };
         let type_attr: TypeAttribute<'c> = attr.try_into()?;
@@ -112,7 +244,7 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the argument attribute array.
-    fn get_arg_attrs(&self) -> Result<ArrayAttribute<'c>, Error> {
+    fn arg_attrs(&self) -> Result<ArrayAttribute<'c>, Error> {
         let attr = unsafe { Attribute::from_raw(llzkVerif_ContractOpGetArgAttrs(self.to_raw())) };
         Ok(rebuild_array_attr(unsafe { self.context().to_ref() }, attr))
     }
@@ -123,7 +255,7 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the body region of the contract.
-    fn get_body(&self) -> Result<RegionRef<'c, 'a>, Error> {
+    fn body(&self) -> Result<RegionRef<'c, 'a>, Error> {
         let raw = unsafe { llzkVerif_ContractOpGetBody(self.to_raw()) };
         if raw.ptr.is_null() {
             Err(Error::GeneralError(
@@ -160,29 +292,34 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the callable region for the contract.
-    fn get_callable_region(&self) -> RegionRef<'c, 'a> {
+    fn callable_region(&self) -> RegionRef<'c, 'a> {
         unsafe { RegionRef::from_raw(llzkVerif_ContractOpGetCallableRegion(self.to_raw())) }
     }
 
     /// Returns the fully qualified name of the contract.
-    fn fully_qualified_name(&self) -> Attribute<'c> {
+    fn fully_qualified_name(&self) -> SymbolRefAttribute<'c> {
         unsafe {
             Attribute::from_raw(llzkVerif_ContractOpGetFullyQualifiedName(
                 self.to_raw(),
                 false,
             ))
-        }
+        }.try_into().expect("symbol ref attribute")
     }
 
     /// Returns the n-th argument of the contract.
     fn argument(&self, idx: usize) -> Result<BlockArgument<'c, 'a>, Error> {
-        self.get_body()
+        self.body()
             .and_then(|region| {
                 region
                     .first_block()
-                    .ok_or(create_out_of_bounds_error(self, idx))
+                    .ok_or_else(|| create_out_of_bounds_error(self, idx))
             })
             .and_then(|block| block.argument(idx).map_err(Into::into))
+    }
+
+    /// Returns an iterator over the input arguments of the contract.
+    fn inputs(&'a self) -> ContractInputsIter<'c, 'a> {
+        ContractInputsIter::new(self)
     }
 }
 
@@ -218,17 +355,19 @@ pub fn contract<'c, 'a>(
             Identifier::new(context.to_ref(), target).to_raw(),
         ))
     };
-    if let Ok(region) = op.get_body()
-        && region.first_block().is_none()
-    {
-        let args = op
-            .get_function_type()?
-            .inputs()
-            .map(|ty| (ty, location))
-            .collect::<Vec<(Type<'c>, Location<'c>)>>();
-        region.append_block(Block::new(&args));
+    if let Ok(region) = op.body() {
+        if region.first_block().is_none() {
+            let args = op
+                .function_type()?
+                .inputs()
+                .map(|ty| (ty, location))
+                .collect::<Vec<(Type<'c>, Location<'c>)>>();
+            region.append_block(Block::new(&args));
+        }
+        Ok(op)
+    } else {
+        Err(Error::GeneralError("expected non-empty body"))
     }
-    Ok(op)
 }
 
 /// Returns `true` iff the given op is `verif.contract`.
@@ -255,6 +394,11 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe {
             melior::ir::Value::from_raw(llzkVerif_IncludeOpGetArgOperandsAt(self.to_raw(), index))
         }
+    }
+
+    /// Returns an iterator over the direct arg operands of the include op.
+    fn arg_operands(&'a self) -> IncludeArgOperandsIter<'c, 'a> {
+        IncludeArgOperandsIter::new(self)
     }
 
     /// Sets the call operands.
@@ -295,9 +439,9 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the callee attribute.
-    fn get_callee(&self) -> Result<SymbolRefAttribute<'c>, Error> {
+    fn callee(&self) -> Result<SymbolRefAttribute<'c>, Error> {
         let attr = unsafe { Attribute::from_raw(llzkVerif_IncludeOpGetCallee(self.to_raw())) };
-        attr.try_into().map_err(Error::Melior)
+        Ok(attr.try_into()?)
     }
 
     /// Sets the callee attribute.
@@ -306,15 +450,14 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the template parameter attribute, if present.
-    fn get_template_params(&self) -> Result<Option<ArrayAttribute<'c>>, Error> {
+    fn template_params(&self) -> Result<Option<ArrayAttribute<'c>>, Error> {
         let raw = unsafe { llzkVerif_IncludeOpGetTemplateParams(self.to_raw()) };
         if raw.ptr.is_null() {
             Ok(None)
         } else {
-            Ok(Some(rebuild_array_attr(
-                unsafe { self.context().to_ref() },
-                unsafe { Attribute::from_raw(raw) },
-            )))
+            Ok(Some(
+                unsafe { Attribute::from_raw(raw) }.try_into()?,
+            ))
         }
     }
 
@@ -325,7 +468,7 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the `numDimsPerMap` attribute.
-    fn get_num_dims_per_map(&self) -> Result<DenseI32ArrayAttribute<'c>, Error> {
+    fn num_dims_per_map(&self) -> Result<DenseI32ArrayAttribute<'c>, Error> {
         let attr =
             unsafe { Attribute::from_raw(llzkVerif_IncludeOpGetNumDimsPerMap(self.to_raw())) };
         attr.try_into().map_err(Error::Melior)
@@ -337,7 +480,7 @@ pub trait IncludeOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the `mapOpGroupSizes` attribute.
-    fn get_map_op_group_sizes(&self) -> Result<DenseI32ArrayAttribute<'c>, Error> {
+    fn map_op_group_sizes(&self) -> Result<DenseI32ArrayAttribute<'c>, Error> {
         let attr =
             unsafe { Attribute::from_raw(llzkVerif_IncludeOpGetMapOpGroupSizes(self.to_raw())) };
         attr.try_into().map_err(Error::Melior)
@@ -431,12 +574,7 @@ pub fn include_with_map_operands<'c, 'g, 'v>(
 
 /// Creates a `verif.include` op with grouped map operands and dimension counts
 /// provided as a Rust slice.
-///
-/// TODO: There's a weird segfault that occurs when you use the `unsafe { location.context().to_ref() }`
-/// pattern specifically in conjunction with `DenseI32ArrayAttribute::new`. To bypass
-/// this, we take the `context` parameter explicitly from the caller.
 pub fn include_with_map_operands_slice<'c, 'g, 'v>(
-    context: &'c Context,
     builder: &OpBuilder<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
@@ -445,6 +583,7 @@ pub fn include_with_map_operands_slice<'c, 'g, 'v>(
     map_operands: &'g [ValueRange<'c, 'v, '_>],
     num_dims_per_map: &[i32],
 ) -> Result<IncludeOp<'c>, Error> {
+    let ctx = location.context();
     include_with_map_operands(
         builder,
         location,
@@ -452,7 +591,7 @@ pub fn include_with_map_operands_slice<'c, 'g, 'v>(
         args,
         template_params,
         map_operands,
-        DenseI32ArrayAttribute::new(context, num_dims_per_map),
+        DenseI32ArrayAttribute::new(unsafe { ctx.to_ref() }, num_dims_per_map),
     )
 }
 

@@ -1,9 +1,11 @@
 //! `function` dialect.
 
+mod attrs;
 mod ops;
 
 use llzk_sys::mlirGetDialectHandle__llzk__function__;
 use melior::dialect::DialectHandle;
+pub use attrs::arg_name_attr;
 pub use ops::{
     CallOp, CallOpLike, CallOpRef, FuncDefOp, FuncDefOpLike, FuncDefOpMutLike, FuncDefOpRef,
 };
@@ -17,6 +19,7 @@ pub fn handle() -> DialectHandle {
 
 /// Exports the common types of the func dialect.
 pub mod prelude {
+    pub use super::attrs::arg_name_attr;
     pub use super::ops::{
         CallOp, CallOpLike, CallOpRef, CallOpRefMut, FuncDefOp, FuncDefOpLike, FuncDefOpRef,
         FuncDefOpRefMut,

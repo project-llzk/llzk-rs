@@ -11,13 +11,6 @@ use melior::{
 
 mod common;
 
-fn function_arg_name_attr<'c>(context: &'c LlzkContext, name: &str) -> NamedAttribute<'c> {
-    (
-        Identifier::new(context, "function.arg_name"),
-        StringAttribute::new(context, name).into(),
-    )
-}
-
 fn make_function_target<'c>(
     context: &'c LlzkContext,
     module: &'c Module<'c>,
@@ -38,6 +31,28 @@ fn make_function_target<'c>(
         let block = Block::new(&[(felt_type, loc)]);
         let arg: Value = block.argument(0).unwrap().into();
         block.append_operation(dialect::function::r#return(loc, &[arg]));
+        func.region(0).unwrap().append_block(block);
+    }
+    FuncDefOpRef::try_from(module.body().append_operation(func.into())).unwrap()
+}
+
+fn make_zero_arg_function_target<'c>(
+    context: &'c LlzkContext,
+    module: &'c Module<'c>,
+    name: &str,
+) -> FuncDefOpRef<'c, 'c> {
+    let loc = Location::unknown(context);
+    let func = dialect::function::def(
+        loc,
+        name,
+        FunctionType::new(context, &[], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    {
+        let block = Block::new(&[]);
+        block.append_operation(dialect::function::r#return(loc, &[]));
         func.region(0).unwrap().append_block(block);
     }
     FuncDefOpRef::try_from(module.body().append_operation(func.into())).unwrap()
@@ -80,7 +95,7 @@ fn contract_from_function_target() {
         &context,
         &module,
         "target_fn",
-        Some(&[vec![function_arg_name_attr(&context, "input")]]),
+        Some(&[vec![dialect::function::arg_name_attr(&context, "input")]]),
     );
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
@@ -98,8 +113,25 @@ fn contract_from_function_target() {
     assert!(contract.has_func_target());
     assert!(!contract.has_struct_target());
     assert!(contract.has_arg_name(0));
+    let collected = contract.inputs().collect::<Vec<_>>();
+    assert_eq!(collected.len(), 2);
+    assert_eq!(Value::from(collected[0]), Value::from(contract.argument(0).unwrap()));
+    assert_eq!(Value::from(collected[1]), Value::from(contract.argument(1).unwrap()));
+    let mut iter = contract.inputs();
+    assert_eq!(iter.len(), 2);
     assert_eq!(
-        contract.get_function_type().unwrap().to_string(),
+        Value::from(iter.next().unwrap()),
+        Value::from(contract.argument(0).unwrap())
+    );
+    assert_eq!(iter.len(), 1);
+    assert_eq!(
+        Value::from(iter.next_back().unwrap()),
+        Value::from(contract.argument(1).unwrap())
+    );
+    assert_eq!(iter.len(), 0);
+    assert!(iter.next().is_none());
+    assert_eq!(
+        contract.function_type().unwrap().to_string(),
         "(!felt.type, !felt.type) -> ()"
     );
     assert_eq!(
@@ -117,7 +149,7 @@ fn contract_from_struct_target() {
     let module = llzk_module(Location::unknown(&context));
     let arg_attrs = [vec![
         PublicAttribute::new_named_attr(&context),
-        function_arg_name_attr(&context, "input"),
+        dialect::function::arg_name_attr(&context, "input"),
     ]];
     let _target = make_struct_target(&context, &module, "StructTarget", Some(&arg_attrs));
     let builder = OpBuilder::at_block_begin(&context, module.body());
@@ -136,6 +168,20 @@ fn contract_from_struct_target() {
     assert!(contract.argument(0).is_ok());
     assert!(contract.has_arg_name(1));
     assert!(contract.arg_is_pub(1));
+    let collected = contract.inputs().collect::<Vec<_>>();
+    assert_eq!(collected.len(), 2);
+    assert_eq!(Value::from(collected[0]), Value::from(contract.argument(0).unwrap()));
+    assert_eq!(Value::from(collected[1]), Value::from(contract.argument(1).unwrap()));
+    let mut iter = contract.inputs();
+    assert_eq!(
+        Value::from(iter.next_back().unwrap()),
+        Value::from(contract.argument(1).unwrap())
+    );
+    assert_eq!(
+        Value::from(iter.next().unwrap()),
+        Value::from(contract.argument(0).unwrap())
+    );
+    assert!(iter.next().is_none());
 }
 
 #[test]
@@ -161,7 +207,7 @@ fn include_flat() {
     )
     .unwrap();
 
-    let body = contract_a.get_body().unwrap().first_block().unwrap();
+    let body = contract_a.body().unwrap().first_block().unwrap();
     let arg0: Value = contract_a.argument(0).unwrap().into();
     let arg1: Value = contract_a.argument(1).unwrap().into();
     let builder = OpBuilder::new(&context);
@@ -180,15 +226,37 @@ fn include_flat() {
     assert_eq!(include.arg_operand_count(), 2);
     assert_eq!(include.arg_operand_at(0), arg0);
     assert_eq!(include.arg_operand_at(1), arg1);
-    assert_eq!(include.get_callee().unwrap().to_string(), "@contract_b");
+    let collected = include.arg_operands().collect::<Vec<_>>();
+    assert_eq!(collected.len(), 2);
+    assert_eq!(collected[0], include.arg_operand_at(0));
+    assert_eq!(collected[1], include.arg_operand_at(1));
+    let mut iter = include.arg_operands();
+    assert_eq!(iter.len(), 2);
+    assert_eq!(iter.next().unwrap(), include.arg_operand_at(0));
+    assert_eq!(iter.len(), 1);
+    assert_eq!(iter.next_back().unwrap(), include.arg_operand_at(1));
+    assert_eq!(iter.len(), 0);
+    assert!(iter.next().is_none());
+    assert_eq!(include.callee().unwrap().to_string(), "@contract_b");
     assert_eq!(
         include.type_signature().unwrap().to_string(),
-        contract_b.get_function_type().unwrap().to_string()
+        contract_b.function_type().unwrap().to_string()
     );
     assert_eq!(
         include.resolve_callable().unwrap(),
         OperationRef::from(ContractOpRef::from(&contract_b))
     );
+}
+
+#[test]
+fn function_arg_name_attr_helper() {
+    common::setup();
+    let context = LlzkContext::new();
+    let (identifier, attr) = dialect::function::arg_name_attr(&context, "input");
+
+    assert_eq!(identifier, Identifier::new(&context, "function.arg_name"));
+    let attr = StringAttribute::try_from(attr).unwrap();
+    assert_eq!(attr.value(), "input");
 }
 
 #[test]
@@ -214,12 +282,11 @@ fn include_with_map_operands_empty_groups() {
     )
     .unwrap();
 
-    let body = contract_a.get_body().unwrap().first_block().unwrap();
+    let body = contract_a.body().unwrap().first_block().unwrap();
     let arg0: Value = contract_a.argument(0).unwrap().into();
     let arg1: Value = contract_a.argument(1).unwrap().into();
     let builder = OpBuilder::new(&context);
     let include = dialect::verif::include_with_map_operands_slice(
-        &context,
         &builder,
         Location::unknown(&context),
         SymbolRefAttribute::new_from_str(&context, "map_contract_b", &[]),
@@ -232,15 +299,61 @@ fn include_with_map_operands_empty_groups() {
     let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
 
     verify_operation_with_diags(&contract_a).unwrap();
+    let collected = include.arg_operands().collect::<Vec<_>>();
+    assert_eq!(collected.len(), 2);
+    assert_eq!(collected[0], include.arg_operand_at(0));
+    assert_eq!(collected[1], include.arg_operand_at(1));
     assert_eq!(include.map_operand_count(), 0);
     assert_eq!(
-        include.get_num_dims_per_map().unwrap().to_string(),
+        include.num_dims_per_map().unwrap().to_string(),
         DenseI32ArrayAttribute::new(&context, &[]).to_string()
     );
     assert_eq!(
-        include.get_map_op_group_sizes().unwrap().to_string(),
+        include.map_op_group_sizes().unwrap().to_string(),
         DenseI32ArrayAttribute::new(&context, &[]).to_string()
     );
+}
+
+#[test]
+fn include_flat_no_arg_operands() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context));
+    let _target = make_zero_arg_function_target(&context, &module, "empty_callee_fn");
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let contract_a = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "empty_contract_a",
+        "empty_callee_fn",
+    )
+    .unwrap();
+    let _contract_b = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "empty_contract_b",
+        "empty_callee_fn",
+    )
+    .unwrap();
+
+    let body = contract_a.body().unwrap().first_block().unwrap();
+    let builder = OpBuilder::new(&context);
+    let include = dialect::verif::include(
+        &builder,
+        Location::unknown(&context),
+        SymbolRefAttribute::new_from_str(&context, "empty_contract_b", &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+    let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
+
+    verify_operation_with_diags(&contract_a).unwrap();
+    let mut iter = include.arg_operands();
+    assert_eq!(iter.len(), 0);
+    assert!(iter.next().is_none());
+    assert!(iter.next_back().is_none());
 }
 
 #[test]
@@ -257,7 +370,7 @@ fn require_compute_op() {
         "cond_target",
     )
     .unwrap();
-    let body = contract.get_body().unwrap().first_block().unwrap();
+    let body = contract.body().unwrap().first_block().unwrap();
     let true_op = bool_constant(&context, true);
     let false_op = bool_constant(&context, false);
     let true_val: Value = true_op.result(0).unwrap().into();
@@ -289,7 +402,7 @@ fn require_constrain_op() {
         "cond_target",
     )
     .unwrap();
-    let body = contract.get_body().unwrap().first_block().unwrap();
+    let body = contract.body().unwrap().first_block().unwrap();
     let true_op = bool_constant(&context, true);
     let false_op = bool_constant(&context, false);
     let true_val: Value = true_op.result(0).unwrap().into();
@@ -321,7 +434,7 @@ fn ensure_compute_op() {
         "cond_target",
     )
     .unwrap();
-    let body = contract.get_body().unwrap().first_block().unwrap();
+    let body = contract.body().unwrap().first_block().unwrap();
     let true_op = bool_constant(&context, true);
     let false_op = bool_constant(&context, false);
     let true_val: Value = true_op.result(0).unwrap().into();
@@ -353,7 +466,7 @@ fn ensure_constrain_op() {
         "cond_target",
     )
     .unwrap();
-    let body = contract.get_body().unwrap().first_block().unwrap();
+    let body = contract.body().unwrap().first_block().unwrap();
     let true_op = bool_constant(&context, true);
     let false_op = bool_constant(&context, false);
     let true_val: Value = true_op.result(0).unwrap().into();
@@ -385,7 +498,7 @@ fn include_map_operand_setter_roundtrip() {
         "setter_target",
     )
     .unwrap();
-    let body = contract.get_body().unwrap().first_block().unwrap();
+    let body = contract.body().unwrap().first_block().unwrap();
 
     let builder = OpBuilder::new(&context);
     let arg0: Value = contract.argument(0).unwrap().into();
