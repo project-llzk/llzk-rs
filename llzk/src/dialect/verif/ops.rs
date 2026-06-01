@@ -182,14 +182,13 @@ mod include_op_ext {
 
 pub use include_op_ext::IncludeArgOperandsIter;
 
+#[inline]
 fn create_out_of_bounds_error<'c: 'a, 'a>(
     contract: &(impl ContractOpLike<'c, 'a> + ?Sized),
     idx: usize,
 ) -> Error {
-    match SymbolRefAttribute::try_from(contract.fully_qualified_name()) {
-        Ok(fqn) => Error::OutOfBoundsArgument(Some(fqn.to_string()), idx),
-        Err(err) => err.into(),
-    }
+    let fqn = contract.fully_qualified_name();
+    Error::OutOfBoundsArgument(Some(fqn.to_string()), idx)
 }
 
 //===----------------------------------------------------------------------===//
