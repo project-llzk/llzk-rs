@@ -260,6 +260,17 @@ fn function_arg_name_attr_helper() {
 }
 
 #[test]
+fn function_res_name_attr_helper() {
+    common::setup();
+    let context = LlzkContext::new();
+    let (identifier, attr) = dialect::function::res_name_attr(&context, "output");
+
+    assert_eq!(identifier, Identifier::new(&context, "function.res_name"));
+    let attr = StringAttribute::try_from(attr).unwrap();
+    assert_eq!(attr.value(), "output");
+}
+
+#[test]
 fn include_with_map_operands_empty_groups() {
     common::setup();
     let context = LlzkContext::new();
