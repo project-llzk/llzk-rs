@@ -129,7 +129,7 @@ pub fn users_of<'ctx: 'a, 'a>(val: impl ValueLike<'ctx> + Copy) -> Vec<Operation
 /// Returns the one user of a value.
 ///
 /// Error if the value has more than one use or not at all.
-pub fn get_single_user<'ctx, 'op>(
+pub fn find_single_user<'ctx, 'op>(
     value: impl ValueLike<'ctx> + Clone + std::fmt::Display,
 ) -> Result<OperationRef<'ctx, 'op>, Error> {
     // There is no `OpOperand` type in melior as far as I'm aware.

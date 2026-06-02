@@ -197,15 +197,6 @@ fn create_out_of_bounds_error<'c: 'a, 'a>(
 
 /// Defines the public API of the `verif.contract` op.
 pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
-    /// Returns the name of the contract.
-    ///
-    /// # Panics
-    ///
-    /// If the `verif.contract` op does not have a `sym_name` attribute.
-    fn name(&'a self) -> &'c str {
-        self.sym_name().map(|attr| attr.value()).unwrap()
-    }
-
     /// Returns the sym_name attribute.
     fn sym_name(&self) -> Result<StringAttribute<'c>, Error> {
         let attr = unsafe { Attribute::from_raw(llzkVerif_ContractOpGetSymName(self.to_raw())) };

@@ -77,9 +77,9 @@ impl<'c> StructType<'c> {
         self.params().into_iter().collect()
     }
 
-    /// Actual implementation of the [`get_definition`](Self::get_definition) and
-    /// [`get_definition_from_module`](Self::get_definition_from_module) methods.
-    fn get_definition_impl<O>(
+    /// Actual implementation of the [`lookup_definition`](Self::lookup_definition) and
+    /// [`lookup_definition_from_module`](Self::lookup_definition_from_module) methods.
+    fn lookup_definition_impl<O>(
         &self,
         o: O,
         f: unsafe extern "C" fn(
@@ -96,22 +96,22 @@ impl<'c> StructType<'c> {
     }
 
     /// Looks up the definition of this struct using the given op as root.
-    pub fn get_definition<'o>(
+    pub fn lookup_definition<'o>(
         &self,
         root: &impl OperationLike<'c, 'o>,
     ) -> Result<SymbolLookupResult<'c>, Error>
     where
         'c: 'o,
     {
-        self.get_definition_impl(root.to_raw(), llzk_sys::llzkStructStructTypeGetDefinition)
+        self.lookup_definition_impl(root.to_raw(), llzk_sys::llzkStructStructTypeGetDefinition)
     }
 
     /// Looks up the definition of this struct using the given module as root.
-    pub fn get_definition_from_module(
+    pub fn lookup_definition_from_module(
         &self,
         root: &Module<'c>,
     ) -> Result<SymbolLookupResult<'c>, Error> {
-        self.get_definition_impl(
+        self.lookup_definition_impl(
             root.to_raw(),
             llzk_sys::llzkStructStructTypeGetDefinitionFromModule,
         )

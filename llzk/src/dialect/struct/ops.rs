@@ -47,12 +47,12 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .expect("StructDefOpLike::type error")
     }
 
-    /// Returns the name of the struct
+    /// Returns the symbol defined by this struct definition.
     ///
     /// # Panics
     ///
     /// If the 'struct.def' op doesn't have an attribute named `sym_name`.
-    fn name(&'a self) -> &'c str {
+    fn sym_name(&'a self) -> &'c str {
         self.attribute("sym_name")
             .and_then(StringAttribute::try_from)
             .map(|a| a.value())
@@ -91,7 +91,7 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// # Panics
     ///
     /// If the nested symbol operation with the given name is not a `struct.member`.
-    fn get_member_def(&self, name: &str) -> Option<MemberDefOpRef<'c, 'a>> {
+    fn find_member_def(&self, name: &str) -> Option<MemberDefOpRef<'c, 'a>> {
         let raw_op = unsafe {
             llzkStruct_StructDefOpGetMemberDef(
                 self.to_raw(),
@@ -110,11 +110,15 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns the operation that defines the member with the given name, creating a new operation
     /// if not present.
-    fn get_or_create_member_def<F>(&self, name: &str, f: F) -> Result<MemberDefOpRef<'c, 'a>, Error>
+    fn find_or_create_member_def<F>(
+        &self,
+        name: &str,
+        f: F,
+    ) -> Result<MemberDefOpRef<'c, 'a>, Error>
     where
         F: FnOnce() -> Result<MemberDefOp<'c>, Error>,
     {
-        match self.get_member_def(name) {
+        match self.find_member_def(name) {
             Some(f) => Ok(f),
             None => {
                 let op = f()?;

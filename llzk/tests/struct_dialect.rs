@@ -63,7 +63,7 @@ fn struct_with_one_member() {
     region_ops.extend(default_funcs(loc, typ));
 
     let s = dialect::r#struct::def(loc, name, region_ops).unwrap();
-    assert!(s.get_member_def("foo").is_some());
+    assert!(s.find_member_def("foo").is_some());
     assert_eq!(s.member_defs().len(), 1);
     let s = module.body().append_operation(s.into());
 

@@ -42,7 +42,7 @@ impl<'c> PodType<'c> {
     /// # Panics
     ///
     /// If any of the wrapped attributes is not a `pod.record` attribute.
-    pub fn get_records(&self) -> Vec<PodRecordAttribute<'c>> {
+    pub fn records(&self) -> Vec<PodRecordAttribute<'c>> {
         let num = unsafe { llzkPod_PodTypeGetRecordsCount(self.to_raw()) };
         let mut raw = vec![
             MlirAttribute {
@@ -61,7 +61,7 @@ impl<'c> PodType<'c> {
     }
 
     /// Get the type of the record with the given name, if it exists in this type.
-    pub fn get_type_of_record(&self, name: &str) -> Option<Type<'c>> {
+    pub fn record_type(&self, name: &str) -> Option<Type<'c>> {
         let name = StringRef::new(name);
         let raw = unsafe { llzkPod_PodTypeLookupRecord(self.to_raw(), name.to_raw()) };
         (!raw.ptr.is_null()).then(|| unsafe { Type::from_raw(raw) })
