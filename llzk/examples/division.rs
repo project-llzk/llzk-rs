@@ -24,7 +24,7 @@ fn main() -> Result<()> {
     let location = Location::unknown(&context);
     // LLZK top-level modules require some additional attributes.
     // This function creates a module preconfigured with these attributes.
-    let mut module = llzk_module(location);
+    let mut module = llzk_module(location, None);
     module.as_operation_mut().set_attribute(
         MAIN_ATTR_NAME.as_ref(),
         TypeAttribute::new(

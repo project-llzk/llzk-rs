@@ -7,7 +7,7 @@ mod common;
 fn f_constant() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let f = dialect::function::def(
         loc,
@@ -47,7 +47,7 @@ fn f_constant() {
 fn f_add() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -93,7 +93,7 @@ fn f_add() {
 fn f_sub() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -139,7 +139,7 @@ fn f_sub() {
 fn f_mul() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -185,7 +185,7 @@ fn f_mul() {
 fn f_div() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -231,7 +231,7 @@ fn f_div() {
 fn f_uintdiv() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -278,7 +278,7 @@ fn f_uintdiv() {
 fn f_sintdiv() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -325,7 +325,7 @@ fn f_sintdiv() {
 fn f_umod() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -372,7 +372,7 @@ fn f_umod() {
 fn f_smod() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -419,7 +419,7 @@ fn f_smod() {
 fn f_neg() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -459,7 +459,7 @@ fn f_neg() {
 fn f_inv() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -500,7 +500,7 @@ fn f_inv() {
 fn f_bit_not() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -542,7 +542,7 @@ fn f_bit_not() {
 fn f_shl() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -589,7 +589,7 @@ fn f_shl() {
 fn f_shr() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -636,7 +636,7 @@ fn f_shr() {
 fn f_bit_and() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -683,7 +683,7 @@ fn f_bit_and() {
 fn f_bit_or() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -730,7 +730,7 @@ fn f_bit_or() {
 fn f_bit_xor() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(

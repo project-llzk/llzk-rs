@@ -23,18 +23,26 @@ pub mod module {
     };
 
     use llzk_sys::LLZK_LANG_ATTR_NAME;
-    use melior::ir::{Location, Module, attribute::Attribute, operation::OperationMutLike};
+    use melior::ir::{
+        Location, Module,
+        attribute::{Attribute, StringAttribute},
+        operation::OperationMutLike as _,
+    };
     use mlir_sys::{MlirModule, MlirStringRef, mlirModuleGetOperation, mlirOperationWriteBytecode};
 
     /// Creates a new `builtin.module` operation preconfigured to meet LLZK's specifications.
-    pub fn llzk_module<'c>(location: Location<'c>) -> Module<'c> {
+    pub fn llzk_module<'c>(location: Location<'c>, lang: Option<&str>) -> Module<'c> {
         let mut module = Module::new(location);
         let mut op = module.as_operation_mut();
         let ctx = location.context();
         let attr_name = unsafe { CStr::from_ptr(LLZK_LANG_ATTR_NAME) }
             .to_str()
             .unwrap();
-        op.set_attribute(attr_name, Attribute::unit(unsafe { ctx.to_ref() }));
+        let attr_value = lang.map_or_else(
+            || Attribute::unit(unsafe { ctx.to_ref() }),
+            |s| StringAttribute::new(unsafe { ctx.to_ref() }, s).into(),
+        );
+        op.set_attribute(attr_name, attr_value);
         module
     }
 
