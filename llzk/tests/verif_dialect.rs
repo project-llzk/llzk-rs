@@ -102,7 +102,7 @@ fn contract_from_function_target() {
     .unwrap();
 
     verify_operation_with_diags(&contract).unwrap();
-    assert_eq!(ContractOpLike::name(&contract), "target_contract");
+    assert_eq!(contract.sym_name().unwrap().value(), "target_contract");
     assert_eq!(contract.target().unwrap().to_string(), "@target_fn");
     assert!(contract.has_func_target());
     assert!(!contract.has_struct_target());
