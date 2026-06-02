@@ -30,7 +30,8 @@ impl<'c> FeltConstAttribute<'c> {
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] from an unsigned integer and optional field specification.
+    /// Creates a [`FeltConstAttribute`] with a bitwidth of 64 and optional field specification
+    /// from an unsigned integer value.
     ///
     /// # Panics
     ///
@@ -53,8 +54,8 @@ impl<'c> FeltConstAttribute<'c> {
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] from a 64 bit value and a set bit width and optional field
-    /// specification.
+    /// Creates a [`FeltConstAttribute`] with the given bitwidth and optional field specification
+    /// from an unsigned integer value.
     ///
     /// # Panics
     ///
@@ -79,7 +80,8 @@ impl<'c> FeltConstAttribute<'c> {
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] from a base 10 string representation.
+    /// Creates a [`FeltConstAttribute`] with the given bitwidth and optional field specification
+    /// from a base 10 string representation.
     pub fn parse(ctx: &'c Context, bitlen: u32, value: &str, field: Option<&str>) -> Self {
         let value = StringRef::new(value);
         match field {
@@ -101,11 +103,14 @@ impl<'c> FeltConstAttribute<'c> {
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] from a slice of bigint parts in LSB order.
+    /// Creates a [`FeltConstAttribute`] with the given bitwidth and optional field specification
+    /// from a slice of bigint parts in LSB order.
     ///
-    /// If the number represented by the parts is unsigned set the bit length to at least one more
-    /// than the minimum number of bits required to represent it. Otherwise the number will be
-    /// interpreted as signed and may cause unexpected behaviors.
+    /// # Notes
+    ///
+    /// If the number represented by the parts is unsigned, set the bit length to at least one more
+    /// than the minimum number of bits required to represent the value. Otherwise the number will
+    /// be interpreted as signed and may cause unexpected behaviors.
     pub fn from_parts(ctx: &'c Context, bitlen: u32, parts: &[u64], field: Option<&str>) -> Self {
         // Special case for empty parts array
         if parts.is_empty() {
@@ -132,11 +137,12 @@ impl<'c> FeltConstAttribute<'c> {
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] from a [`num_bigint::BigUint`].
+    /// Creates a [`FeltConstAttribute`] with the optional field specification from a
+    /// [`num_bigint::BigUint`].
     ///
     /// # Panics
     ///
-    /// If the number of bits required to represent the bigint plus one does not fit in 32 bits.
+    /// If the number of bits required to represent the BigUint exceeds `u32::MAX - 1`.
     #[cfg(feature = "bigint")]
     pub fn from_biguint(
         ctx: &'c Context,
