@@ -90,7 +90,7 @@ fn get_records() {
         ),
     ];
     let ty = PodType::new(&context, &records);
-    let r = ty.get_records();
+    let r = ty.records();
     assert_eq!(r.len(), records.len());
 
     assert_eq!(format!("{}", r[0]), "#pod<record@a: !pod.type<[]>>");
@@ -121,7 +121,7 @@ fn get_type_of_record() {
         ),
     ];
     let ty = PodType::new(&context, &records);
-    let r = ty.get_type_of_record("b");
+    let r = ty.record_type("b");
     assert!(r.is_some());
     assert_eq!(format!("{}", r.unwrap()), "!array.type<@N x !felt.type>");
 }
