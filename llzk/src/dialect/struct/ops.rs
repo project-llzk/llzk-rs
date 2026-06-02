@@ -47,12 +47,12 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .expect("StructDefOpLike::type error")
     }
 
-    /// Returns the name of the struct
+    /// Returns the symbol defined by this struct definition.
     ///
     /// # Panics
     ///
     /// If the 'struct.def' op doesn't have an attribute named `sym_name`.
-    fn name(&'a self) -> &'c str {
+    fn sym_name(&'a self) -> &'c str {
         self.attribute("sym_name")
             .and_then(StringAttribute::try_from)
             .map(|a| a.value())
