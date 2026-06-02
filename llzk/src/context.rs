@@ -186,7 +186,7 @@ impl LlzkContext {
     /// To create one with a field other than the default, use [`FeltConstAttribute::from_parts`]
     /// instead.
     ///
-    /// # Safety
+    /// # Notes
     ///
     /// If the number represented by the parts is unsigned, set the bit length to at least one more
     /// than the minimum number of bits required to represent the value. Otherwise the number will
@@ -217,13 +217,13 @@ impl LlzkContext {
         FlatSymbolRefAttribute::new(self, sym.as_ref())
     }
 
-    /// Returns a new LLZK operation that produces a boolean constant with the given value.
+    /// Returns a new `arith.constant` operation that produces a boolean constant with the given value.
     #[inline]
     pub fn new_bool_const_op<'c>(&'c self, val: bool, location: Location<'c>) -> Operation<'c> {
         arith::constant(self, self.bool_attr(val).into(), location)
     }
 
-    /// Returns a new LLZK operation that produces an index constant with the given value.
+    /// Returns a new `arith.constant` operation that produces an index constant with the given value.
     #[inline]
     pub fn new_index_const_op<'c, T>(&'c self, val: T, location: Location<'c>) -> Operation<'c>
     where

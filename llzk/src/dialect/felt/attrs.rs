@@ -106,7 +106,7 @@ impl<'c> FeltConstAttribute<'c> {
     /// Creates a [`FeltConstAttribute`] with the given bitwidth and optional field specification
     /// from a slice of bigint parts in LSB order.
     ///
-    /// # Safety
+    /// # Notes
     ///
     /// If the number represented by the parts is unsigned, set the bit length to at least one more
     /// than the minimum number of bits required to represent the value. Otherwise the number will
