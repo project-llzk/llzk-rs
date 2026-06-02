@@ -4,7 +4,7 @@ use llzk_sys::{
     llzkOperationIsA_Verif_ContractOp, llzkOperationIsA_Verif_EnsureComputeOp,
     llzkOperationIsA_Verif_EnsureConstrainOp, llzkOperationIsA_Verif_IncludeOp,
     llzkOperationIsA_Verif_RequireComputeOp, llzkOperationIsA_Verif_RequireConstrainOp,
-    llzkVerif_ContractOpBuildFromTarget, llzkVerif_ContractOpGetArgAttrs,
+    llzkVerif_ContractOpBuildFromTargetAttr, llzkVerif_ContractOpGetArgAttrs,
     llzkVerif_ContractOpGetBody, llzkVerif_ContractOpGetCallableRegion,
     llzkVerif_ContractOpGetFullyQualifiedName, llzkVerif_ContractOpGetFunctionType,
     llzkVerif_ContractOpGetSymName, llzkVerif_ContractOpGetTarget, llzkVerif_ContractOpHasArgName,
@@ -336,15 +336,15 @@ pub fn contract<'c, 'a>(
     builder: &'a impl OpBuilderLike<'c>,
     location: Location<'c>,
     name: &str,
-    target: &str,
+    target: impl SymbolRefAttrLike<'c>,
 ) -> Result<ContractOp<'c>, Error> {
     let context = location.context();
     let op = unsafe {
-        ContractOp::from_raw(llzkVerif_ContractOpBuildFromTarget(
+        ContractOp::from_raw(llzkVerif_ContractOpBuildFromTargetAttr(
             builder.to_raw(),
             location.to_raw(),
             Identifier::new(context.to_ref(), name).to_raw(),
-            Identifier::new(context.to_ref(), target).to_raw(),
+            target.to_raw(),
         ))
     };
     if let Ok(region) = op.body() {

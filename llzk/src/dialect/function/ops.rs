@@ -56,10 +56,8 @@ fn create_out_of_bounds_error<'c: 'a, 'a>(
     func: &(impl FuncDefOpLike<'c, 'a> + ?Sized),
     idx: usize,
 ) -> Error {
-    match SymbolRefAttribute::try_from(func.fully_qualified_name()) {
-        Ok(fqn) => Error::OutOfBoundsArgument(Some(fqn.to_string()), idx),
-        Err(err) => err.into(),
-    }
+    let fqn = func.fully_qualified_name();
+    Error::OutOfBoundsArgument(Some(fqn.to_string()), idx)
 }
 
 //===----------------------------------------------------------------------===//
@@ -104,13 +102,15 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     }
 
     /// Returns the fully qualified name of the function.
-    fn fully_qualified_name(&self) -> Attribute<'c> {
+    fn fully_qualified_name(&self) -> SymbolRefAttribute<'c> {
         unsafe {
             Attribute::from_raw(llzkFunction_FuncDefOpGetFullyQualifiedName(
                 self.to_raw(),
                 false,
             ))
         }
+        .try_into()
+        .expect("symbol ref attribute")
     }
 
     /// Returns true if the function's name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE).

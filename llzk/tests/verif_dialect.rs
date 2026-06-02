@@ -85,7 +85,7 @@ fn contract_from_function_target() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_function_target(
+    let target = make_function_target(
         &context,
         &module,
         "target_fn",
@@ -97,7 +97,7 @@ fn contract_from_function_target() {
         &builder,
         Location::unknown(&context),
         "target_contract",
-        "target_fn",
+        target.fully_qualified_name(),
     )
     .unwrap();
 
@@ -151,14 +151,14 @@ fn contract_from_struct_target() {
         PublicAttribute::new_named_attr(&context),
         dialect::function::arg_name_attr(&context, "input"),
     ]];
-    let _target = make_struct_target(&context, &module, "StructTarget", Some(&arg_attrs));
+    let target = make_struct_target(&context, &module, "StructTarget", Some(&arg_attrs));
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let contract = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "struct_contract",
-        "StructTarget",
+        target.fully_qualified_name(),
     )
     .unwrap();
 
@@ -195,21 +195,21 @@ fn include_flat() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_function_target(&context, &module, "callee_fn", None);
+    let target = make_function_target(&context, &module, "callee_fn", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let contract_a = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "contract_a",
-        "callee_fn",
+        target.fully_qualified_name(),
     )
     .unwrap();
     let contract_b = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "contract_b",
-        "callee_fn",
+        target.fully_qualified_name(),
     )
     .unwrap();
 
@@ -281,21 +281,21 @@ fn include_with_map_operands_empty_groups() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_function_target(&context, &module, "map_callee_fn", None);
+    let target = make_function_target(&context, &module, "map_callee_fn", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let contract_a = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "map_contract_a",
-        "map_callee_fn",
+        target.fully_qualified_name(),
     )
     .unwrap();
     let _contract_b = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "map_contract_b",
-        "map_callee_fn",
+        target.fully_qualified_name(),
     )
     .unwrap();
 
@@ -336,21 +336,21 @@ fn include_flat_no_arg_operands() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_zero_arg_function_target(&context, &module, "empty_callee_fn");
+    let target = make_zero_arg_function_target(&context, &module, "empty_callee_fn");
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let contract_a = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "empty_contract_a",
-        "empty_callee_fn",
+        target.fully_qualified_name(),
     )
     .unwrap();
     let _contract_b = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "empty_contract_b",
-        "empty_callee_fn",
+        target.fully_qualified_name(),
     )
     .unwrap();
 
@@ -378,13 +378,13 @@ fn require_compute_op() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_function_target(&context, &module, "cond_target", None);
+    let target = make_function_target(&context, &module, "cond_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "require_compute_contract",
-        "cond_target",
+        target.fully_qualified_name(),
     )
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
@@ -410,13 +410,13 @@ fn require_constrain_op() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_function_target(&context, &module, "cond_target", None);
+    let target = make_function_target(&context, &module, "cond_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "require_constrain_contract",
-        "cond_target",
+        target.fully_qualified_name(),
     )
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
@@ -442,13 +442,13 @@ fn ensure_compute_op() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_function_target(&context, &module, "cond_target", None);
+    let target = make_function_target(&context, &module, "cond_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "ensure_compute_contract",
-        "cond_target",
+        target.fully_qualified_name(),
     )
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
@@ -474,13 +474,13 @@ fn ensure_constrain_op() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_function_target(&context, &module, "cond_target", None);
+    let target = make_function_target(&context, &module, "cond_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "ensure_constrain_contract",
-        "cond_target",
+        target.fully_qualified_name(),
     )
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
@@ -506,13 +506,13 @@ fn include_map_operand_setter_roundtrip() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context));
-    let _target = make_function_target(&context, &module, "setter_target", None);
+    let target = make_function_target(&context, &module, "setter_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
         &builder,
         Location::unknown(&context),
         "setter_contract",
-        "setter_target",
+        target.fully_qualified_name(),
     )
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
