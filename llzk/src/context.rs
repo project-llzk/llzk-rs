@@ -122,7 +122,7 @@ impl LlzkContext {
         TVarType::new(self, StringRef::new(name))
     }
 
-    /// Returns an instance of pod struct type with the given records.
+    /// Returns an instance of a pod type with the given records.
     #[inline]
     pub fn pod_type<'c>(&'c self, records: &[(&str, Type<'c>)]) -> PodType<'c> {
         let records = records
