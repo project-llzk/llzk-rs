@@ -117,7 +117,7 @@ fn build_store<'c, 'b>(
 #[rstest]
 fn op_load(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location);
+    let module = llzk_module(location, None);
 
     witness_fn_passes(&module, &ctx, location, |block| {
         let load = build_load(block, &ctx, location);
@@ -128,7 +128,7 @@ fn op_load(ctx: Context) {
 #[rstest]
 fn op_store(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location);
+    let module = llzk_module(location, None);
 
     witness_fn_passes(&module, &ctx, location, |block| {
         let store = build_store(block, &ctx, location);
@@ -139,7 +139,7 @@ fn op_store(ctx: Context) {
 #[rstest]
 fn op_load_with_specified_field(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location);
+    let module = llzk_module(location, None);
 
     witness_fn_passes(&module, &ctx, location, |block| {
         let addr = build_addr(block, &ctx, location, 42);
@@ -152,7 +152,7 @@ fn op_load_with_specified_field(ctx: Context) {
 #[rstest]
 fn op_load_rejected_in_constraint_fn(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location);
+    let module = llzk_module(location, None);
 
     constraint_fn_rejected(&module, &ctx, location, |block| {
         build_load(block, &ctx, location);
@@ -162,7 +162,7 @@ fn op_load_rejected_in_constraint_fn(ctx: Context) {
 #[rstest]
 fn op_store_rejected_in_constraint_fn(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location);
+    let module = llzk_module(location, None);
 
     constraint_fn_rejected(&module, &ctx, location, |block| {
         build_store(block, &ctx, location);

@@ -64,7 +64,7 @@ fn create_param() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc);
+    let module = llzk_module(loc, None);
     let op = param(
         loc,
         "T",
@@ -88,7 +88,7 @@ fn create_param() {
 fn create_template_with_param_and_expr() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let c1 = arith::constant(
         &context,
@@ -228,7 +228,7 @@ fn set_type_restriction_clears_type() {
 fn empty_struct_with_one_param() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let typ = StructType::new(
         SymbolRefAttribute::new_from_str(&context, "tmpl", &["empty"]),
@@ -260,7 +260,7 @@ fn empty_struct_with_one_param() {
 fn create_expr_and_get_type() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let c2 = arith::constant(
         &context,

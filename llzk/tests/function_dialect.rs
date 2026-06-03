@@ -12,7 +12,7 @@ mod common;
 fn empty_function() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let f = dialect::function::def(
         loc,
@@ -45,7 +45,7 @@ fn empty_function() {
 fn function_call() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -88,7 +88,7 @@ fn function_call() {
 fn function_call_with_map_operands() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let f = dialect::function::def(
@@ -151,7 +151,7 @@ fn make_empty_struct<'c>(context: &'c LlzkContext, name: &str) -> StructDefOp<'c
 fn func_def_op_self_value_of_compute() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let module_body = module.body();
 
     let s = make_empty_struct(&context, "StructA");
@@ -180,7 +180,7 @@ fn func_def_op_self_value_of_compute() {
 fn func_def_op_self_value_of_constrain() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let module_body = module.body();
 
     let s = make_empty_struct(&context, "StructA");
@@ -204,7 +204,7 @@ fn func_def_op_self_value_of_constrain() {
 fn call_op_self_value_of_compute() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
     let module_body = module.body();
 
     let s1 = make_empty_struct(&context, "StructA");

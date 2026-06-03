@@ -22,7 +22,7 @@ fn make_empty_func<'c>(context: &'c LlzkContext, name: &str) -> FuncDefOp<'c> {
 fn insert_renames_symbols_on_collision() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context));
+    let module = llzk_module(Location::unknown(&context), None);
 
     let first = FuncDefOpRef::try_from(
         module
