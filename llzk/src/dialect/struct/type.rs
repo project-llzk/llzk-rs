@@ -65,16 +65,18 @@ impl<'c> StructType<'c> {
     }
 
     /// Get the struct's params.
-    pub fn params(&self) -> ArrayAttribute<'c> {
-        ArrayAttribute::try_from(unsafe {
-            Attribute::from_raw(llzkStruct_StructTypeGetParams(self.to_raw()))
-        })
-        .expect("struct type's params must be an array attribute")
+    pub fn params(&self) -> Option<ArrayAttribute<'c>> {
+        unsafe { Attribute::from_option_raw(llzkStruct_StructTypeGetParams(self.to_raw())) }.map(
+            |a| {
+                ArrayAttribute::try_from(a)
+                    .expect("struct type's params must be an array attribute")
+            },
+        )
     }
 
     /// Get the struct's params as a vector of attributes.
     pub fn params_vec(&self) -> Vec<Attribute<'c>> {
-        self.params().into_iter().collect()
+        self.params().into_iter().flatten().collect()
     }
 
     /// Actual implementation of the [`lookup_definition`](Self::lookup_definition) and
