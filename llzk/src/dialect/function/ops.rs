@@ -1,6 +1,6 @@
 use crate::{
     attributes::{NamedAttribute, array::ArrayAttribute},
-    builder::{OpBuilder, OpBuilderLike as _},
+    builder::{OpBuilder, OpBuilderLike},
     dialect::r#struct::StructType,
     error::Error,
     macros::llzk_op_type,
@@ -488,7 +488,7 @@ pub fn is_func_def<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 
 /// Creates a new `function.call` operation.
 pub fn call<'c>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],
@@ -510,7 +510,7 @@ pub fn call<'c>(
 
 /// Creates a new `function.call` operation with map operands.
 pub fn call_with_map_operands<'c>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],
@@ -536,7 +536,7 @@ pub fn call_with_map_operands<'c>(
 /// calling functions inside `poly.template` regions when template parameters are not bound
 /// by the call's argument or result types.
 pub fn call_with_template_params<'c>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],

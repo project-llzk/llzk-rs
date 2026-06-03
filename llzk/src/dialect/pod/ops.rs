@@ -54,7 +54,7 @@ impl<'c, 'a> RecordValue<'c, 'a> {
 /// Creates a 'pod.new' operation from a list of initialization values. If the optional type
 /// of the result pod is not given, it will be inferred from the provided initialization values.
 pub fn new<'c, 'a>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     values: &[RecordValue<'c, 'a>],
     r#type: Option<PodType<'c>>,
@@ -85,7 +85,7 @@ pub fn new<'c, 'a>(
 /// Creates a 'pod.new' operation from a list of initialization values and a`MapOperandsBuilder`
 /// to instantiate top-level `affine_map` attributes appearing in the pod type.
 pub fn new_with_affine_init<'c, 'a>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     values: &[RecordValue<'c, 'a>],
     r#type: PodType<'c>,

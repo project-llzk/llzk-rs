@@ -426,7 +426,7 @@ pub fn is_struct_member<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 
 /// Creates a 'struct.readm' op
 pub fn readm<'c>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     result_type: Type<'c>,
     component: Value<'c, '_>,

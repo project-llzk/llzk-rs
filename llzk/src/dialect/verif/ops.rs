@@ -529,7 +529,7 @@ impl<'a, 'c: 'a> IncludeOpLike<'c, 'a> for IncludeOpRefMut<'c, 'a> {}
 
 /// Creates a `verif.include` op with only direct call operands.
 pub fn include<'c>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[melior::ir::Value<'c, '_>],
@@ -554,7 +554,7 @@ pub fn include<'c>(
 /// Creates a `verif.include` op with grouped map operands and explicit
 /// `numDimsPerMap` metadata.
 pub fn include_with_map_operands<'c, 'g, 'v>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[melior::ir::Value<'c, '_>],
@@ -571,7 +571,7 @@ pub fn include_with_map_operands<'c, 'g, 'v>(
 /// Creates a `verif.include` op with grouped map operands and dimension counts
 /// provided as a Rust slice.
 pub fn include_with_map_operands_slice<'c, 'g, 'v>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[melior::ir::Value<'c, '_>],
@@ -657,7 +657,7 @@ macro_rules! impl_condition_op {
 
         #[doc = concat!("Creates a `", $name, "` op.")]
         pub fn $ctor<'c>(
-            builder: &OpBuilder<'c>,
+            builder: &impl OpBuilderLike<'c>,
             location: Location<'c>,
             condition: impl melior::ir::ValueLike<'c>,
         ) -> Result<$type<'c>, Error> {
