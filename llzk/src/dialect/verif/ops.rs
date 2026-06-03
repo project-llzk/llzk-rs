@@ -332,15 +332,21 @@ impl<'a, 'c: 'a> ContractOpLike<'c, 'a> for ContractOpRefMut<'c, 'a> {}
 /// Creates a `verif.contract` op using the builder that infers argument and type
 /// information from the target symbol. Also inserts an entry block into the
 /// contract region for convenience.
-pub fn contract<'c, 'a>(
+///
+/// The op is inserted at the builder's insertion point, returning a reference to it.
+///
+/// # Panics
+///
+/// If the insertion point is not set.
+pub fn contract<'c, 'a, 'b>(
     builder: &'a impl OpBuilderLike<'c>,
     location: Location<'c>,
     name: &str,
     target: impl SymbolRefAttrLike<'c>,
-) -> Result<ContractOp<'c>, Error> {
+) -> Result<ContractOpRef<'c, 'b>, Error> {
     let context = location.context();
     let op = unsafe {
-        ContractOp::from_raw(llzkVerif_ContractOpBuildFromTargetAttr(
+        ContractOpRef::from_raw(llzkVerif_ContractOpBuildFromTargetAttr(
             builder.to_raw(),
             location.to_raw(),
             Identifier::new(context.to_ref(), name).to_raw(),

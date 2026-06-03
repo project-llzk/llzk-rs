@@ -250,7 +250,7 @@ fn include_flat() {
     );
     assert_eq!(
         include.resolve_callable().unwrap(),
-        OperationRef::from(ContractOpRef::from(&contract_b))
+        OperationRef::from(contract_b)
     );
 }
 
