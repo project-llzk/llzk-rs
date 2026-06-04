@@ -444,8 +444,9 @@ mod tests {
         )
     }
 
+    /// Moves the builder through the heap and back.
     fn move_builder<'c, 'l>(builder: OpBuilder<'c, 'l>) -> OpBuilder<'c, 'l> {
-        builder
+        *Box::new(builder)
     }
 
     #[rstest]
