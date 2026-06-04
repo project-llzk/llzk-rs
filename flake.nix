@@ -3,11 +3,11 @@
     llzk-pkgs.url = "github:project-llzk/llzk-nix-pkgs";
     nixpkgs.follows = "llzk-pkgs/nixpkgs";
     flake-utils.follows = "llzk-pkgs/flake-utils";
-    rust-overlay = { 
-      url = "github:oxalica/rust-overlay"; 
-      inputs = { 
-        nixpkgs.follows = "llzk-pkgs/nixpkgs"; 
-      }; 
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "llzk-pkgs/nixpkgs";
+      };
     };
     llzk-lib = {
       url = "github:project-llzk/llzk-lib";
@@ -43,7 +43,7 @@
       llzk-pkgs,
       llzk-lib,
       pcl-mlir-pkg,
-      rust-overlay
+      rust-overlay,
     }:
     {
       # Overlay for downstream consumption
@@ -116,10 +116,7 @@
               llzk-llvmPackages.libclang.dev
             ];
 
-            devBuildInputs =
-              with final;
-              [ git ]
-              ++ llzkSharedEnvironment.buildInputs;
+            devBuildInputs = with final; [ git ] ++ llzkSharedEnvironment.buildInputs;
 
             # Shared environment variables
             env = {
@@ -231,7 +228,7 @@
         devShells = flake-utils.lib.flattenTree {
           default = pkgs.mkShell (
             {
-              nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs ;
+              nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs;
               buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [
                 rust-stable
               ];
