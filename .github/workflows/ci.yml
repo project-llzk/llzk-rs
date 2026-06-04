@@ -30,6 +30,7 @@ jobs:
       - uses: cachix/cachix-action@v17
         with:
           name: veridise-public
+          extraPullNames: nix-community
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
       - name: Set nix environment
         uses: nicknovitski/nix-develop@v1
@@ -80,6 +81,7 @@ jobs:
       - uses: cachix/cachix-action@v17
         with:
           name: veridise-public
+          extraPullNames: nix-community
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
       - name: Set nix environment
         uses: nicknovitski/nix-develop@v1
@@ -133,6 +135,7 @@ jobs:
       - uses: cachix/cachix-action@v17
         with:
           name: veridise-public
+          extraPullNames: nix-community
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
       - name: Set nix environment
         uses: nicknovitski/nix-develop@v1

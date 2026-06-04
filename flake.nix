@@ -3,11 +3,11 @@
     llzk-pkgs.url = "github:project-llzk/llzk-nix-pkgs";
     nixpkgs.follows = "llzk-pkgs/nixpkgs";
     flake-utils.follows = "llzk-pkgs/flake-utils";
-    rust-overlay = { 
-      url = "github:oxalica/rust-overlay"; 
-      inputs = { 
-        nixpkgs.follows = "llzk-pkgs/nixpkgs"; 
-      }; 
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs = {
+        nixpkgs.follows = "llzk-pkgs/nixpkgs";
+      };
     };
     llzk-lib = {
       url = "github:project-llzk/llzk-lib";
@@ -32,7 +32,15 @@
   };
 
   # Custom colored bash prompt
-  nixConfig.bash-prompt = "\\[\\e[0;32m\\][llzk-rs]\\[\\e[m\\] \\[\\e[38;5;244m\\]\\w\\[\\e[m\\] % ";
+  nixConfig = {
+    bash-prompt = "\\[\\e[0;32m\\][llzk-rs]\\[\\e[m\\] \\[\\e[38;5;244m\\]\\w\\[\\e[m\\] % ";
+    extra-substituters = [
+      "https://nix-community.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    ];
+  };
 
   outputs =
     {
@@ -43,7 +51,7 @@
       llzk-pkgs,
       llzk-lib,
       pcl-mlir-pkg,
-      rust-overlay
+      fenix
     }:
     {
       # Overlay for downstream consumption
@@ -149,7 +157,6 @@
             # Shared settings for dev shells
             devSettings = {
               RUSTFLAGS = "-lLLVM -L ${mlir-with-llvm}/lib";
-              RUST_SRC_PATH = final.rustPlatform.rustLibSrc;
               # Fix _FORTIFY_SOURCE warning on Linux. The same approach used in `pkgSettings` did not work
               # in the dev shell for some reason. In this case, just disable _FORTIFY_SOURCE altogether.
               NIX_CFLAGS_COMPILE = " -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0";
@@ -199,10 +206,20 @@
     // flake-utils.lib.eachDefaultSystem (
       system:
       let
+        fenixPkgs = fenix.packages.${system};
+        stableRust = fenixPkgs.stable.withComponents [
+          "cargo"
+          "clippy"
+          "rustc"
+          "rustfmt"
+        ];
+        nightlyRust = fenixPkgs.default.withComponents [
+          "cargo"
+          "rustc"
+        ];
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            (import rust-overlay)
             self.overlays.default
             llzk-pkgs.overlays.default
             llzk-lib.overlays.default
@@ -216,12 +233,13 @@
           inherit (pkgs) llzk llzk-debug;
           inherit (pkgs) mlir mlir-debug;
           inherit (pkgs) changelogCreator;
-          inherit (pkgs) rust-bin;
           # Prevent use of libllvm and llvm from nixpkgs, which will have
           # different versions than the mlir from llzk-pkgs.
           inherit (pkgs.llzk-llvmPackages) libllvm llvm;
           # Add new packages created here
           inherit (pkgs) mlir-with-llvm llzk-rs llzk-sys-rs;
+          rust-toolchain = stableRust;
+          rust-nightly-toolchain = nightlyRust;
           default = pkgs.llzk-rs;
         };
 
@@ -230,7 +248,7 @@
             {
               nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs ;
               buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [
-                pkgs.rust-bin.stable.latest.default
+                stableRust
               ];
             }
             // pkgs.llzkSharedEnvironment.env
@@ -239,9 +257,9 @@
           nightly = pkgs.mkShell (
             {
               nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs;
-              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [(
-                pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default)
-              )];
+              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [
+                nightlyRust
+              ];
             }
             // pkgs.llzkSharedEnvironment.env
             // pkgs.llzkSharedEnvironment.devSettings
