@@ -34,6 +34,8 @@ jobs:
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
       - name: Set nix environment
         uses: nicknovitski/nix-develop@v1
+        with:
+          arguments: "--accept-flake-config"
         env:
           CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
       - name: Cache cargo crates
@@ -86,7 +88,7 @@ jobs:
       - name: Set nix environment
         uses: nicknovitski/nix-develop@v1
         with:
-          arguments: "'.#nightly'"
+          arguments: "--accept-flake-config '.#nightly'"
         env:
           CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
       - name: Set sanitizer options
@@ -139,6 +141,8 @@ jobs:
           authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
       - name: Set nix environment
         uses: nicknovitski/nix-develop@v1
+        with:
+          arguments: "--accept-flake-config"
         env:
           CI_BOT_PAT: "${{ secrets.CI_BUILD_TOKEN }}"
       - name: Cache cargo crates
