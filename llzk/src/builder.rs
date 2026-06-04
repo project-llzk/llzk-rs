@@ -1,16 +1,16 @@
 //! Types and traits for working with operation builders.
 
-use std::{marker::PhantomData, os::raw::c_void, pin::Pin, ptr::null_mut};
+use std::{marker::PhantomData, os::raw::c_void, ptr::null_mut};
 
 use llzk_sys::{
     MlirOpBuilder, MlirOpBuilderInsertPoint, MlirOpBuilderListener,
     mlirOpBuilderClearInsertionPoint, mlirOpBuilderCreate, mlirOpBuilderCreateWithListener,
     mlirOpBuilderDestroy, mlirOpBuilderGetContext, mlirOpBuilderGetInsertionBlock,
-    mlirOpBuilderGetInsertionPoint, mlirOpBuilderListenerCreate, mlirOpBuilderListenerDestroy,
-    mlirOpBuilderRestoreInsertionPoint, mlirOpBuilderSaveInsertionPoint,
-    mlirOpBuilderSetInsertionPoint, mlirOpBuilderSetInsertionPointAfter,
-    mlirOpBuilderSetInsertionPointAfterValue, mlirOpBuilderSetInsertionPointToEnd,
-    mlirOpBuilderSetInsertionPointToStart,
+    mlirOpBuilderGetInsertionPoint, mlirOpBuilderInsert, mlirOpBuilderListenerCreate,
+    mlirOpBuilderListenerDestroy, mlirOpBuilderRestoreInsertionPoint,
+    mlirOpBuilderSaveInsertionPoint, mlirOpBuilderSetInsertionPoint,
+    mlirOpBuilderSetInsertionPointAfter, mlirOpBuilderSetInsertionPointAfterValue,
+    mlirOpBuilderSetInsertionPointToEnd, mlirOpBuilderSetInsertionPointToStart,
 };
 use melior::{
     Context, ContextRef,
@@ -102,14 +102,14 @@ pub trait OpBuilderLike<'c> {
     }
 
     /// Inserts the operation produced by the closure and returns a reference to it.
-    fn insert<'a, F: FnOnce(ContextRef<'c>, Location<'c>) -> Operation<'c>>(
+    fn insert<'a, F: FnOnce(&'c Context, Location<'c>) -> Operation<'c>>(
         &'c self,
         loc: Location<'c>,
         f: F,
     ) -> OperationRef<'c, 'a> {
-        let op = f(self.context(), loc);
-        self.insertion_block()
-            .insert_operation_after(self.insertion_point(), op)
+        let ctx = self.context();
+        let op = f(unsafe { ctx.to_ref() }, loc);
+        unsafe { OperationRef::from_raw(mlirOpBuilderInsert(self.to_raw(), op.into_raw())) }
     }
 }
 
@@ -123,10 +123,7 @@ pub struct OpBuilder<'c, 'l> {
 
 impl<'c, 'l> OpBuilder<'c, 'l> {
     /// Creates a new operation builder with the given listener.
-    pub fn new_with_listener(
-        context: &'c Context,
-        listener: impl OpBuilderListener + 'l + std::marker::Unpin,
-    ) -> Self {
+    pub fn new_with_listener(context: &'c Context, listener: impl OpBuilderListener + 'l) -> Self {
         unsafe {
             let ctx = context.to_raw();
             let listener = ListenerWrap::new(listener);
@@ -215,7 +212,7 @@ impl<'c> OpBuilderLike<'c> for OpBuilderRef<'c, '_, '_> {
 /// Insertion point of a [`OpBuilderLike`].
 #[derive(Debug, Copy, Clone)]
 pub struct InsertPoint<'ctx, 'blk> {
-    block: BlockRef<'ctx, 'blk>,
+    block: Option<BlockRef<'ctx, 'blk>>,
     point: Option<OperationRef<'ctx, 'blk>>,
 }
 
@@ -226,8 +223,10 @@ impl<'ctx, 'blk> InsertPoint<'ctx, 'blk> {
     ///
     /// The inner block and operations must be valid.
     unsafe fn from_raw(point: MlirOpBuilderInsertPoint) -> Self {
+        dbg!(&point.block);
+        dbg!(&point.point);
         Self {
-            block: unsafe { BlockRef::from_raw(point.block) },
+            block: unsafe { BlockRef::from_option_raw(point.block) },
             point: unsafe { OperationRef::from_option_raw(point.point) },
         }
     }
@@ -235,7 +234,10 @@ impl<'ctx, 'blk> InsertPoint<'ctx, 'blk> {
     /// Returns its raw representation.
     fn to_raw(self) -> MlirOpBuilderInsertPoint {
         MlirOpBuilderInsertPoint {
-            block: self.block.to_raw(),
+            block: self
+                .block
+                .map(|b| b.to_raw())
+                .unwrap_or(MlirBlock { ptr: null_mut() }),
             point: self
                 .point
                 .map(|o| o.to_raw())
@@ -244,7 +246,7 @@ impl<'ctx, 'blk> InsertPoint<'ctx, 'blk> {
     }
 
     /// Returns the block where the insert point is located.
-    pub fn block(&self) -> BlockRef<'ctx, 'blk> {
+    pub fn block(&self) -> Option<BlockRef<'ctx, 'blk>> {
         self.block
     }
 
@@ -318,46 +320,40 @@ where
 }
 
 /// Handles a listener's lifetime within an [`OpBuilder`].
+#[derive(Debug)]
 struct ListenerWrap<'l> {
     raw: MlirOpBuilderListener,
-    _listener: Pin<Box<dyn OpBuilderListener + 'l>>,
+    listener: *mut Wrap<'l>,
 }
 
 impl<'l> ListenerWrap<'l> {
-    fn new<L: OpBuilderListener + 'l + std::marker::Unpin>(listener: L) -> Self {
-        let mut listener = Pin::new(Box::new(listener));
+    fn new(listener: impl OpBuilderListener + 'l) -> Self {
+        let listener: Box<Wrap<'l>> = Box::new(Wrap(Box::new(listener)));
+        // Leak the pointer to pass it to the FFI function.
+        // The destructor will reconstruct the box and dispose of it properly.
+        let listener = Box::into_raw(listener);
         let raw = unsafe {
             mlirOpBuilderListenerCreate(
                 Some(notify_operation_inserted_cb),
                 Some(notify_block_inserted_cb),
-                listener.as_mut().get_mut() as *mut L as *mut c_void,
+                listener as *mut c_void,
             )
         };
 
-        Self {
-            raw,
-            _listener: listener,
-        }
+        Self { raw, listener }
     }
 }
 
 impl Drop for ListenerWrap<'_> {
     fn drop(&mut self) {
         unsafe { mlirOpBuilderListenerDestroy(self.raw) }
+        drop(unsafe { Box::from_raw(self.listener) })
     }
 }
 
-impl std::fmt::Debug for ListenerWrap<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ListenerWrap")
-            .field("raw", &self.raw)
-            .finish()
-    }
-}
-
-/// Transparent wrapper to help with casting.
-#[repr(transparent)]
-struct Wrap<'a, 'b>(&'a mut (dyn OpBuilderListener + 'b));
+/// Wraps a pointer to a [`OpBuilderListener`] implementation. This type is used as the user data pointer and
+/// its lifetime is handled by [`ListenerWrap`].
+struct Wrap<'l>(Box<dyn OpBuilderListener + 'l>);
 
 unsafe extern "C" fn notify_operation_inserted_cb(
     op: MlirOperation,
@@ -383,4 +379,221 @@ unsafe extern "C" fn notify_block_inserted_cb(
         unsafe { RegionRef::from_raw(region) },
         unsafe { BlockRef::from_raw(point) },
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{cell::RefCell, collections::HashSet, rc::Rc};
+
+    use melior::{
+        Context,
+        dialect::arith,
+        ir::{
+            BlockLike, Location, Module, Type, attribute::IntegerAttribute,
+            operation::OperationLike,
+        },
+    };
+    use rstest::rstest;
+
+    use crate::test::ctx;
+
+    use super::*;
+
+    #[derive(Debug, Default, PartialEq)]
+    struct ListenerState {
+        listener_addrs: HashSet<usize>,
+    }
+
+    #[derive(Clone, Debug)]
+    struct RecordingListener {
+        state: Rc<RefCell<ListenerState>>,
+    }
+
+    impl RecordingListener {
+        fn new(state: Rc<RefCell<ListenerState>>) -> Self {
+            Self { state }
+        }
+    }
+
+    impl OpBuilderListener for RecordingListener {
+        fn notify_operation_inserted<'ctx, 'blk>(
+            &mut self,
+            _: OperationRef<'ctx, 'blk>,
+            _: InsertPoint<'ctx, 'blk>,
+        ) {
+            let self_addr = self as *mut Self as usize;
+            self.state.borrow_mut().listener_addrs.insert(self_addr);
+        }
+
+        fn notify_block_inserted<'ctx, 'blk>(
+            &mut self,
+            _: BlockRef<'ctx, 'blk>,
+            _: RegionRef<'ctx, 'blk>,
+            _: BlockRef<'ctx, 'blk>,
+        ) {
+            let self_addr = self as *mut Self as usize;
+            self.state.borrow_mut().listener_addrs.insert(self_addr);
+        }
+    }
+
+    fn index_constant<'c>(ctx: &'c Context, loc: Location<'c>, value: i64) -> Operation<'c> {
+        arith::constant(
+            ctx,
+            IntegerAttribute::new(Type::index(ctx), value).into(),
+            loc,
+        )
+    }
+
+    fn move_builder<'c, 'l>(builder: OpBuilder<'c, 'l>) -> OpBuilder<'c, 'l> {
+        builder
+    }
+
+    #[rstest]
+    fn builder_context_and_ref_share_context(ctx: Context) {
+        let builder = OpBuilder::new(&ctx);
+        let builder_ref = OpBuilderRef::from_raw(builder.to_raw());
+
+        assert_eq!(builder.context(), ctx);
+        assert_eq!(builder_ref.context(), ctx);
+    }
+
+    #[rstest]
+    fn at_block_begin_inserts_before_existing_operations(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let module = Module::new(location);
+        let body = module.body();
+        let existing = body.append_operation(index_constant(&ctx, location, 2));
+        let builder = OpBuilder::at_block_begin(&ctx, body);
+
+        let inserted = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 1));
+
+        assert_eq!(body.first_operation(), Some(inserted));
+        assert_eq!(inserted.next_in_block(), Some(existing));
+    }
+
+    #[rstest]
+    fn set_insertion_point_at_end_and_save_point_use_expected_block(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let module = Module::new(location);
+        let body = module.body();
+        body.append_operation(index_constant(&ctx, location, 2));
+        let builder = OpBuilder::new(&ctx);
+
+        builder.set_insertion_point_at_end(body);
+        assert_eq!(builder.insertion_block(), body);
+
+        let end = builder.save_insertion_point();
+        let end_raw = end.to_raw();
+        assert_eq!(end_raw.block.ptr, body.to_raw().ptr);
+        assert!(!end_raw.point.ptr.is_null());
+    }
+
+    #[rstest]
+    fn set_insertion_point_inserts_before_target_operation(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let module = Module::new(location);
+        let body = module.body();
+        let first = body.append_operation(index_constant(&ctx, location, 1));
+        let second = body.append_operation(index_constant(&ctx, location, 2));
+        let builder = OpBuilder::new(&ctx);
+
+        builder.set_insertion_point(second);
+        let before_second = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 3));
+        assert_eq!(first.next_in_block(), Some(before_second));
+        assert_eq!(before_second.next_in_block(), Some(second));
+    }
+
+    #[rstest]
+    fn insertion_point_after_wrappers_insert_immediately_after_anchor(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let module = Module::new(location);
+        let body = module.body();
+        let first = body.append_operation(index_constant(&ctx, location, 1));
+        let second = body.append_operation(index_constant(&ctx, location, 2));
+        let builder = OpBuilder::new(&ctx);
+
+        builder.set_insertion_point_after(first);
+        let after_first = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 4));
+        assert_eq!(first.next_in_block(), Some(after_first));
+        assert_eq!(after_first.next_in_block(), Some(second));
+
+        builder.set_insertion_point_after_value(first.result(0).unwrap());
+        let after_value = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 5));
+        assert_eq!(first.next_in_block(), Some(after_value));
+        assert_eq!(after_value.next_in_block(), Some(after_first));
+    }
+
+    #[rstest]
+    fn restore_and_clear_insertion_point_wrappers_update_builder_state(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let module = Module::new(location);
+        let body = module.body();
+        body.append_operation(index_constant(&ctx, location, 1));
+        let second = body.append_operation(index_constant(&ctx, location, 2));
+        let builder = OpBuilder::new(&ctx);
+
+        builder.set_insertion_point_at_end(body);
+        let end = builder.save_insertion_point();
+
+        builder.restore_insertion_point(end);
+        let restored = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 6));
+        assert_eq!(second.next_in_block(), Some(restored));
+
+        builder.clear_insertion_point();
+        let cleared = builder.save_insertion_point().to_raw();
+        assert!(cleared.block.ptr.is_null());
+        assert!(cleared.point.ptr.is_null());
+    }
+
+    #[rstest]
+    fn restoring_saved_insertion_point_rewinds_future_insertions(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let module = Module::new(location);
+        let body = module.body();
+        let builder = OpBuilder::at_block_begin(&ctx, body);
+
+        let saved = builder.save_insertion_point();
+        dbg!(saved);
+
+        let inserted_first = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 2));
+        builder.restore_insertion_point(saved);
+        let inserted_second = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 3));
+
+        assert_eq!(inserted_second.next_in_block(), Some(inserted_first));
+    }
+
+    fn listener_addr(builder: &OpBuilder) -> usize {
+        unsafe {
+            let Some(listener_wrap) = builder._listener.as_ref().unwrap().listener.as_ref() else {
+                return 0;
+            };
+
+            listener_wrap.0.as_ref() as *const dyn OpBuilderListener as *const c_void as usize
+        }
+    }
+
+    #[rstest]
+    fn listener_callback_keeps_same_listener_address_when_builder_moves(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let state = Rc::new(RefCell::new(ListenerState {
+            listener_addrs: HashSet::new(),
+        }));
+        let builder = OpBuilder::new_with_listener(&ctx, RecordingListener::new(state.clone()));
+        let listener_addr = listener_addr(&builder);
+        let module = Module::new(location);
+        let body = module.body();
+
+        builder.set_insertion_point_at_start(body);
+        builder.insert(location, |ctx, loc| index_constant(ctx, loc, 1));
+        let first = body.first_operation().unwrap();
+        let builder = move_builder(builder);
+        builder.set_insertion_point_after(first);
+        builder.insert(location, |ctx, loc| index_constant(ctx, loc, 2));
+
+        let expected = ListenerState {
+            listener_addrs: HashSet::from_iter([listener_addr]),
+        };
+        let state = state.borrow();
+        assert_eq!(*state, expected);
+    }
 }
