@@ -277,8 +277,8 @@ pub trait OpBuilderListener {
     fn notify_block_inserted<'ctx, 'blk>(
         &mut self,
         block: BlockRef<'ctx, 'blk>,
-        region: RegionRef<'ctx, 'blk>,
-        point: BlockRef<'ctx, 'blk>,
+        region: Option<RegionRef<'ctx, 'blk>>,
+        point: Option<BlockRef<'ctx, 'blk>>,
     );
 }
 
@@ -299,7 +299,7 @@ impl<F1, F2> SimpleOpBuilderListener<F1, F2> {
 impl<F1, F2> OpBuilderListener for SimpleOpBuilderListener<F1, F2>
 where
     F1: FnMut(OperationRef, InsertPoint),
-    F2: FnMut(BlockRef, RegionRef, BlockRef),
+    F2: FnMut(BlockRef, Option<RegionRef>, Option<BlockRef>),
 {
     fn notify_operation_inserted<'ctx, 'blk>(
         &mut self,
@@ -312,8 +312,8 @@ where
     fn notify_block_inserted<'ctx, 'blk>(
         &mut self,
         block: BlockRef<'ctx, 'blk>,
-        region: RegionRef<'ctx, 'blk>,
-        point: BlockRef<'ctx, 'blk>,
+        region: Option<RegionRef<'ctx, 'blk>>,
+        point: Option<BlockRef<'ctx, 'blk>>,
     ) {
         (self.f2)(block, region, point)
     }
@@ -376,8 +376,8 @@ unsafe extern "C" fn notify_block_inserted_cb(
     let data = unsafe { &mut *(data as *mut Wrap) };
     data.0.notify_block_inserted(
         unsafe { BlockRef::from_raw(block) },
-        unsafe { RegionRef::from_raw(region) },
-        unsafe { BlockRef::from_raw(point) },
+        unsafe { RegionRef::from_option_raw(region) },
+        unsafe { BlockRef::from_option_raw(point) },
     );
 }
 
@@ -428,8 +428,8 @@ mod tests {
         fn notify_block_inserted<'ctx, 'blk>(
             &mut self,
             _: BlockRef<'ctx, 'blk>,
-            _: RegionRef<'ctx, 'blk>,
-            _: BlockRef<'ctx, 'blk>,
+            _: Option<RegionRef<'ctx, 'blk>>,
+            _: Option<BlockRef<'ctx, 'blk>>,
         ) {
             let self_addr = self as *mut Self as usize;
             self.state.borrow_mut().listener_addrs.insert(self_addr);
