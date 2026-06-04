@@ -10,7 +10,7 @@ use melior::{
 
 use crate::{
     attributes::NamedAttribute,
-    builder::OpBuilder,
+    builder::{EntryPoint, OpBuilder},
     dialect,
     error::Error,
     prelude::{
@@ -140,7 +140,7 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
                     let reg = block.insert_operation_before(
                         fst,
                         super::readm(
-                            &OpBuilder::new(context),
+                            &OpBuilder::new(context, EntryPoint::Before(fst)),
                             loc,
                             FeltType::new(context).into(),
                             block.argument(0)?.into(),

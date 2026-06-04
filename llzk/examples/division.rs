@@ -162,7 +162,7 @@ fn constraints<'c>(
         .and_then(|b| Some((b, b.terminator()?)))
         .unwrap();
 
-    let builder = OpBuilder::new(context);
+    let builder = OpBuilder::at_block_end(context, block);
 
     // Obtain the inputs same as before but with the offsets increased by 1.
     let a = block.argument(1)?;

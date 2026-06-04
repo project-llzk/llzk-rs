@@ -131,7 +131,8 @@ fn pod_new_empty_and_inferred() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
-    let builder = OpBuilder::new(&context);
+    let module = Module::new(location);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::pod::new(&builder, location, &[], None);
 
     let ir = format!("{op}");
@@ -144,7 +145,8 @@ fn pod_new_nonempty_and_inferred() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
-    let builder = OpBuilder::new(&context);
+    let module = Module::new(location);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
     // Note: must keep hard ref to this op to prevent it being dropped.
     let arith_op = arith::constant(
@@ -168,7 +170,8 @@ fn pod_new_empty_with_empty_affine() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
-    let builder = OpBuilder::new(&context);
+    let module = Module::new(location);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let ty = PodType::new(&context, &[]);
     let map_operands = MapOperandsBuilder::new();
@@ -184,7 +187,8 @@ fn pod_new_empty_with_nonempty_affine() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
-    let builder = OpBuilder::new(&context);
+    let module = Module::new(location);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
     // Note: must keep hard ref to this op to prevent it being dropped.
     let arith_op = arith::constant(

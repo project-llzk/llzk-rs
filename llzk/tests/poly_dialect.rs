@@ -1,5 +1,5 @@
 use llzk::{
-    builder::OpBuilder,
+    builder::{OpBuilder, OpBuilderLike as _},
     dialect::poly::{
         TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOp,
         TemplateSymbolBindingOpLike, TemplateSymbolBindingOpRef, applymap, expr, is_applymap_op,
@@ -65,22 +65,25 @@ fn create_param() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let module = llzk_module(loc, None);
-    let op = param(
-        loc,
-        "T",
-        Some(TVarType::new(&context, StringRef::new("T")).into()),
-    )
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        let op = param(
+            builder,
+            loc,
+            "T",
+            Some(TVarType::new(&context, StringRef::new("T")).into()),
+        )
+        .unwrap();
+
+        let ir = format!("{op}");
+        assert_eq!(ir, "poly.param @T : !poly.tvar<@T>");
+        assert!(op.type_opt().is_some());
+        assert!(is_param_op(&op));
+
+        Ok(())
+    })
     .unwrap();
-
-    let ir = format!("{op}");
-    assert!(ir.contains("\"poly.param\""));
-    assert!(ir.contains("sym_name = \"T\""));
-    assert!(ir.contains("type_opt = !poly.tvar<@T>"));
-    assert!(op.type_opt().is_some());
-    assert!(is_param_op(&op));
-
-    let tmpl = template(loc, "tmpl", [Ok(op.into())]).unwrap();
-    let tmpl = module.body().append_operation(tmpl.into());
     assert!(tmpl.verify());
 }
 
@@ -89,27 +92,28 @@ fn create_template_with_param_and_expr() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context), None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let loc = Location::unknown(&context);
-    let c1 = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 1).into(),
-        loc,
-    );
-    let c1_res = c1.result(0).unwrap();
 
-    let tmpl = template(
-        loc,
-        "tmpl",
-        [
-            param(loc, "T", None).map(Into::into),
-            expr(
-                loc,
-                "N",
-                [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
-            )
-            .map(Into::into),
-        ],
-    )
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        param(builder, loc, "T", None)?;
+        expr(builder, loc, "N", |builder| {
+            let c1_res = builder
+                .insert(loc, |context, loc| {
+                    arith::constant(
+                        context,
+                        IntegerAttribute::new(Type::index(context), 1).into(),
+                        loc,
+                    )
+                })
+                .result(0)
+                .unwrap();
+
+            r#yield(builder, loc, c1_res.into())?;
+            Ok(())
+        })?;
+        Ok(())
+    })
     .unwrap();
 
     assert!(tmpl.has_const_param_ops());
@@ -120,7 +124,6 @@ fn create_template_with_param_and_expr() {
     assert_eq!(tmpl.const_expr_names().len(), 1);
     assert!(is_template_op(&tmpl));
 
-    let tmpl = module.body().append_operation(tmpl.into());
     let ir = format!("{}", module.as_operation());
     let expected = r#"module attributes {llzk.lang} {
   poly.template @tmpl {
@@ -141,32 +144,35 @@ fn template_const_ops() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let c1 = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 1).into(),
-        loc,
-    );
-    let c1_res = c1.result(0).unwrap();
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
-    let tmpl = template(
-        loc,
-        "tmpl",
-        [
-            param(
-                loc,
-                "T",
-                Some(TVarType::new(&context, StringRef::new("T")).into()),
-            )
-            .map(Into::into),
-            expr(
-                loc,
-                "N",
-                [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
-            )
-            .map(Into::into),
-            param(loc, "U", None).map(Into::into),
-        ],
-    )
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        param(
+            builder,
+            loc,
+            "T",
+            Some(TVarType::new(&context, StringRef::new("T")).into()),
+        )?;
+
+        expr(builder, loc, "N", |builder| {
+            let c1_res = builder
+                .insert(loc, |context, loc| {
+                    arith::constant(
+                        context,
+                        IntegerAttribute::new(Type::index(context), 1).into(),
+                        loc,
+                    )
+                })
+                .result(0)
+                .unwrap();
+            r#yield(builder, loc, c1_res.into())?;
+            Ok(())
+        })?;
+
+        param(builder, loc, "U", None)?;
+        Ok(())
+    })
     .unwrap();
 
     let ops = tmpl.const_binding_ops();
@@ -194,8 +200,10 @@ fn set_type_restriction_adds_type() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
-    let op = param(loc, "T", None).unwrap();
+    let op = param(&builder, loc, "T", None).unwrap();
     assert!(op.type_restriction().is_none());
 
     let ty = TVarType::new(&context, StringRef::new("T"));
@@ -211,8 +219,11 @@ fn set_type_restriction_clears_type() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let op = param(
+        &builder,
         loc,
         "T",
         Some(TVarType::new(&context, StringRef::new("T")).into()),
@@ -229,29 +240,30 @@ fn empty_struct_with_one_param() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context), None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let loc = Location::unknown(&context);
     let typ = StructType::new(
         SymbolRefAttribute::new_from_str(&context, "tmpl", &["empty"]),
         &[FlatSymbolRefAttribute::new(&context, "T").into()],
     );
 
-    let s = dialect::r#struct::def(
-        loc,
-        "empty",
-        [
-            dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
-            dialect::r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
-        ],
-    )
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        param(builder, loc, "T", None)?;
+        builder.insert(loc, |_, loc| {
+            dialect::r#struct::def(
+                loc,
+                "empty",
+                [
+                    dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
+                    dialect::r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
+                ],
+            )
+            .unwrap()
+            .into()
+        });
+        Ok(())
+    })
     .unwrap();
-
-    let tmpl = template(
-        loc,
-        "tmpl",
-        [param(loc, "T", None).map(Into::into), Ok(s.into())],
-    )
-    .unwrap();
-    let tmpl = module.body().append_operation(tmpl.into());
 
     assert_test!(tmpl, module, @file "expected/empty_struct_with_one_param.mlir");
 }
@@ -261,33 +273,37 @@ fn create_expr_and_get_type() {
     common::setup();
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context), None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let loc = Location::unknown(&context);
-    let c2 = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 2).into(),
-        loc,
-    );
-    let c2_res = c2.result(0).unwrap();
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        let op = expr(builder, loc, "Two", |builder| {
+            let c2_res = builder
+                .insert(loc, |context, loc| {
+                    arith::constant(
+                        context,
+                        IntegerAttribute::new(Type::index(context), 2).into(),
+                        loc,
+                    )
+                })
+                .result(0)
+                .unwrap();
+            r#yield(builder, loc, c2_res.into())?;
+            Ok(())
+        })
+        .unwrap();
 
-    let op = expr(
-        loc,
-        "Two",
-        [Ok(c2), r#yield(loc, c2_res.into()).map(Into::into)],
-    )
+        assert!(is_expr_op(&op));
+        assert_eq!(format!("{}", op.expr_type()), "index");
+        assert_eq!(
+            op.initializer_region()
+                .first_block()
+                .unwrap()
+                .argument_count(),
+            0
+        );
+        Ok(())
+    })
     .unwrap();
-
-    assert!(is_expr_op(&op));
-    assert_eq!(format!("{}", op.expr_type()), "index");
-    assert_eq!(
-        op.initializer_region()
-            .first_block()
-            .unwrap()
-            .argument_count(),
-        0
-    );
-
-    let tmpl = template(loc, "tmpl", [Ok(op.into())]).unwrap();
-    let tmpl = module.body().append_operation(tmpl.into());
     assert!(tmpl.verify());
 }
 
@@ -296,7 +312,8 @@ fn create_yield() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = Module::new(loc);
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let block = module.body();
     let c3 = arith::constant(
         &context,
@@ -304,8 +321,7 @@ fn create_yield() {
         loc,
     );
     let c3 = block.append_operation(c3);
-    let y = r#yield(loc, c3.result(0).unwrap().into()).unwrap();
-    let y = block.append_operation(y.into());
+    let y = r#yield(&builder, loc, c3.result(0).unwrap().into()).unwrap();
 
     assert!(is_yield_op(&y));
     let ir = format!("{block}");
@@ -355,17 +371,17 @@ fn create_applymap(#[case] affine_map: &str, #[case] ops: &[i64], #[case] expect
 
     let affine_map =
         Attribute::parse(&context, affine_map).expect("could not parse affine_map attribute");
-    let module = Module::new(location);
+    let module = llzk_module(location, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let block = module.body();
     let operands = ops
         .iter()
         .map(|i| create_index_constant(&context, &block, location, *i))
         .collect::<Vec<_>>();
 
-    let applymap_op = applymap(location, affine_map, &operands);
+    let applymap_op = applymap(&builder, location, affine_map, &operands);
     assert!(applymap_op.verify(), "op {applymap_op} failed to verify");
     assert!(is_applymap_op(&applymap_op));
-    block.append_operation(applymap_op);
     let ir = format!("{block}");
     assert_eq!(ir, expected);
 }
@@ -375,7 +391,7 @@ fn create_unifiable_cast() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
-    let module = Module::new(location);
+    let module = llzk_module(location, None);
     let block = module.body();
 
     let affine_map_str = "affine_map<()[s0, s1] -> (s0 + s1)>";
@@ -386,7 +402,7 @@ fn create_unifiable_cast() {
         &[FlatSymbolRefAttribute::new(&context, "N").into()],
     );
     let array_op = dialect::array::new(
-        &OpBuilder::new(&context),
+        &OpBuilder::at_block_begin(&context, module.body()),
         location,
         array_ty,
         llzk::dialect::array::ArrayCtor::Values(&[]),
@@ -416,8 +432,11 @@ fn owned_binding_op_param_name_and_type() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let op = TemplateSymbolBindingOp::Param(
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let op = TemplateSymbolBindingOpRef::Param(
         param(
+            &builder,
             loc,
             "T",
             Some(TVarType::new(&context, StringRef::new("T")).into()),
@@ -425,7 +444,7 @@ fn owned_binding_op_param_name_and_type() {
         .unwrap(),
     );
 
-    assert!(matches!(op, TemplateSymbolBindingOp::Param(_)));
+    assert!(matches!(op, TemplateSymbolBindingOpRef::Param(_)));
     assert_eq!(op.sym_name(), "T");
     assert_eq!(
         op.type_opt().map(|ty| ty.to_string()),
@@ -438,61 +457,32 @@ fn owned_binding_op_expr_name_and_type() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let c1 = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 1).into(),
-        loc,
-    );
-    let c1_res = c1.result(0).unwrap();
-    let op = TemplateSymbolBindingOp::Expr(
-        expr(
-            loc,
-            "N",
-            [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
-        )
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let op = TemplateSymbolBindingOpRef::Expr(
+        expr(&builder, loc, "N", |builder| {
+            let c1_res = builder
+                .insert(loc, |context, loc| {
+                    arith::constant(
+                        context,
+                        IntegerAttribute::new(Type::index(context), 1).into(),
+                        loc,
+                    )
+                })
+                .result(0)
+                .unwrap();
+            r#yield(builder, loc, c1_res.into())?;
+            Ok(())
+        })
         .unwrap(),
     );
 
-    assert!(matches!(op, TemplateSymbolBindingOp::Expr(_)));
+    assert!(matches!(op, TemplateSymbolBindingOpRef::Expr(_)));
     assert_eq!(op.sym_name(), "N");
     assert_eq!(
         op.type_opt().map(|ty| ty.to_string()),
         Some(String::from("index"))
     );
-}
-
-#[test]
-fn owned_binding_op_as_ref() {
-    common::setup();
-    let context = LlzkContext::new();
-    let loc = Location::unknown(&context);
-    let c1 = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 1).into(),
-        loc,
-    );
-    let c1_res = c1.result(0).unwrap();
-
-    let param_op = TemplateSymbolBindingOp::Param(param(loc, "T", None).unwrap());
-    let expr_op = TemplateSymbolBindingOp::Expr(
-        expr(
-            loc,
-            "N",
-            [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
-        )
-        .unwrap(),
-    );
-
-    assert!(matches!(
-        param_op.as_ref(),
-        TemplateSymbolBindingOpRef::Param(_)
-    ));
-    assert!(matches!(
-        expr_op.as_ref(),
-        TemplateSymbolBindingOpRef::Expr(_)
-    ));
-    assert_eq!(param_op.as_ref().sym_name(), param_op.sym_name());
-    assert_eq!(expr_op.as_ref().sym_name(), expr_op.sym_name());
 }
 
 // ── TemplateParamOpLike ──────────────────────────────────────────────────────
@@ -502,7 +492,10 @@ fn param_type_restriction_some() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = param(
+        &builder,
         loc,
         "T",
         Some(TVarType::new(&context, StringRef::new("T")).into()),
@@ -519,7 +512,9 @@ fn param_type_restriction_none() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let op = param(loc, "T", None).unwrap();
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let op = param(&builder, loc, "T", None).unwrap();
     assert!(op.type_restriction().is_none());
 }
 
@@ -530,7 +525,9 @@ fn sym_name_attr_value() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let op = param(loc, "MyParam", None).unwrap();
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let op = param(&builder, loc, "MyParam", None).unwrap();
     // sym_name_attr() returns the underlying StringAttribute
     let attr = op.sym_name_attr();
     assert_eq!(attr.value(), "MyParam");
@@ -545,7 +542,13 @@ fn body_region_and_body() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let tmpl = template(loc, "tmpl", [param(loc, "T", None).map(Into::into)]).unwrap();
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        param(builder, loc, "T", None)?;
+        Ok(())
+    })
+    .unwrap();
 
     // body_region() contains exactly one block
     let region = tmpl.body_region();
@@ -565,7 +568,13 @@ fn has_const_named_negative() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let tmpl = template(loc, "tmpl", [param(loc, "T", None).map(Into::into)]).unwrap();
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        param(builder, loc, "T", None)?;
+        Ok(())
+    })
+    .unwrap();
 
     assert!(!tmpl.has_const_param_named("NotHere"));
     // "T" is a param, not an expr
@@ -577,30 +586,36 @@ fn has_const_ops_false() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
     // Template with only params — has_const_expr_ops must be false
-    let params_only =
-        template(loc, "params_only", [param(loc, "T", None).map(Into::into)]).unwrap();
+    let params_only = template(&builder, loc, "params_only", |builder| {
+        param(builder, loc, "T", None)?;
+        Ok(())
+    })
+    .unwrap();
     assert!(params_only.has_const_param_ops());
     assert!(!params_only.has_const_expr_ops());
 
-    // Template with only an expr — has_const_param_ops must be false
-    let c1 = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 1).into(),
-        loc,
-    );
-    let c1_res = c1.result(0).unwrap();
-    let exprs_only = template(
-        loc,
-        "exprs_only",
-        [expr(
-            loc,
-            "N",
-            [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
-        )
-        .map(Into::into)],
-    )
+    let exprs_only = template(&builder, loc, "exprs_only", |builder| {
+        expr(builder, loc, "N", |builder| {
+            // Template with only an expr — has_const_param_ops must be false
+            let c1_res = builder
+                .insert(loc, |context, loc| {
+                    arith::constant(
+                        &context,
+                        IntegerAttribute::new(Type::index(&context), 1).into(),
+                        loc,
+                    )
+                })
+                .result(0)
+                .unwrap();
+            r#yield(builder, loc, c1_res.into())?;
+            Ok(())
+        })?;
+        Ok(())
+    })
     .unwrap();
     assert!(!exprs_only.has_const_param_ops());
     assert!(exprs_only.has_const_expr_ops());
@@ -611,26 +626,27 @@ fn const_names_content() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let c1 = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 1).into(),
-        loc,
-    );
-    let c1_res = c1.result(0).unwrap();
-    let tmpl = template(
-        loc,
-        "tmpl",
-        [
-            param(loc, "T", None).map(Into::into),
-            param(loc, "U", None).map(Into::into),
-            expr(
-                loc,
-                "N",
-                [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
-            )
-            .map(Into::into),
-        ],
-    )
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        param(builder, loc, "T", None)?;
+        param(builder, loc, "U", None)?;
+        expr(builder, loc, "N", |builder| {
+            let c1_res = builder
+                .insert(loc, |context, loc| {
+                    arith::constant(
+                        &context,
+                        IntegerAttribute::new(Type::index(&context), 1).into(),
+                        loc,
+                    )
+                })
+                .result(0)
+                .unwrap();
+            r#yield(builder, loc, c1_res.into())?;
+            Ok(())
+        })?;
+        Ok(())
+    })
     .unwrap();
 
     let param_names: Vec<String> = tmpl
@@ -653,8 +669,9 @@ fn const_binding_ops_empty_template() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let no_ops: Vec<Result<Operation<'_>, LlzkError>> = vec![];
-    let tmpl = template(loc, "empty", no_ops).unwrap();
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let tmpl = template(&builder, loc, "empty", |_| Ok(())).unwrap();
     assert!(tmpl.const_binding_ops().is_empty());
     assert!(!tmpl.has_const_param_ops());
     assert!(!tmpl.has_const_expr_ops());
@@ -667,14 +684,13 @@ fn display_template_symbol_binding_op() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
-    let owned = TemplateSymbolBindingOp::Param(param(loc, "T", None).unwrap());
-    let s_owned = format!("{owned}");
-    // Ref Display must produce the same output as the owned Display
-    let s_ref = format!("{}", owned.as_ref());
-    assert_eq!(s_owned, s_ref);
-    assert!(s_owned.contains("poly.param"));
-    assert!(s_owned.contains("sym_name = \"T\""));
+    let op_ref = TemplateSymbolBindingOpRef::Param(param(&builder, loc, "T", None).unwrap());
+    let s_ref = format!("{}", op_ref);
+    assert!(s_ref.contains("poly.param"));
+    assert!(s_ref.contains("sym_name = \"T\""));
 }
 
 // ── From conversions ─────────────────────────────────────────────────────────
@@ -684,25 +700,26 @@ fn from_conversions_for_binding_op_ref() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let c1 = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 1).into(),
-        loc,
-    );
-    let c1_res = c1.result(0).unwrap();
-    let tmpl = template(
-        loc,
-        "tmpl",
-        [
-            param(loc, "T", None).map(Into::into),
-            expr(
-                loc,
-                "N",
-                [Ok(c1), r#yield(loc, c1_res.into()).map(Into::into)],
-            )
-            .map(Into::into),
-        ],
-    )
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let tmpl = template(&builder, loc, "tmpl", |builder| {
+        param(builder, loc, "T", None)?;
+        expr(builder, loc, "N", |builder| {
+            let c1_res = builder
+                .insert(loc, |context, loc| {
+                    arith::constant(
+                        &context,
+                        IntegerAttribute::new(Type::index(&context), 1).into(),
+                        loc,
+                    )
+                })
+                .result(0)
+                .unwrap();
+            r#yield(builder, loc, c1_res.into())?;
+            Ok(())
+        })?;
+        Ok(())
+    })
     .unwrap();
 
     let ops = tmpl.const_binding_ops();

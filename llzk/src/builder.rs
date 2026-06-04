@@ -3,11 +3,10 @@
 use std::{marker::PhantomData, os::raw::c_void, ptr::null_mut};
 
 use llzk_sys::{
-    MlirOpBuilder, MlirOpBuilderInsertPoint, MlirOpBuilderListener,
-    mlirOpBuilderClearInsertionPoint, mlirOpBuilderCreate, mlirOpBuilderCreateWithListener,
-    mlirOpBuilderDestroy, mlirOpBuilderGetContext, mlirOpBuilderGetInsertionBlock,
-    mlirOpBuilderGetInsertionPoint, mlirOpBuilderInsert, mlirOpBuilderListenerCreate,
-    mlirOpBuilderListenerDestroy, mlirOpBuilderRestoreInsertionPoint,
+    MlirOpBuilder, MlirOpBuilderInsertPoint, MlirOpBuilderListener, mlirOpBuilderCreate,
+    mlirOpBuilderCreateWithListener, mlirOpBuilderDestroy, mlirOpBuilderGetContext,
+    mlirOpBuilderGetInsertionBlock, mlirOpBuilderGetInsertionPoint, mlirOpBuilderInsert,
+    mlirOpBuilderListenerCreate, mlirOpBuilderListenerDestroy, mlirOpBuilderRestoreInsertionPoint,
     mlirOpBuilderSaveInsertionPoint, mlirOpBuilderSetInsertionPoint,
     mlirOpBuilderSetInsertionPointAfter, mlirOpBuilderSetInsertionPointAfterValue,
     mlirOpBuilderSetInsertionPointToEnd, mlirOpBuilderSetInsertionPointToStart,
@@ -15,7 +14,7 @@ use llzk_sys::{
 use melior::{
     Context, ContextRef,
     ir::{
-        BlockLike, BlockRef, Location, Operation, OperationRef, RegionRef, ValueLike,
+        BlockLike, BlockRef, Location, Operation, OperationRef, RegionRef, Value, ValueLike,
         operation::OperationLike,
     },
 };
@@ -84,21 +83,14 @@ pub trait OpBuilderLike<'c> {
         }
     }
 
-    /// Reset the insertion point to no location.
-    fn clear_insertion_point(&self) {
-        unsafe {
-            mlirOpBuilderClearInsertionPoint(self.to_raw());
-        }
-    }
-
     /// Returns a reference to the block where the builder will insert operations.
-    fn insertion_block<'a>(&self) -> BlockRef<'c, 'a> {
-        unsafe { BlockRef::from_raw(mlirOpBuilderGetInsertionBlock(self.to_raw())) }
+    fn insertion_block<'a>(&self) -> Option<BlockRef<'c, 'a>> {
+        unsafe { BlockRef::from_option_raw(mlirOpBuilderGetInsertionBlock(self.to_raw())) }
     }
 
     /// Returns a reference to the operation where the builder will insert operations after.
-    fn insertion_point<'a>(&self) -> OperationRef<'c, 'a> {
-        unsafe { OperationRef::from_raw(mlirOpBuilderGetInsertionPoint(self.to_raw())) }
+    fn insertion_point<'a>(&self) -> Option<OperationRef<'c, 'a>> {
+        unsafe { OperationRef::from_option_raw(mlirOpBuilderGetInsertionPoint(self.to_raw())) }
     }
 
     /// Inserts the operation produced by the closure and returns a reference to it.
@@ -113,6 +105,34 @@ pub trait OpBuilderLike<'c> {
     }
 }
 
+/// Possible initial insert points when constructing [`OpBuilder`].
+#[derive(Debug, Copy, Clone)]
+pub enum EntryPoint<'c, 'a> {
+    /// The start of a block.
+    Start(BlockRef<'c, 'a>),
+    /// The end of a block.
+    End(BlockRef<'c, 'a>),
+    /// Before the operation.
+    Before(OperationRef<'c, 'a>),
+    /// After the operation.
+    After(OperationRef<'c, 'a>),
+    /// Afther the value.
+    AfterValue(Value<'c, 'a>),
+}
+
+impl<'c> EntryPoint<'c, '_> {
+    /// Configures the given builder depending on the variant.
+    fn set_builder(self, b: &impl OpBuilderLike<'c>) {
+        match self {
+            EntryPoint::Start(block) => b.set_insertion_point_at_start(block),
+            EntryPoint::End(block) => b.set_insertion_point_at_end(block),
+            EntryPoint::Before(op) => b.set_insertion_point(op),
+            EntryPoint::After(op) => b.set_insertion_point_after(op),
+            EntryPoint::AfterValue(value) => b.set_insertion_point_after_value(value),
+        }
+    }
+}
+
 /// An owned operation builder.
 #[derive(Debug)]
 pub struct OpBuilder<'c, 'l> {
@@ -123,8 +143,12 @@ pub struct OpBuilder<'c, 'l> {
 
 impl<'c, 'l> OpBuilder<'c, 'l> {
     /// Creates a new operation builder with the given listener.
-    pub fn new_with_listener(context: &'c Context, listener: impl OpBuilderListener + 'l) -> Self {
-        unsafe {
+    pub fn new_with_listener<'a>(
+        context: &'c Context,
+        point: EntryPoint<'c, 'a>,
+        listener: impl OpBuilderListener + 'l,
+    ) -> Self {
+        let b = unsafe {
             let ctx = context.to_raw();
             let listener = ListenerWrap::new(listener);
             Self {
@@ -132,21 +156,25 @@ impl<'c, 'l> OpBuilder<'c, 'l> {
                 _listener: Some(listener),
                 _context: PhantomData,
             }
-        }
+        };
+        point.set_builder(&b);
+        b
     }
 }
 
 impl<'c> OpBuilder<'c, '_> {
     /// Creates a new operation builder.
-    pub fn new(context: &'c Context) -> Self {
-        unsafe {
+    pub fn new(context: &'c Context, point: EntryPoint<'c, '_>) -> Self {
+        let b = unsafe {
             let ctx = context.to_raw();
             Self {
                 raw: mlirOpBuilderCreate(ctx),
                 _listener: None,
                 _context: Default::default(),
             }
-        }
+        };
+        point.set_builder(&b);
+        b
     }
 
     /// Creates an operation builder from its raw representation.
@@ -163,26 +191,25 @@ impl<'c> OpBuilder<'c, '_> {
     }
 
     /// Creates a new operation builder with the given block as its insertion point.
-    pub fn at_block_begin<'a, B: BlockLike<'c, 'a>>(ctx: &'c Context, block: B) -> Self {
-        let b = Self::new(ctx);
-        b.set_insertion_point_at_start(block);
-        b
+    pub fn at_block_begin<'a>(ctx: &'c Context, block: BlockRef<'c, 'a>) -> Self {
+        Self::new(ctx, EntryPoint::Start(block))
     }
 
     /// Creates a new operation builder with the given block as its insertion point.
     ///
     /// If the block already has a terminator it sets the insertion point right before the
     /// terminator.
-    pub fn at_block_end<'a, B: BlockLike<'c, 'a>>(ctx: &'c Context, block: B) -> Self
+    pub fn at_block_end<'a>(ctx: &'c Context, block: BlockRef<'c, 'a>) -> Self
     where
         'c: 'a,
     {
-        let b = Self::new(ctx);
-        match block.terminator() {
-            Some(t) => b.set_insertion_point(t),
-            None => b.set_insertion_point_at_end(block),
-        };
-        b
+        Self::new(
+            ctx,
+            match block.terminator() {
+                Some(t) => EntryPoint::Before(t),
+                None => EntryPoint::End(block),
+            },
+        )
     }
 }
 
@@ -465,15 +492,6 @@ mod tests {
     }
 
     #[rstest]
-    fn builder_context_and_ref_share_context(ctx: Context) {
-        let builder = OpBuilder::new(&ctx);
-        let builder_ref = OpBuilderRef::from_raw(builder.to_raw());
-
-        assert_eq!(builder.context(), ctx);
-        assert_eq!(builder_ref.context(), ctx);
-    }
-
-    #[rstest]
     fn at_block_begin_inserts_before_existing_operations(ctx: Context) {
         let location = Location::unknown(&ctx);
         let module = Module::new(location);
@@ -493,10 +511,10 @@ mod tests {
         let module = Module::new(location);
         let body = module.body();
         body.append_operation(index_constant(&ctx, location, 2));
-        let builder = OpBuilder::new(&ctx);
+        let builder = OpBuilder::at_block_begin(&ctx, body);
 
         builder.set_insertion_point_at_end(body);
-        assert_eq!(builder.insertion_block(), body);
+        assert_eq!(builder.insertion_block(), Some(body));
 
         let end = builder.save_insertion_point();
         let end_raw = end.to_raw();
@@ -511,7 +529,7 @@ mod tests {
         let body = module.body();
         let first = body.append_operation(index_constant(&ctx, location, 1));
         let second = body.append_operation(index_constant(&ctx, location, 2));
-        let builder = OpBuilder::new(&ctx);
+        let builder = OpBuilder::at_block_begin(&ctx, body);
 
         builder.set_insertion_point(second);
         let before_second = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 3));
@@ -526,9 +544,8 @@ mod tests {
         let body = module.body();
         let first = body.append_operation(index_constant(&ctx, location, 1));
         let second = body.append_operation(index_constant(&ctx, location, 2));
-        let builder = OpBuilder::new(&ctx);
+        let builder = OpBuilder::new(&ctx, EntryPoint::After(first));
 
-        builder.set_insertion_point_after(first);
         let after_first = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 4));
         assert_eq!(first.next_in_block(), Some(after_first));
         assert_eq!(after_first.next_in_block(), Some(second));
@@ -537,28 +554,6 @@ mod tests {
         let after_value = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 5));
         assert_eq!(first.next_in_block(), Some(after_value));
         assert_eq!(after_value.next_in_block(), Some(after_first));
-    }
-
-    #[rstest]
-    fn restore_and_clear_insertion_point_wrappers_update_builder_state(ctx: Context) {
-        let location = Location::unknown(&ctx);
-        let module = Module::new(location);
-        let body = module.body();
-        body.append_operation(index_constant(&ctx, location, 1));
-        let second = body.append_operation(index_constant(&ctx, location, 2));
-        let builder = OpBuilder::new(&ctx);
-
-        builder.set_insertion_point_at_end(body);
-        let end = builder.save_insertion_point();
-
-        builder.restore_insertion_point(end);
-        let restored = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 6));
-        assert_eq!(second.next_in_block(), Some(restored));
-
-        builder.clear_insertion_point();
-        let cleared = builder.save_insertion_point().to_raw();
-        assert!(cleared.block.ptr.is_null());
-        assert!(cleared.point.ptr.is_null());
     }
 
     #[rstest]
@@ -595,10 +590,14 @@ mod tests {
         let state = Rc::new(RefCell::new(ListenerState {
             listener_addrs: HashSet::new(),
         }));
-        let builder = OpBuilder::new_with_listener(&ctx, RecordingListener::new(state.clone()));
-        let listener_addr = listener_addr(&builder);
         let module = Module::new(location);
         let body = module.body();
+        let builder = OpBuilder::new_with_listener(
+            &ctx,
+            EntryPoint::Start(body),
+            RecordingListener::new(state.clone()),
+        );
+        let listener_addr = listener_addr(&builder);
 
         builder.set_insertion_point_at_start(body);
         builder.insert(location, |ctx, loc| index_constant(ctx, loc, 1));

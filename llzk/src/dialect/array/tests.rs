@@ -28,9 +28,9 @@ fn type_new_with_dims(ctx: Context) {
 
 #[rstest]
 fn op_new_with_values(ctx: Context) {
-    let op_builder = OpBuilder::new(&ctx);
     let arr_typ = ArrayType::new_with_dims(Type::index(&ctx), &[2]);
     let module = Module::new(Location::unknown(&ctx));
+    let op_builder = OpBuilder::at_block_begin(&ctx, module.body());
     assert_eq!(ctx, module.context());
     op_builder.set_insertion_point_at_start(module.body());
     let op = op_builder.insert(Location::unknown(&ctx), |_, loc| {

@@ -216,7 +216,7 @@ fn include_flat() {
     let body = contract_a.body().unwrap().first_block().unwrap();
     let arg0: Value = contract_a.argument(0).unwrap().into();
     let arg1: Value = contract_a.argument(1).unwrap().into();
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_begin(&context, body);
     let include = dialect::verif::include(
         &builder,
         Location::unknown(&context),
@@ -225,7 +225,6 @@ fn include_flat() {
         None,
     )
     .unwrap();
-    let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
 
     verify_operation_with_diags(&contract_a).unwrap();
     assert!(dialect::verif::is_include(&include));
@@ -302,7 +301,7 @@ fn include_with_map_operands_empty_groups() {
     let body = contract_a.body().unwrap().first_block().unwrap();
     let arg0: Value = contract_a.argument(0).unwrap().into();
     let arg1: Value = contract_a.argument(1).unwrap().into();
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_begin(&context, body);
     let include = dialect::verif::include_with_map_operands_slice(
         &builder,
         Location::unknown(&context),
@@ -313,7 +312,6 @@ fn include_with_map_operands_empty_groups() {
         &[],
     )
     .unwrap();
-    let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
 
     verify_operation_with_diags(&contract_a).unwrap();
     let collected = include.arg_operands().collect::<Vec<_>>();
@@ -355,7 +353,7 @@ fn include_flat_no_arg_operands() {
     .unwrap();
 
     let body = contract_a.body().unwrap().first_block().unwrap();
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_begin(&context, body);
     let include = dialect::verif::include(
         &builder,
         Location::unknown(&context),
@@ -364,7 +362,6 @@ fn include_flat_no_arg_operands() {
         None,
     )
     .unwrap();
-    let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
 
     verify_operation_with_diags(&contract_a).unwrap();
     let mut iter = include.arg_operands();
@@ -394,10 +391,9 @@ fn require_compute_op() {
     let false_val: Value = false_op.result(0).unwrap().into();
     body.append_operation(true_op);
     body.append_operation(false_op);
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_end(&context, body);
     let op =
         dialect::verif::require_compute(&builder, Location::unknown(&context), true_val).unwrap();
-    let op = RequireComputeOpRef::try_from(body.append_operation(op.into())).unwrap();
     assert!(dialect::verif::is_require_compute(&op));
     assert_eq!(op.condition(), true_val);
     op.set_condition(false_val);
@@ -426,10 +422,9 @@ fn require_constrain_op() {
     let false_val: Value = false_op.result(0).unwrap().into();
     body.append_operation(true_op);
     body.append_operation(false_op);
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_end(&context, body);
     let op =
         dialect::verif::require_constrain(&builder, Location::unknown(&context), true_val).unwrap();
-    let op = RequireConstrainOpRef::try_from(body.append_operation(op.into())).unwrap();
     assert!(dialect::verif::is_require_constrain(&op));
     assert_eq!(op.condition(), true_val);
     op.set_condition(false_val);
@@ -458,10 +453,9 @@ fn ensure_compute_op() {
     let false_val: Value = false_op.result(0).unwrap().into();
     body.append_operation(true_op);
     body.append_operation(false_op);
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_end(&context, body);
     let op =
         dialect::verif::ensure_compute(&builder, Location::unknown(&context), true_val).unwrap();
-    let op = EnsureComputeOpRef::try_from(body.append_operation(op.into())).unwrap();
     assert!(dialect::verif::is_ensure_compute(&op));
     assert_eq!(op.condition(), true_val);
     op.set_condition(false_val);
@@ -490,10 +484,9 @@ fn ensure_constrain_op() {
     let false_val: Value = false_op.result(0).unwrap().into();
     body.append_operation(true_op);
     body.append_operation(false_op);
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_end(&context, body);
     let op =
         dialect::verif::ensure_constrain(&builder, Location::unknown(&context), true_val).unwrap();
-    let op = EnsureConstrainOpRef::try_from(body.append_operation(op.into())).unwrap();
     assert!(dialect::verif::is_ensure_constrain(&op));
     assert_eq!(op.condition(), true_val);
     op.set_condition(false_val);
@@ -517,7 +510,7 @@ fn include_map_operand_setter_roundtrip() {
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
 
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_begin(&context, body);
     let arg0: Value = contract.argument(0).unwrap().into();
     let arg1: Value = contract.argument(1).unwrap().into();
     let include = dialect::verif::include(
@@ -528,7 +521,6 @@ fn include_map_operand_setter_roundtrip() {
         None,
     )
     .unwrap();
-    let include = IncludeOpRef::try_from(body.append_operation(include.into())).unwrap();
 
     let group = OwningValueRange::from([arg0].as_slice());
     let group = ValueRange::try_from(&group).unwrap();
