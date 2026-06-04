@@ -9,11 +9,7 @@ use melior::ir::{
 };
 use mlir_sys::MlirOperation;
 
-use crate::{
-    builder::{OpBuilder, OpBuilderLike},
-    map_operands::MapOperandsBuilder,
-    value_ext::ValueRange,
-};
+use crate::{builder::OpBuilderLike, map_operands::MapOperandsBuilder, value_ext::ValueRange};
 
 use super::ArrayType;
 

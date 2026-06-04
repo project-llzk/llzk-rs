@@ -32,14 +32,14 @@ pub trait OpBuilderLike<'c> {
     }
 
     /// Sets the insertion point to the start of the given block.
-    fn set_insertion_point_at_start<'a, B: BlockLike<'c, 'a>>(&self, block: B) {
+    fn set_insertion_point_at_start<'a>(&self, block: impl BlockLike<'c, 'a>) {
         unsafe {
             mlirOpBuilderSetInsertionPointToStart(self.to_raw(), block.to_raw());
         }
     }
 
     /// Sets the insertion point to the end of the given block.
-    fn set_insertion_point_at_end<'a, B: BlockLike<'c, 'a>>(&self, block: B) {
+    fn set_insertion_point_at_end<'a>(&self, block: impl BlockLike<'c, 'a>) {
         unsafe {
             mlirOpBuilderSetInsertionPointToEnd(self.to_raw(), block.to_raw());
         }
@@ -73,12 +73,12 @@ pub trait OpBuilderLike<'c> {
     }
 
     /// Return a saved insertion point.
-    fn save_insertion_point(&self) -> InsertPoint<'c, '_> {
+    fn save_insertion_point<'a>(&self) -> InsertPoint<'c, 'a> {
         unsafe { InsertPoint::from_raw(mlirOpBuilderSaveInsertionPoint(self.to_raw())) }
     }
 
     /// Restore the insert point to a previously saved point.
-    fn restore_insertion_point(&self, point: InsertPoint<'c, '_>) {
+    fn restore_insertion_point<'a>(&self, point: InsertPoint<'c, 'a>) {
         unsafe {
             mlirOpBuilderRestoreInsertionPoint(self.to_raw(), point.to_raw());
         }
@@ -233,7 +233,7 @@ impl<'ctx, 'blk> InsertPoint<'ctx, 'blk> {
     }
 
     /// Returns its raw representation.
-    fn to_raw(&self) -> MlirOpBuilderInsertPoint {
+    fn to_raw(self) -> MlirOpBuilderInsertPoint {
         MlirOpBuilderInsertPoint {
             block: self.block.to_raw(),
             point: self
@@ -259,6 +259,9 @@ impl<'ctx, 'blk> InsertPoint<'ctx, 'blk> {
 /// For simple use cases you can use [`SimpleOpBuilderListener`].
 pub trait OpBuilderListener {
     /// Notifies the listener that an operation has been inserted.
+    ///
+    /// The callback receives a reference to the inserted operation and the point where it was
+    /// inserted.
     fn notify_operation_inserted<'ctx, 'blk>(
         &mut self,
         op: OperationRef<'ctx, 'blk>,
@@ -266,6 +269,9 @@ pub trait OpBuilderListener {
     );
 
     /// Notifies the listener that a block has been inserted.
+    ///
+    /// The callback receives a reference to the inserted block, the region where it was inserted
+    /// and the point of insertion.
     fn notify_block_inserted<'ctx, 'blk>(
         &mut self,
         block: BlockRef<'ctx, 'blk>,
@@ -290,8 +296,8 @@ impl<F1, F2> SimpleOpBuilderListener<F1, F2> {
 
 impl<F1, F2> OpBuilderListener for SimpleOpBuilderListener<F1, F2>
 where
-    F1: FnMut(OperationRef, InsertPoint) -> (),
-    F2: FnMut(BlockRef, RegionRef, BlockRef) -> (),
+    F1: FnMut(OperationRef, InsertPoint),
+    F2: FnMut(BlockRef, RegionRef, BlockRef),
 {
     fn notify_operation_inserted<'ctx, 'blk>(
         &mut self,

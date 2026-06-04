@@ -1,6 +1,6 @@
 use crate::{
     attributes::{NamedAttribute, array::ArrayAttribute},
-    builder::{OpBuilder, OpBuilderLike},
+    builder::OpBuilderLike,
     dialect::r#struct::StructType,
     error::Error,
     macros::llzk_op_type,

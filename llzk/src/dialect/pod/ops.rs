@@ -2,9 +2,7 @@
 
 use super::r#type::PodType;
 use crate::{
-    builder::{OpBuilder, OpBuilderLike},
-    ident,
-    map_operands::MapOperandsBuilder,
+    builder::OpBuilderLike, ident, map_operands::MapOperandsBuilder,
     prelude::FlatSymbolRefAttribute,
 };
 use llzk_sys::{

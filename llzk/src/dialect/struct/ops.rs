@@ -20,12 +20,8 @@ use melior::ir::{
 use mlir_sys::{MlirAttribute, MlirOperation};
 
 use crate::{
-    builder::{OpBuilder, OpBuilderLike},
-    dialect::function::FuncDefOpRef,
-    error::Error,
-    ident,
-    macros::llzk_op_type,
-    prelude::SymbolRefAttribute,
+    builder::OpBuilderLike, dialect::function::FuncDefOpRef, error::Error, ident,
+    macros::llzk_op_type, prelude::SymbolRefAttribute,
 };
 
 use super::StructType;

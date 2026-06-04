@@ -39,7 +39,7 @@ use melior::ir::{
 
 use crate::{
     attributes::{array::ArrayAttribute, null_attr, rebuild_array_attr},
-    builder::{OpBuilder, OpBuilderLike},
+    builder::OpBuilderLike,
     error::Error,
     macros::llzk_op_type,
     symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
