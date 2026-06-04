@@ -365,7 +365,8 @@ impl Drop for ListenerWrap<'_> {
     }
 }
 
-/// Wraps a pointer to a [`OpBuilderListener`] implementation. This type is used as the user data pointer and
+/// Wraps a pointer to a [`OpBuilderListener`] implementation.
+/// This type is used as the user data pointer and
 /// its lifetime is handled by [`ListenerWrap`].
 struct Wrap<'l>(Box<dyn OpBuilderListener + 'l>);
 
