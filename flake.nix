@@ -213,9 +213,19 @@
           "rustc"
           "rustfmt"
         ];
+        stableRustComponents = with fenixPkgs.stable; [
+          cargo
+          clippy
+          rustc
+          rustfmt
+        ];
         nightlyRust = fenixPkgs.default.withComponents [
           "cargo"
           "rustc"
+        ];
+        nightlyRustComponents = with fenixPkgs.default; [
+          cargo
+          rustc
         ];
         pkgs = import nixpkgs {
           inherit system;
@@ -247,9 +257,7 @@
           default = pkgs.mkShell (
             {
               nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs ;
-              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [
-                stableRust
-              ];
+              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ stableRustComponents;
             }
             // pkgs.llzkSharedEnvironment.env
             // pkgs.llzkSharedEnvironment.devSettings
@@ -257,9 +265,7 @@
           nightly = pkgs.mkShell (
             {
               nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs;
-              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [
-                nightlyRust
-              ];
+              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ nightlyRustComponents;
             }
             // pkgs.llzkSharedEnvironment.env
             // pkgs.llzkSharedEnvironment.devSettings
