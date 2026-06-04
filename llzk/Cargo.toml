@@ -26,7 +26,6 @@ quickcheck = "1"
 quickcheck_macros = "1"
 similar-asserts = "1.7"
 mlir-testutils = {version = "0.1", features = ["similar-asserts"]}
-lazy_static = "1.5"
 
 [features]
 default = []

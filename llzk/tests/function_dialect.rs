@@ -224,7 +224,7 @@ fn call_op_self_value_of_compute() {
         .expect("failed to get first region")
         .first_block()
         .expect("failed to get first block");
-    let builder = OpBuilder::at_block_begin(&context, s2_compute_body);
+    let builder = OpBuilder::at_block_end(&context, s2_compute_body);
     let loc = Location::unknown(&context);
     let call = builder.insert(loc, |_, loc| {
         let name = SymbolRefAttribute::new_from_str(&context, "StructA", &["compute"]);

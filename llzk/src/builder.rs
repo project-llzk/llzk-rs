@@ -168,6 +168,22 @@ impl<'c> OpBuilder<'c, '_> {
         b.set_insertion_point_at_start(block);
         b
     }
+
+    /// Creates a new operation builder with the given block as its insertion point.
+    ///
+    /// If the block already has a terminator it sets the insertion point right before the
+    /// terminator.
+    pub fn at_block_end<'a, B: BlockLike<'c, 'a>>(ctx: &'c Context, block: B) -> Self
+    where
+        'c: 'a,
+    {
+        let b = Self::new(ctx);
+        match block.terminator() {
+            Some(t) => b.set_insertion_point(t),
+            None => b.set_insertion_point_at_end(block),
+        };
+        b
+    }
 }
 
 impl<'c> OpBuilderLike<'c> for OpBuilder<'c, '_> {
@@ -223,8 +239,6 @@ impl<'ctx, 'blk> InsertPoint<'ctx, 'blk> {
     ///
     /// The inner block and operations must be valid.
     unsafe fn from_raw(point: MlirOpBuilderInsertPoint) -> Self {
-        dbg!(&point.block);
-        dbg!(&point.point);
         Self {
             block: unsafe { BlockRef::from_option_raw(point.block) },
             point: unsafe { OperationRef::from_option_raw(point.point) },
@@ -486,7 +500,7 @@ mod tests {
         let end = builder.save_insertion_point();
         let end_raw = end.to_raw();
         assert_eq!(end_raw.block.ptr, body.to_raw().ptr);
-        assert!(!end_raw.point.ptr.is_null());
+        assert!(end_raw.point.ptr.is_null());
     }
 
     #[rstest]
@@ -553,14 +567,15 @@ mod tests {
         let body = module.body();
         let builder = OpBuilder::at_block_begin(&ctx, body);
 
+        let first = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 1));
         let saved = builder.save_insertion_point();
-        dbg!(saved);
 
-        let inserted_first = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 2));
+        builder.set_insertion_point_at_start(body);
+        let second = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 2));
         builder.restore_insertion_point(saved);
-        let inserted_second = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 3));
-
-        assert_eq!(inserted_second.next_in_block(), Some(inserted_first));
+        let third = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 3));
+        assert_eq!(second.next_in_block(), Some(first));
+        assert_eq!(first.next_in_block(), Some(third));
     }
 
     fn listener_addr(builder: &OpBuilder) -> usize {
