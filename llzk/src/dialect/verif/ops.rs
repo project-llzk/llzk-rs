@@ -29,8 +29,8 @@ use llzk_sys::{
     llzkVerif_RequireConstrainOpGetCondition, llzkVerif_RequireConstrainOpSetCondition,
 };
 use melior::ir::{
-    Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
-    RegionLike as _, RegionRef, Type, ValueLike as _,
+    Attribute, AttributeLike, BlockLike as _, Identifier, Location, OperationRef, RegionLike as _,
+    RegionRef, Type,
     attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
     block::{Block, BlockArgument},
     operation::OperationLike,
@@ -629,7 +629,7 @@ macro_rules! impl_condition_op {
             }
 
             fn set_condition_raw(&self, value: melior::ir::Value<'c, '_>) {
-                unsafe { $set(self.to_raw(), value.to_raw()) }
+                unsafe { $set(self.to_raw(), ::melior::ir::ValueLike::to_raw(&value)) }
             }
         }
 
@@ -640,7 +640,7 @@ macro_rules! impl_condition_op {
                 }
 
                 fn set_condition_raw(&self, value: melior::ir::Value<'c, '_>) {
-                    unsafe { $set(self.to_raw(), value.to_raw()) }
+                    unsafe { $set(self.to_raw(), ::melior::ir::ValueLike::to_raw(&value)) }
                 }
             }
 
@@ -650,7 +650,7 @@ macro_rules! impl_condition_op {
                 }
 
                 fn set_condition_raw(&self, value: melior::ir::Value<'c, '_>) {
-                    unsafe { $set(self.to_raw(), value.to_raw()) }
+                    unsafe { $set(self.to_raw(), ::melior::ir::ValueLike::to_raw(&value)) }
                 }
             }
 

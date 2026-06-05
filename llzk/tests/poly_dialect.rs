@@ -1,10 +1,10 @@
 use llzk::{
     builder::{OpBuilder, OpBuilderLike as _},
     dialect::poly::{
-        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOp,
-        TemplateSymbolBindingOpLike, TemplateSymbolBindingOpRef, applymap, expr, is_applymap_op,
-        is_expr_op, is_param_op, is_template_op, is_unifiable_cast_op, is_yield_op, param,
-        template, unifiable_cast, r#yield,
+        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOpLike,
+        TemplateSymbolBindingOpRef, applymap, expr, is_applymap_op, is_expr_op, is_param_op,
+        is_template_op, is_unifiable_cast_op, is_yield_op, param, template, unifiable_cast,
+        r#yield,
     },
     prelude::*,
 };
@@ -604,8 +604,8 @@ fn has_const_ops_false() {
             let c1_res = builder
                 .insert(loc, |context, loc| {
                     arith::constant(
-                        &context,
-                        IntegerAttribute::new(Type::index(&context), 1).into(),
+                        context,
+                        IntegerAttribute::new(Type::index(context), 1).into(),
                         loc,
                     )
                 })
@@ -635,8 +635,8 @@ fn const_names_content() {
             let c1_res = builder
                 .insert(loc, |context, loc| {
                     arith::constant(
-                        &context,
-                        IntegerAttribute::new(Type::index(&context), 1).into(),
+                        context,
+                        IntegerAttribute::new(Type::index(context), 1).into(),
                         loc,
                     )
                 })
@@ -708,8 +708,8 @@ fn from_conversions_for_binding_op_ref() {
             let c1_res = builder
                 .insert(loc, |context, loc| {
                     arith::constant(
-                        &context,
-                        IntegerAttribute::new(Type::index(&context), 1).into(),
+                        context,
+                        IntegerAttribute::new(Type::index(context), 1).into(),
                         loc,
                     )
                 })

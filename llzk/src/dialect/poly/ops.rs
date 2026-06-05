@@ -1,7 +1,7 @@
 //! `poly` dialect operations and helper functions.
 
 use crate::{
-    builder::{OpBuilder, OpBuilderLike},
+    builder::OpBuilderLike,
     error::Error,
     ident,
     macros::llzk_op_type,
