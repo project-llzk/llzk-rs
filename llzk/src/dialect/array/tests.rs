@@ -32,7 +32,6 @@ fn op_new_with_values(ctx: Context) {
     let module = Module::new(Location::unknown(&ctx));
     let op_builder = OpBuilder::at_block_begin(&ctx, module.body());
     assert_eq!(ctx, module.context());
-    op_builder.set_insertion_point_at_start(module.body());
     let op = op_builder.insert(Location::unknown(&ctx), |_, loc| {
         let op1 = op_builder.insert(loc, |ctx, loc| {
             arith::constant(ctx, IntegerAttribute::new(Type::index(ctx), 1).into(), loc)

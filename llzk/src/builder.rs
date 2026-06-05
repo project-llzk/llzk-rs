@@ -14,7 +14,7 @@ use llzk_sys::{
 use melior::{
     Context, ContextRef,
     ir::{
-        BlockLike, BlockRef, Location, Operation, OperationRef, RegionRef, Value, ValueLike,
+        Block, BlockLike, BlockRef, Location, Operation, OperationRef, RegionRef, Value, ValueLike,
         operation::OperationLike,
     },
 };
@@ -65,7 +65,7 @@ pub trait OpBuilderLike<'c> {
     }
 
     /// Sets the insertion point right after the given value is defined.
-    fn set_insertion_point_after_value<'a>(&self, value: impl ValueLike<'c>) {
+    fn set_insertion_point_after_value(&self, value: impl ValueLike<'c>) {
         unsafe {
             mlirOpBuilderSetInsertionPointAfterValue(self.to_raw(), value.to_raw());
         }
@@ -105,6 +105,47 @@ pub trait OpBuilderLike<'c> {
     }
 }
 
+mod sealed {
+    use melior::ir::{Block, BlockRef};
+
+    pub trait BlockInsertPointLikeSealed {}
+
+    impl BlockInsertPointLikeSealed for BlockRef<'_, '_> {}
+    impl BlockInsertPointLikeSealed for &Block<'_> {}
+}
+
+/// Extension trait for types that can be used for defining block insert points,
+/// namely [`Block`] and [`BlockRef`].
+///
+/// This trait is sealed and shouldn't be implemented by clients downstream.
+pub trait BlockInsertPointLike<'c, 'a>: Sized + sealed::BlockInsertPointLikeSealed {
+    /// Returns an insert point at the beginning of the block.
+    fn at_start(self) -> EntryPoint<'c, 'a> {
+        EntryPoint::Start(self.to_block_ref())
+    }
+
+    /// Returns an insert point at the end of the block.
+    fn at_end(self) -> EntryPoint<'c, 'a> {
+        EntryPoint::End(self.to_block_ref())
+    }
+
+    #[doc(hidden)]
+    /// Returns a reference to the block.
+    fn to_block_ref(self) -> BlockRef<'c, 'a>;
+}
+
+impl<'c, 'a> BlockInsertPointLike<'c, 'a> for &'a Block<'c> {
+    fn to_block_ref(self) -> BlockRef<'c, 'a> {
+        unsafe { BlockRef::from_raw(self.to_raw()) }
+    }
+}
+
+impl<'c, 'a> BlockInsertPointLike<'c, 'a> for BlockRef<'c, 'a> {
+    fn to_block_ref(self) -> BlockRef<'c, 'a> {
+        self
+    }
+}
+
 /// Possible initial insert points when constructing [`OpBuilder`].
 #[derive(Debug, Copy, Clone)]
 pub enum EntryPoint<'c, 'a> {
@@ -116,13 +157,13 @@ pub enum EntryPoint<'c, 'a> {
     Before(OperationRef<'c, 'a>),
     /// After the operation.
     After(OperationRef<'c, 'a>),
-    /// Afther the value.
+    /// After the value.
     AfterValue(Value<'c, 'a>),
 }
 
 impl<'c> EntryPoint<'c, '_> {
     /// Configures the given builder depending on the variant.
-    fn set_builder(self, b: &impl OpBuilderLike<'c>) {
+    fn configure_builder(self, b: &impl OpBuilderLike<'c>) {
         match self {
             EntryPoint::Start(block) => b.set_insertion_point_at_start(block),
             EntryPoint::End(block) => b.set_insertion_point_at_end(block),
@@ -130,6 +171,12 @@ impl<'c> EntryPoint<'c, '_> {
             EntryPoint::After(op) => b.set_insertion_point_after(op),
             EntryPoint::AfterValue(value) => b.set_insertion_point_after_value(value),
         }
+    }
+}
+
+impl<'c, 'a> From<Value<'c, 'a>> for EntryPoint<'c, 'a> {
+    fn from(value: Value<'c, 'a>) -> Self {
+        Self::AfterValue(value)
     }
 }
 
@@ -148,16 +195,14 @@ impl<'c, 'l> OpBuilder<'c, 'l> {
         point: EntryPoint<'c, 'a>,
         listener: impl OpBuilderListener + 'l,
     ) -> Self {
-        let b = unsafe {
-            let ctx = context.to_raw();
-            let listener = ListenerWrap::new(listener);
-            Self {
-                raw: mlirOpBuilderCreateWithListener(ctx, listener.raw),
-                _listener: Some(listener),
-                _context: PhantomData,
-            }
+        let ctx = context.to_raw();
+        let listener = ListenerWrap::new(listener);
+        let b = Self {
+            raw: unsafe { mlirOpBuilderCreateWithListener(ctx, listener.raw) },
+            _listener: Some(listener),
+            _context: PhantomData,
         };
-        point.set_builder(&b);
+        point.configure_builder(&b);
         b
     }
 }
@@ -165,15 +210,13 @@ impl<'c, 'l> OpBuilder<'c, 'l> {
 impl<'c> OpBuilder<'c, '_> {
     /// Creates a new operation builder.
     pub fn new(context: &'c Context, point: EntryPoint<'c, '_>) -> Self {
-        let b = unsafe {
-            let ctx = context.to_raw();
-            Self {
-                raw: mlirOpBuilderCreate(ctx),
-                _listener: None,
-                _context: Default::default(),
-            }
+        let ctx = context.to_raw();
+        let b = Self {
+            raw: unsafe { mlirOpBuilderCreate(ctx) },
+            _listener: None,
+            _context: Default::default(),
         };
-        point.set_builder(&b);
+        point.configure_builder(&b);
         b
     }
 
@@ -191,18 +234,22 @@ impl<'c> OpBuilder<'c, '_> {
     }
 
     /// Creates a new operation builder with the given block as its insertion point.
-    pub fn at_block_begin<'a>(ctx: &'c Context, block: BlockRef<'c, 'a>) -> Self {
-        Self::new(ctx, EntryPoint::Start(block))
+    pub fn at_block_begin<'a>(ctx: &'c Context, block: impl BlockInsertPointLike<'c, 'a>) -> Self
+    where
+        'c: 'a,
+    {
+        Self::new(ctx, block.at_start())
     }
 
     /// Creates a new operation builder with the given block as its insertion point.
     ///
     /// If the block already has a terminator it sets the insertion point right before the
     /// terminator.
-    pub fn at_block_end<'a>(ctx: &'c Context, block: BlockRef<'c, 'a>) -> Self
+    pub fn at_block_end<'a>(ctx: &'c Context, block: impl BlockInsertPointLike<'c, 'a>) -> Self
     where
         'c: 'a,
     {
+        let block = block.to_block_ref();
         Self::new(
             ctx,
             match block.terminator() {
