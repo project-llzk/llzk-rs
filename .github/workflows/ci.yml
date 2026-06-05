@@ -112,7 +112,7 @@ jobs:
       - name: Build
         run: cargo build --target=$DEFAULT_RUST_TARGET --profile=dev --all-features
       - name: Run tests
-        run: cargo build --target=$DEFAULT_RUST_TARGET --profile=dev --all-features
+        run: cargo test --target=$DEFAULT_RUST_TARGET --profile=dev --all-features
 
   # WARNING: do not change this job name. It is a required status check for PRs to `main`.
   clippy:
