@@ -3,11 +3,11 @@
     llzk-pkgs.url = "github:project-llzk/llzk-nix-pkgs";
     nixpkgs.follows = "llzk-pkgs/nixpkgs";
     flake-utils.follows = "llzk-pkgs/flake-utils";
-    rust-overlay = { 
-      url = "github:oxalica/rust-overlay"; 
-      inputs = { 
-        nixpkgs.follows = "llzk-pkgs/nixpkgs"; 
-      }; 
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "llzk-pkgs/nixpkgs";
+      };
     };
     llzk-lib = {
       url = "github:project-llzk/llzk-lib";
@@ -43,7 +43,7 @@
       llzk-pkgs,
       llzk-lib,
       pcl-mlir-pkg,
-      rust-overlay
+      rust-overlay,
     }:
     {
       # Overlay for downstream consumption
@@ -116,10 +116,7 @@
               llzk-llvmPackages.libclang.dev
             ];
 
-            devBuildInputs =
-              with final;
-              [ git ]
-              ++ llzkSharedEnvironment.buildInputs;
+            devBuildInputs = with final; [ git ] ++ llzkSharedEnvironment.buildInputs;
 
             # Shared environment variables
             env = {
@@ -209,6 +206,8 @@
             release-helpers.overlays.default
           ];
         };
+        rust-stable = pkgs.rust-bin.stable.latest.default;
+        rust-nightly = pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default);
       in
       {
         packages = flake-utils.lib.flattenTree {
@@ -222,15 +221,16 @@
           inherit (pkgs.llzk-llvmPackages) libllvm llvm;
           # Add new packages created here
           inherit (pkgs) mlir-with-llvm llzk-rs llzk-sys-rs;
+          inherit rust-stable rust-nightly;
           default = pkgs.llzk-rs;
         };
 
         devShells = flake-utils.lib.flattenTree {
           default = pkgs.mkShell (
             {
-              nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs ;
+              nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs;
               buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [
-                pkgs.rust-bin.stable.latest.default
+                rust-stable
               ];
             }
             // pkgs.llzkSharedEnvironment.env
@@ -239,9 +239,9 @@
           nightly = pkgs.mkShell (
             {
               nativeBuildInputs = pkgs.llzkSharedEnvironment.nativeBuildInputs;
-              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [(
-                pkgs.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default)
-              )];
+              buildInputs = pkgs.llzkSharedEnvironment.devBuildInputs ++ [
+                rust-nightly
+              ];
             }
             // pkgs.llzkSharedEnvironment.env
             // pkgs.llzkSharedEnvironment.devSettings
