@@ -348,10 +348,14 @@ impl<'ctx, 'blk> InsertPoint<'ctx, 'blk> {
 ///
 /// For simple use cases you can use [`SimpleOpBuilderListener`].
 pub trait OpBuilderListener {
-    /// Notifies the listener that an operation has been inserted.
+    /// Notify the listener that the specified operation was inserted.
     ///
-    /// The callback receives a reference to the inserted operation and the point where it was
-    /// inserted.
+    /// * If the operation was moved, then `previous` is the previous location
+    ///   of the op.
+    /// * If the operation was unlinked before it was inserted, then `previous`
+    ///   is empty.
+    ///
+    /// Note: Creating an (unlinked) op does not trigger this notification.   
     fn notify_operation_inserted<'ctx, 'blk>(
         &mut self,
         op: OperationRef<'ctx, 'blk>,
@@ -360,8 +364,12 @@ pub trait OpBuilderListener {
 
     /// Notifies the listener that a block has been inserted.
     ///
-    /// The callback receives a reference to the inserted block, the region where it was inserted
-    /// and the point of insertion.
+    /// * If the block was moved, then `previous` and `previousIt` are the
+    ///   previous location of the block.
+    /// * If the block was unlinked before it was inserted, then `previous`
+    ///   is "nullptr".
+    ///
+    /// Note: Creating an (unlinked) block does not trigger this notification.
     fn notify_block_inserted<'ctx, 'blk>(
         &mut self,
         block: BlockRef<'ctx, 'blk>,
