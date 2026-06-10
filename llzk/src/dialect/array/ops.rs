@@ -9,11 +9,7 @@ use melior::ir::{
 };
 use mlir_sys::MlirOperation;
 
-use crate::{
-    builder::{OpBuilder, OpBuilderLike},
-    map_operands::MapOperandsBuilder,
-    value_ext::ValueRange,
-};
+use crate::{builder::OpBuilderLike, map_operands::MapOperandsBuilder, value_ext::ValueRange};
 
 use super::ArrayType;
 
@@ -36,7 +32,7 @@ pub enum ArrayCtor<'c, 'a, 'b, 'd> {
 impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
     fn build(
         &self,
-        builder: &OpBuilder<'c>,
+        builder: &impl OpBuilderLike<'c>,
         location: Location<'c>,
         r#type: ArrayType<'c>,
     ) -> MlirOperation {
@@ -98,7 +94,7 @@ impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
 
 /// Creates an 'array.new' operation.
 pub fn new<'c>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     r#type: ArrayType<'c>,
     ctor: ArrayCtor<'c, '_, '_, '_>,

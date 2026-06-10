@@ -58,8 +58,7 @@ fn function_call() {
     .unwrap();
     {
         let block = Block::new(&[]);
-        let builder =
-            OpBuilder::at_block_begin(&context, unsafe { BlockRef::from_raw(block.to_raw()) });
+        let builder = OpBuilder::at_block_begin(&context, &block);
         // Build call to itself
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
         let v = block
@@ -101,8 +100,7 @@ fn function_call_with_map_operands() {
     .unwrap();
     {
         let block = Block::new(&[]);
-        let builder =
-            OpBuilder::at_block_begin(&context, unsafe { BlockRef::from_raw(block.to_raw()) });
+        let builder = OpBuilder::at_block_begin(&context, &block);
         // Build call to itself
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
         let map_operands = MapOperandsBuilder::new();
@@ -224,7 +222,7 @@ fn call_op_self_value_of_compute() {
         .expect("failed to get first region")
         .first_block()
         .expect("failed to get first block");
-    let builder = OpBuilder::at_block_begin(&context, s2_compute_body);
+    let builder = OpBuilder::at_block_end(&context, s2_compute_body);
     let loc = Location::unknown(&context);
     let call = builder.insert(loc, |_, loc| {
         let name = SymbolRefAttribute::new_from_str(&context, "StructA", &["compute"]);
@@ -424,7 +422,7 @@ fn make_call_op_in_block<'c, 'a>(
     block: &Block<'c>,
     args: &[Value<'c, '_>],
 ) -> CallOpRef<'c, 'a> {
-    let builder = OpBuilder::new(context);
+    let builder = OpBuilder::at_block_begin(context, block);
     let name = FlatSymbolRefAttribute::new(context, "callee");
     let call = block.append_operation(
         dialect::function::call(&builder, loc, name, args, &[] as &[Type])
@@ -489,7 +487,7 @@ fn call_op_map_operand_count_zero() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let block = Block::new(&[]);
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_begin(&context, &block);
     let name = FlatSymbolRefAttribute::new(&context, "callee");
     let call = block.append_operation(
         dialect::function::call_with_map_operands(
@@ -580,7 +578,8 @@ fn call_with_template_params_only_attrs() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let builder = OpBuilder::new(&context);
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let name = FlatSymbolRefAttribute::new(&context, "callee");
     let felt_type: Type = FeltType::new(&context).into();
     let call = dialect::function::call_with_template_params(
@@ -604,7 +603,7 @@ fn call_with_template_params_only_args() {
     let felt_type: Type = FeltType::new(&context).into();
     let block = Block::new(&[(felt_type, loc)]);
     let arg: Value = block.argument(0).unwrap().into();
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_begin(&context, &block);
     let name = FlatSymbolRefAttribute::new(&context, "callee");
     let call = block.append_operation(
         dialect::function::call_with_template_params(
@@ -631,7 +630,7 @@ fn call_with_template_params_no_empties() {
     let felt_type: Type = FeltType::new(&context).into();
     let block = Block::new(&[(felt_type, loc)]);
     let arg: Value = block.argument(0).unwrap().into();
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_begin(&context, &block);
     let name = FlatSymbolRefAttribute::new(&context, "callee");
     let call = block.append_operation(
         dialect::function::call_with_template_params(

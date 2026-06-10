@@ -132,7 +132,7 @@ fn struct_readm() {
         .expect("failed to get first block");
 
     let self_value: Value = constrain_body.argument(0).unwrap().into();
-    let builder = OpBuilder::new(&context);
+    let builder = OpBuilder::at_block_end(&context, constrain_body);
     let readm_op = constrain_body.insert_operation_before(
         constrain_body.terminator().unwrap(),
         dialect::r#struct::readm(&builder, loc, Type::index(&context), self_value, "foo").unwrap(),

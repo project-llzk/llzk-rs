@@ -26,7 +26,7 @@ fn array_new_empty() {
     .unwrap();
     {
         let block = Block::new(&[]);
-        let builder = OpBuilder::new(&context);
+        let builder = OpBuilder::at_block_begin(&context, &block);
         let array_type = ArrayType::new(index_type, &[IntegerAttribute::new(index_type, 2).into()]);
         let _array = block.append_operation(dialect::array::new(
             &builder,
@@ -74,7 +74,7 @@ fn array_new_affine_map() {
         let block = Block::new(&[block_arg, block_arg]);
         let arg0: Value = block.argument(0).unwrap().into();
         let arg1: Value = block.argument(1).unwrap().into();
-        let builder = OpBuilder::new(&context);
+        let builder = OpBuilder::at_block_begin(&context, &block);
         let affine_map = Attribute::parse(&context, "affine_map<()[s0, s1] -> (s0 + s1)>")
             .expect("failed to parse affine_map");
         let array_type = ArrayType::new(index_type, &[affine_map]);
@@ -113,9 +113,15 @@ fn array_len() {
 
     let ctx = LlzkContext::new();
     let unknown = Location::unknown(&ctx);
+    let module = Module::new(unknown);
     let index_ty = Type::index(&ctx);
     let ty = ArrayType::new_with_dims(index_ty, &[dim]);
-    let op = dialect::array::new(&OpBuilder::new(&ctx), unknown, ty, ArrayCtor::Values(&[]));
+    let op = dialect::array::new(
+        &OpBuilder::at_block_begin(&ctx, module.body()),
+        unknown,
+        ty,
+        ArrayCtor::Values(&[]),
+    );
     assert_eq!(1, op.result_count(), "op {op} must only have one result");
     let arr_ref = op.result(0).unwrap();
     let arr_dim_op = arith::constant(&ctx, IntegerAttribute::new(index_ty, 0).into(), unknown);

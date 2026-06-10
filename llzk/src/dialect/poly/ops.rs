@@ -1,7 +1,7 @@
 //! `poly` dialect operations and helper functions.
 
 use crate::{
-    builder::{OpBuilder, OpBuilderLike},
+    builder::OpBuilderLike,
     error::Error,
     ident,
     macros::llzk_op_type,
@@ -143,35 +143,35 @@ impl<'c: 'a, 'a> TemplateOpLike<'c, 'a> for TemplateOpRef<'c, 'a> {}
 impl<'c: 'a, 'a> TemplateOpLike<'c, 'a> for TemplateOpRefMut<'c, 'a> {}
 
 /// Creates a `poly.template` op and fills its body with the given operations.
-pub fn template<'c, I>(
+///
+/// The operation is inserted in the point set by the builder.
+pub fn template<'c, 'a, B>(
+    builder: &B,
     location: Location<'c>,
     name: &str,
-    region_ops: I,
-) -> Result<TemplateOp<'c>, Error>
+    fill: impl FnOnce(&B) -> Result<(), Error>,
+) -> Result<TemplateOpRef<'c, 'a>, Error>
 where
-    I: IntoIterator<Item = Result<Operation<'c>, Error>>,
+    B: OpBuilderLike<'c>,
 {
     let ctx = location.context();
-    let builder = OpBuilder::new(unsafe { ctx.to_ref() });
     let op = unsafe {
-        Operation::from_raw(llzkPoly_TemplateOpBuild(
+        OperationRef::from_raw(llzkPoly_TemplateOpBuild(
             builder.to_raw(),
             location.to_raw(),
             Identifier::new(ctx.to_ref(), name).to_raw(),
         ))
     };
-    let op: TemplateOp<'c> = op.try_into()?;
+    let op: TemplateOpRef<'c, 'a> = op.try_into()?;
     let region = op.body_region();
     let block = region
         .first_block()
         .unwrap_or_else(|| region.append_block(Block::new(&[])));
-    region_ops
-        .into_iter()
-        .try_for_each(|inner_op| -> Result<(), Error> {
-            block.append_operation(inner_op?);
-            Ok(())
-        })?;
-    Ok(op)
+    let saved = builder.save_insertion_point();
+    builder.set_insertion_point_at_start(block);
+    let res = fill(builder);
+    builder.restore_insertion_point(saved);
+    res.map(|_| op)
 }
 
 /// Return `true` iff the given op is `poly.template`.
@@ -467,13 +467,13 @@ impl<'c: 'a, 'a> TemplateSymbolBindingOpLike<'c, 'a> for TemplateExprOpRefMut<'c
 }
 
 /// Creates a `poly.param` op.
-pub fn param<'c>(
+pub fn param<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     name: &str,
     type_opt: Option<Type<'c>>,
-) -> Result<TemplateParamOp<'c>, Error> {
+) -> Result<TemplateParamOpRef<'c, 'a>, Error> {
     let ctx = location.context();
-    let builder = OpBuilder::new(unsafe { ctx.to_ref() });
     let raw_type = match type_opt {
         Some(t) => TypeAttribute::new(t).to_raw(),
         None => MlirAttribute {
@@ -481,7 +481,7 @@ pub fn param<'c>(
         },
     };
     unsafe {
-        Operation::from_raw(llzkPoly_TemplateParamOpBuild(
+        OperationRef::from_raw(llzkPoly_TemplateParamOpBuild(
             builder.to_raw(),
             location.to_raw(),
             Identifier::new(ctx.to_ref(), name).to_raw(),
@@ -498,35 +498,35 @@ pub fn is_param_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates a `poly.expr` op and fills its initializer region with the given operations.
-pub fn expr<'c, I>(
+///
+/// The operation is inserted in the point set by the builder.
+pub fn expr<'c, 'a, B>(
+    builder: &B,
     location: Location<'c>,
     name: &str,
-    region_ops: I,
-) -> Result<TemplateExprOp<'c>, Error>
+    fill_cb: impl FnOnce(&B) -> Result<(), Error>,
+) -> Result<TemplateExprOpRef<'c, 'a>, Error>
 where
-    I: IntoIterator<Item = Result<Operation<'c>, Error>>,
+    B: OpBuilderLike<'c>,
 {
     let ctx = location.context();
-    let builder = OpBuilder::new(unsafe { ctx.to_ref() });
     let op = unsafe {
-        Operation::from_raw(llzkPoly_TemplateExprOpBuild(
+        OperationRef::from_raw(llzkPoly_TemplateExprOpBuild(
             builder.to_raw(),
             location.to_raw(),
             Identifier::new(ctx.to_ref(), name).to_raw(),
         ))
     };
-    let op: TemplateExprOp<'c> = op.try_into()?;
+    let op: TemplateExprOpRef<'c, 'a> = op.try_into()?;
     let region = op.initializer_region();
     let block = region
         .first_block()
         .unwrap_or_else(|| region.append_block(Block::new(&[])));
-    region_ops
-        .into_iter()
-        .try_for_each(|inner_op| -> Result<(), Error> {
-            block.append_operation(inner_op?);
-            Ok(())
-        })?;
-    Ok(op)
+    let prev = builder.save_insertion_point();
+    builder.set_insertion_point_at_start(block);
+    let res = fill_cb(builder);
+    builder.restore_insertion_point(prev);
+    res.map(|_| op)
 }
 
 /// Return `true` iff the given op is `poly.expr`.
@@ -542,11 +542,15 @@ pub fn is_expr_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 llzk_op_type!(YieldOp, llzkOperationIsA_Poly_YieldOp, "poly.yield");
 
 /// Creates a `poly.yield` op.
-pub fn r#yield<'c>(location: Location<'c>, val: Value<'c, '_>) -> Result<YieldOp<'c>, Error> {
-    let ctx = location.context();
-    let builder = OpBuilder::new(unsafe { ctx.to_ref() });
+///
+/// The operation is inserted in the point set by the builder.
+pub fn r#yield<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    val: Value<'c, '_>,
+) -> Result<YieldOpRef<'c, 'a>, Error> {
     unsafe {
-        Operation::from_raw(llzkPoly_YieldOpBuild(
+        OperationRef::from_raw(llzkPoly_YieldOpBuild(
             builder.to_raw(),
             location.to_raw(),
             val.to_raw(),
@@ -612,23 +616,23 @@ pub fn is_unifiable_cast_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool
 //===----------------------------------------------------------------------===//
 
 /// Constructs a 'poly.applymap' operation.
-pub fn applymap<'c>(
+pub fn applymap<'c, 'a>(
+    builder: &'c impl OpBuilderLike<'c>,
     location: Location<'c>,
     map: Attribute<'c>,
     map_operands: &[Value<'c, '_>],
-) -> Operation<'c> {
-    let ctx = location.context();
-    let builder = OpBuilder::new(unsafe { ctx.to_ref() });
+) -> OperationRef<'c, 'a> {
     let value_range = OwningValueRange::from(map_operands);
     assert!(unsafe { mlir_sys::mlirAttributeIsAAffineMap(map.to_raw()) });
-    unsafe {
+    let op = unsafe {
         Operation::from_raw(llzkPoly_ApplyMapOpBuildWithAffineMap(
             builder.to_raw(),
             location.to_raw(),
             mlir_sys::mlirAffineMapAttrGetValue(map.to_raw()),
             ValueRange::try_from(&value_range).unwrap().to_raw(),
         ))
-    }
+    };
+    builder.insert(location, move |_, _| op)
 }
 
 /// Return `true` iff the given op is `poly.applymap`.

@@ -28,27 +28,17 @@ fn type_new_with_dims(ctx: Context) {
 
 #[rstest]
 fn op_new_with_values(ctx: Context) {
-    let op_builder = OpBuilder::new(&ctx);
     let arr_typ = ArrayType::new_with_dims(Type::index(&ctx), &[2]);
     let module = Module::new(Location::unknown(&ctx));
+    let op_builder = OpBuilder::at_block_begin(&ctx, module.body());
     assert_eq!(ctx, module.context());
-    op_builder.set_insertion_point_at_start(module.body());
-    let op = op_builder.insert(Location::unknown(&ctx), |ctx_ref, loc| {
-        assert_eq!(ctx, ctx_ref);
+    let op = op_builder.insert(Location::unknown(&ctx), |_, loc| {
         let op1 = op_builder.insert(loc, |ctx, loc| {
-            arith::constant(
-                unsafe { ctx.to_ref() },
-                IntegerAttribute::new(Type::index(unsafe { ctx.to_ref() }), 1).into(),
-                loc,
-            )
+            arith::constant(ctx, IntegerAttribute::new(Type::index(ctx), 1).into(), loc)
         });
 
         let op2 = op_builder.insert(loc, |ctx, loc| {
-            arith::constant(
-                unsafe { ctx.to_ref() },
-                IntegerAttribute::new(Type::index(unsafe { ctx.to_ref() }), 1).into(),
-                loc,
-            )
+            arith::constant(ctx, IntegerAttribute::new(Type::index(ctx), 1).into(), loc)
         });
 
         let vals: [Value; 2] = [op1.result(0).unwrap().into(), op2.result(0).unwrap().into()];

@@ -29,8 +29,8 @@ use llzk_sys::{
     llzkVerif_RequireConstrainOpGetCondition, llzkVerif_RequireConstrainOpSetCondition,
 };
 use melior::ir::{
-    Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, OperationRef,
-    RegionLike as _, RegionRef, Type, ValueLike as _,
+    Attribute, AttributeLike, BlockLike as _, Identifier, Location, OperationRef, RegionLike as _,
+    RegionRef, Type,
     attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
     block::{Block, BlockArgument},
     operation::OperationLike,
@@ -39,7 +39,7 @@ use melior::ir::{
 
 use crate::{
     attributes::{array::ArrayAttribute, null_attr, rebuild_array_attr},
-    builder::{OpBuilder, OpBuilderLike},
+    builder::OpBuilderLike,
     error::Error,
     macros::llzk_op_type,
     symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
@@ -528,16 +528,16 @@ impl<'a, 'c: 'a> IncludeOpLike<'c, 'a> for IncludeOpRef<'c, 'a> {}
 impl<'a, 'c: 'a> IncludeOpLike<'c, 'a> for IncludeOpRefMut<'c, 'a> {}
 
 /// Creates a `verif.include` op with only direct call operands.
-pub fn include<'c>(
-    builder: &OpBuilder<'c>,
+pub fn include<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[melior::ir::Value<'c, '_>],
     template_params: Option<ArrayAttribute<'c>>,
-) -> Result<IncludeOp<'c>, Error> {
+) -> Result<IncludeOpRef<'c, 'a>, Error> {
     let template_params = template_params.map_or_else(null_attr, |attr| attr.to_raw());
     unsafe {
-        Operation::from_raw(llzkVerif_IncludeOpBuild(
+        OperationRef::from_raw(llzkVerif_IncludeOpBuild(
             builder.to_raw(),
             location.to_raw(),
             callee.to_raw(),
@@ -553,15 +553,15 @@ pub fn include<'c>(
 
 /// Creates a `verif.include` op with grouped map operands and explicit
 /// `numDimsPerMap` metadata.
-pub fn include_with_map_operands<'c, 'g, 'v>(
-    builder: &OpBuilder<'c>,
+pub fn include_with_map_operands<'c, 'g, 'v, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[melior::ir::Value<'c, '_>],
     template_params: Option<ArrayAttribute<'c>>,
     map_operands: &'g [ValueRange<'c, 'v, '_>],
     num_dims_per_map: DenseI32ArrayAttribute<'c>,
-) -> Result<IncludeOp<'c>, Error> {
+) -> Result<IncludeOpRef<'c, 'a>, Error> {
     let op = include(builder, location, callee, args, template_params)?;
     op.set_map_operands(map_operands);
     op.set_num_dims_per_map(num_dims_per_map);
@@ -570,15 +570,15 @@ pub fn include_with_map_operands<'c, 'g, 'v>(
 
 /// Creates a `verif.include` op with grouped map operands and dimension counts
 /// provided as a Rust slice.
-pub fn include_with_map_operands_slice<'c, 'g, 'v>(
-    builder: &OpBuilder<'c>,
+pub fn include_with_map_operands_slice<'c, 'g, 'v, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[melior::ir::Value<'c, '_>],
     template_params: Option<ArrayAttribute<'c>>,
     map_operands: &'g [ValueRange<'c, 'v, '_>],
     num_dims_per_map: &[i32],
-) -> Result<IncludeOp<'c>, Error> {
+) -> Result<IncludeOpRef<'c, 'a>, Error> {
     let ctx = location.context();
     include_with_map_operands(
         builder,
@@ -629,7 +629,7 @@ macro_rules! impl_condition_op {
             }
 
             fn set_condition_raw(&self, value: melior::ir::Value<'c, '_>) {
-                unsafe { $set(self.to_raw(), value.to_raw()) }
+                unsafe { $set(self.to_raw(), ::melior::ir::ValueLike::to_raw(&value)) }
             }
         }
 
@@ -640,7 +640,7 @@ macro_rules! impl_condition_op {
                 }
 
                 fn set_condition_raw(&self, value: melior::ir::Value<'c, '_>) {
-                    unsafe { $set(self.to_raw(), value.to_raw()) }
+                    unsafe { $set(self.to_raw(), ::melior::ir::ValueLike::to_raw(&value)) }
                 }
             }
 
@@ -650,25 +650,26 @@ macro_rules! impl_condition_op {
                 }
 
                 fn set_condition_raw(&self, value: melior::ir::Value<'c, '_>) {
-                    unsafe { $set(self.to_raw(), value.to_raw()) }
+                    unsafe { $set(self.to_raw(), ::melior::ir::ValueLike::to_raw(&value)) }
                 }
             }
-        }
 
-        #[doc = concat!("Creates a `", $name, "` op.")]
-        pub fn $ctor<'c>(
-            builder: &OpBuilder<'c>,
-            location: Location<'c>,
-            condition: impl melior::ir::ValueLike<'c>,
-        ) -> Result<$type<'c>, Error> {
-            unsafe {
-                Operation::from_raw($build(
-                    builder.to_raw(),
-                    location.to_raw(),
-                    condition.to_raw(),
-                ))
+
+            #[doc = concat!("Creates a `", $name, "` op.")]
+            pub fn $ctor<'c, 'a>(
+                builder: &impl OpBuilderLike<'c>,
+                location: Location<'c>,
+                condition: impl melior::ir::ValueLike<'c>,
+            ) -> Result<[<$type Ref>]<'c, 'a>, Error> {
+                unsafe {
+                    OperationRef::from_raw($build(
+                        builder.to_raw(),
+                        location.to_raw(),
+                        condition.to_raw(),
+                    ))
+                }
+                .try_into()
             }
-            .try_into()
         }
 
         #[inline]

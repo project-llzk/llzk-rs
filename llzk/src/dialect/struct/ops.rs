@@ -20,12 +20,8 @@ use melior::ir::{
 use mlir_sys::{MlirAttribute, MlirOperation};
 
 use crate::{
-    builder::{OpBuilder, OpBuilderLike},
-    dialect::function::FuncDefOpRef,
-    error::Error,
-    ident,
-    macros::llzk_op_type,
-    prelude::SymbolRefAttribute,
+    builder::OpBuilderLike, dialect::function::FuncDefOpRef, error::Error, ident,
+    macros::llzk_op_type, prelude::SymbolRefAttribute,
 };
 
 use super::StructType;
@@ -426,7 +422,7 @@ pub fn is_struct_member<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 
 /// Creates a 'struct.readm' op
 pub fn readm<'c>(
-    builder: &OpBuilder<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     result_type: Type<'c>,
     component: Value<'c, '_>,
