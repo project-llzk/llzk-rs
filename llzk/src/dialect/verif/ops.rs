@@ -3,38 +3,47 @@
 use llzk_sys::{
     llzkOperationIsA_Verif_ContractOp, llzkOperationIsA_Verif_EnsureComputeOp,
     llzkOperationIsA_Verif_EnsureConstrainOp, llzkOperationIsA_Verif_IncludeOp,
-    llzkOperationIsA_Verif_RequireComputeOp, llzkOperationIsA_Verif_RequireConstrainOp,
-    llzkVerif_ContractOpBuildFromTargetAttr, llzkVerif_ContractOpGetArgAttrs,
-    llzkVerif_ContractOpGetBody, llzkVerif_ContractOpGetCallableRegion,
-    llzkVerif_ContractOpGetFullyQualifiedName, llzkVerif_ContractOpGetFunctionType,
-    llzkVerif_ContractOpGetSymName, llzkVerif_ContractOpGetTarget, llzkVerif_ContractOpHasArgName,
+    llzkOperationIsA_Verif_InvariantOp, llzkOperationIsA_Verif_RequireComputeOp,
+    llzkOperationIsA_Verif_RequireConstrainOp, llzkVerif_ContractOpBuildFromTargetAttr,
+    llzkVerif_ContractOpGetArgAttrs, llzkVerif_ContractOpGetBody,
+    llzkVerif_ContractOpGetCallableRegion, llzkVerif_ContractOpGetFullyQualifiedName,
+    llzkVerif_ContractOpGetFunctionType, llzkVerif_ContractOpGetSymName,
+    llzkVerif_ContractOpGetTarget, llzkVerif_ContractOpHasArgName,
     llzkVerif_ContractOpHasArgPublicAttr, llzkVerif_ContractOpHasFuncTarget,
     llzkVerif_ContractOpHasStructTarget, llzkVerif_ContractOpIsDeclaration,
     llzkVerif_ContractOpSetArgAttrs, llzkVerif_ContractOpSetFunctionType,
-    llzkVerif_ContractOpSetSymName, llzkVerif_ContractOpSetTarget, llzkVerif_EnsureComputeOpBuild,
-    llzkVerif_EnsureComputeOpGetCondition, llzkVerif_EnsureComputeOpSetCondition,
-    llzkVerif_EnsureConstrainOpBuild, llzkVerif_EnsureConstrainOpGetCondition,
-    llzkVerif_EnsureConstrainOpSetCondition, llzkVerif_IncludeOpBuild,
-    llzkVerif_IncludeOpContractTargetsStruct, llzkVerif_IncludeOpGetArgOperandsAt,
-    llzkVerif_IncludeOpGetArgOperandsCount, llzkVerif_IncludeOpGetCallee,
-    llzkVerif_IncludeOpGetMapOpGroupSizes, llzkVerif_IncludeOpGetMapOperandsAt,
-    llzkVerif_IncludeOpGetMapOperandsCount, llzkVerif_IncludeOpGetNumDimsPerMap,
-    llzkVerif_IncludeOpGetSelfValue, llzkVerif_IncludeOpGetTemplateParams,
-    llzkVerif_IncludeOpGetTypeSignature, llzkVerif_IncludeOpResolveCallable,
-    llzkVerif_IncludeOpSetArgOperands, llzkVerif_IncludeOpSetCallee,
-    llzkVerif_IncludeOpSetMapOpGroupSizes, llzkVerif_IncludeOpSetMapOperands,
-    llzkVerif_IncludeOpSetNumDimsPerMap, llzkVerif_IncludeOpSetTemplateParams,
+    llzkVerif_ContractOpSetSymName, llzkVerif_ContractOpSetTarget, llzkVerif_DecreasesOpBuild,
+    llzkVerif_EnsureComputeOpBuild, llzkVerif_EnsureComputeOpGetCondition,
+    llzkVerif_EnsureComputeOpSetCondition, llzkVerif_EnsureConstrainOpBuild,
+    llzkVerif_EnsureConstrainOpGetCondition, llzkVerif_EnsureConstrainOpSetCondition,
+    llzkVerif_IncludeOpBuild, llzkVerif_IncludeOpContractTargetsStruct,
+    llzkVerif_IncludeOpGetArgOperandsAt, llzkVerif_IncludeOpGetArgOperandsCount,
+    llzkVerif_IncludeOpGetCallee, llzkVerif_IncludeOpGetMapOpGroupSizes,
+    llzkVerif_IncludeOpGetMapOperandsAt, llzkVerif_IncludeOpGetMapOperandsCount,
+    llzkVerif_IncludeOpGetNumDimsPerMap, llzkVerif_IncludeOpGetSelfValue,
+    llzkVerif_IncludeOpGetTemplateParams, llzkVerif_IncludeOpGetTypeSignature,
+    llzkVerif_IncludeOpResolveCallable, llzkVerif_IncludeOpSetArgOperands,
+    llzkVerif_IncludeOpSetCallee, llzkVerif_IncludeOpSetMapOpGroupSizes,
+    llzkVerif_IncludeOpSetMapOperands, llzkVerif_IncludeOpSetNumDimsPerMap,
+    llzkVerif_IncludeOpSetTemplateParams, llzkVerif_IncreasesOpBuild, llzkVerif_InvariantOpBuild,
+    llzkVerif_InvariantOpGetBody, llzkVerif_InvariantOpGetLoopArgTypes,
+    llzkVerif_InvariantOpGetLoopName, llzkVerif_InvariantOpGetParentContract,
+    llzkVerif_InvariantOpSetLoopArgTypes, llzkVerif_InvariantOpSetLoopName, llzkVerif_OldOpBuild,
     llzkVerif_RequireComputeOpBuild, llzkVerif_RequireComputeOpGetCondition,
     llzkVerif_RequireComputeOpSetCondition, llzkVerif_RequireConstrainOpBuild,
     llzkVerif_RequireConstrainOpGetCondition, llzkVerif_RequireConstrainOpSetCondition,
+    llzkVerif_StepOpBuild, llzkVerif_StepOpGetRegion, llzkVerif_StepYieldOpBuild,
 };
-use melior::ir::{
-    Attribute, AttributeLike, BlockLike as _, Identifier, Location, OperationRef, RegionLike as _,
-    RegionRef, Type,
-    attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
-    block::{Block, BlockArgument},
-    operation::OperationLike,
-    r#type::FunctionType,
+use melior::{
+    StringRef,
+    ir::{
+        Attribute, AttributeLike, BlockLike as _, BlockRef, Identifier, Location, OperationRef,
+        Region, RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
+        attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
+        block::{Block, BlockArgument},
+        operation::OperationLike,
+        r#type::FunctionType,
+    },
 };
 
 use crate::{
@@ -181,6 +190,23 @@ mod include_op_ext {
 }
 
 pub use include_op_ext::IncludeArgOperandsIter;
+
+/// Defines a `is_$name` operation that checks if the given operation matches the expected
+/// operation type.
+macro_rules! isa_fn {
+    ($name:ident, $op_name:expr) => {
+        paste::paste! {
+            #[doc = concat!("Returns `true` iff the given op is `verif.", $op_name, "`.")]
+            #[inline]
+            pub fn [<is_ $name>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
+                crate::operation::isa(op, concat!("verif.", $op_name))
+            }
+        }
+    };
+    ($name:ident) => {
+        isa_fn!($name, stringify!($name));
+    };
+}
 
 #[inline]
 fn create_out_of_bounds_error<'c: 'a, 'a>(
@@ -368,11 +394,7 @@ pub fn contract<'c, 'a, 'b>(
     }
 }
 
-/// Returns `true` iff the given op is `verif.contract`.
-#[inline]
-pub fn is_contract<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "verif.contract")
-}
+isa_fn!(contract);
 
 //===----------------------------------------------------------------------===//
 // IncludeOpLike
@@ -591,11 +613,7 @@ pub fn include_with_map_operands_slice<'c, 'g, 'v, 'a>(
     )
 }
 
-/// Returns `true` iff the given op is `verif.include`.
-#[inline]
-pub fn is_include<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "verif.include")
-}
+isa_fn!(include);
 
 //===----------------------------------------------------------------------===//
 // ConditionOpLike
@@ -727,3 +745,230 @@ impl_condition_op!(
     is_require_constrain,
     require_constrain
 );
+
+//===----------------------------------------------------------------------===//
+// InvariantOpLike
+//===----------------------------------------------------------------------===//
+
+/// Methods for `verif.invariant` ops.
+pub trait InvariantOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+    /// Returns the body of the operation.
+    fn body(&self) -> BlockRef<'c, 'a> {
+        unsafe { BlockRef::from_raw(llzkVerif_InvariantOpGetBody(self.to_raw())) }
+    }
+
+    /// Returns the loop label.
+    fn loop_name(&self) -> &'c str {
+        StringAttribute::try_from(unsafe {
+            Attribute::from_raw(llzkVerif_InvariantOpGetLoopName(self.to_raw()))
+        })
+        .unwrap()
+        .value()
+    }
+
+    /// Returns the loop argument's types.
+    fn loop_arg_types(&self) -> Vec<Type<'c>> {
+        let arr = ArrayAttribute::try_from(unsafe {
+            Attribute::from_raw(llzkVerif_InvariantOpGetLoopArgTypes(self.to_raw()))
+        })
+        .unwrap();
+        arr.into_iter()
+            .map(|a| TypeAttribute::try_from(a).unwrap().value())
+            .collect()
+    }
+
+    /// Returns the parent `verif.contract` operation.
+    fn parent_contract(&self) -> Option<ContractOpRef<'c, 'a>> {
+        ContractOpRef::from_option_raw(unsafe {
+            llzkVerif_InvariantOpGetParentContract(self.to_raw())
+        })
+    }
+}
+
+/// Mutable methods for `verif.invariant` ops.
+pub trait InvariantOpMutLike<'c: 'a, 'a>: InvariantOpLike<'c, 'a> {
+    /// Sets the loop label.
+    fn set_loop_name(&mut self, name: &str) {
+        let context = self.context();
+        let name = StringAttribute::new(unsafe { context.to_ref() }, name);
+        unsafe {
+            llzkVerif_InvariantOpSetLoopName(self.to_raw(), Attribute::from(name).to_raw());
+        }
+    }
+
+    /// Sets the loop argument's types.
+    ///
+    /// The types need to be consistent with the targeted loop's arguments and
+    /// the block arguments of this op's body.
+    fn set_loop_arg_types(&mut self, types: &[Type<'c>]) {
+        let attrs = types
+            .iter()
+            .copied()
+            .map(TypeAttribute::new)
+            .map(Attribute::from)
+            .collect::<Vec<_>>();
+        let context = self.context();
+        let arr = ArrayAttribute::new(unsafe { context.to_ref() }, &attrs);
+        unsafe {
+            llzkVerif_InvariantOpSetLoopArgTypes(self.to_raw(), arr.to_raw());
+        }
+    }
+}
+
+//===----------------------------------------------------------------------===//
+// InvariantOp
+//===----------------------------------------------------------------------===//
+
+llzk_op_type!(
+    InvariantOp,
+    llzkOperationIsA_Verif_InvariantOp,
+    "verif.invariant"
+);
+
+impl<'a, 'c: 'a> InvariantOpLike<'c, 'a> for InvariantOp<'c> {}
+impl<'a, 'c: 'a> InvariantOpMutLike<'c, 'a> for InvariantOp<'c> {}
+impl<'a, 'c: 'a> InvariantOpLike<'c, 'a> for InvariantOpRef<'c, 'a> {}
+impl<'a, 'c: 'a> InvariantOpLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
+impl<'a, 'c: 'a> InvariantOpMutLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
+
+/// Creates a new invariant operation.
+pub fn invariant<'c, 'o, B>(
+    builder: &B,
+    location: Location<'c>,
+    loop_label: &str,
+    args: &[(Type<'c>, Location<'c>)],
+    build: impl FnOnce(&B, &[Value<'c, 'o>]) -> Result<(), Error>,
+) -> Result<InvariantOpRef<'c, 'o>, Error>
+where
+    B: OpBuilderLike<'c>,
+{
+    let (types, locations): (Vec<_>, Vec<_>) =
+        args.iter().map(|(t, l)| (t.to_raw(), l.to_raw())).unzip();
+    let op = unsafe {
+        InvariantOpRef::from_raw(llzkVerif_InvariantOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            StringRef::new(loop_label).to_raw(),
+            args.len() as isize,
+            types.as_ptr(),
+            locations.as_ptr(),
+        ))
+    };
+    let body = op.body();
+    let saved = builder.save_insertion_point();
+    builder.set_insertion_point_at_end(body);
+    let arguments =
+        Vec::from_iter((0..body.argument_count()).map(|n| Value::from(body.argument(n).unwrap())));
+    let res = build(builder, &arguments);
+    builder.restore_insertion_point(saved);
+    res.map(|_| op)
+}
+
+isa_fn!(invariant);
+
+/// Creates an `verif.increases` operation.
+pub fn increases<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    value: Value<'c, '_>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkVerif_IncreasesOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            value.to_raw(),
+        ))
+    }
+}
+
+isa_fn!(increases);
+
+/// Creates a `verif.decreases` operation.
+pub fn decreases<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    value: Value<'c, '_>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkVerif_DecreasesOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            value.to_raw(),
+        ))
+    }
+}
+
+isa_fn!(decreases);
+
+/// Creates a `verif.step` operation.
+///
+/// Accepts an optional builder callback for filling the body of the operation.
+/// The callback must return a value that is used for creating the `verif.step.yield`
+/// terminator op required by `verif.step`.
+///
+/// If the callback is not passed, then the operation is constructed as is and the caller is
+/// responsible of manually adding the body.
+pub fn step<'c, 'a, B>(
+    builder: &B,
+    location: Location<'c>,
+    build: Option<impl FnOnce(&B) -> Result<Value<'c, 'a>, Error>>,
+) -> Result<OperationRef<'c, 'a>, Error>
+where
+    B: OpBuilderLike<'c>,
+{
+    let op = unsafe {
+        OperationRef::from_raw(llzkVerif_StepOpBuild(builder.to_raw(), location.to_raw()))
+    };
+    let Some(build) = build else {
+        return Ok(op);
+    };
+    let region = unsafe { RegionRef::from_raw(llzkVerif_StepOpGetRegion(op.to_raw())) };
+    let block = region.append_block(Block::new(&[]));
+    let saved = builder.save_insertion_point();
+    builder.set_insertion_point_at_end(block);
+    let res = build(builder);
+    if let Ok(value) = &res {
+        step_yield(builder, location, *value);
+    }
+    builder.restore_insertion_point(saved);
+    res.map(|_| op)
+}
+
+isa_fn!(step);
+
+/// Creates a `verif.step.yield` operation.
+///
+/// When creating a [`step`] operation with a builder callback is not necessary to call this
+/// factory.
+pub fn step_yield<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    value: Value<'c, '_>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkVerif_StepYieldOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            value.to_raw(),
+        ))
+    }
+}
+
+isa_fn!(step_yield, "step.yield");
+
+/// Creates a `verif.old` operation.
+pub fn old<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    value: Value<'c, '_>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkVerif_OldOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            value.to_raw(),
+        ))
+    }
+}
+
+isa_fn!(old);

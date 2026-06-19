@@ -10,7 +10,7 @@
       };
     };
     llzk-lib = {
-      url = "github:project-llzk/llzk-lib";
+      url = "github:project-llzk/llzk-lib?ref=dani/quantifier-ops";
       inputs = {
         nixpkgs.follows = "llzk-pkgs/nixpkgs";
         flake-utils.follows = "llzk-pkgs/flake-utils";
