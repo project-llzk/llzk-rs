@@ -38,7 +38,7 @@ use melior::{
     StringRef,
     ir::{
         Attribute, AttributeLike, BlockLike as _, BlockRef, Identifier, Location, OperationRef,
-        Region, RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
+        RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
         attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
         block::{Block, BlockArgument},
         operation::OperationLike,
@@ -832,13 +832,13 @@ impl<'a, 'c: 'a> InvariantOpLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
 impl<'a, 'c: 'a> InvariantOpMutLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
 
 /// Creates a new invariant operation.
-pub fn invariant<'c, 'o, B>(
+pub fn invariant<'c, 'o, B, E>(
     builder: &B,
     location: Location<'c>,
     loop_label: &str,
     args: &[(Type<'c>, Location<'c>)],
-    build: impl FnOnce(&B, &[Value<'c, 'o>]) -> Result<(), Error>,
-) -> Result<InvariantOpRef<'c, 'o>, Error>
+    build: impl FnOnce(&B, &[Value<'c, 'o>]) -> Result<(), E>,
+) -> Result<InvariantOpRef<'c, 'o>, E>
 where
     B: OpBuilderLike<'c>,
 {
@@ -908,11 +908,11 @@ isa_fn!(decreases);
 ///
 /// If the callback is not passed, then the operation is constructed as is and the caller is
 /// responsible of manually adding the body.
-pub fn step<'c, 'a, B>(
+pub fn step<'c, 'a, B, E>(
     builder: &B,
     location: Location<'c>,
-    build: Option<impl FnOnce(&B) -> Result<Value<'c, 'a>, Error>>,
-) -> Result<OperationRef<'c, 'a>, Error>
+    build: Option<impl FnOnce(&B) -> Result<Value<'c, 'a>, E>>,
+) -> Result<OperationRef<'c, 'a>, E>
 where
     B: OpBuilderLike<'c>,
 {

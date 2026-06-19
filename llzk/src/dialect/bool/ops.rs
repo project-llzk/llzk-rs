@@ -144,17 +144,21 @@ pub fn assert<'c>(
 isa_fn!(assert);
 
 /// Helper for creating a quantifier op.
-fn create_quantifier_body<'c, 'a, B: OpBuilderLike<'c>>(
+fn create_quantifier_body<'c, 'a, B, E>(
     builder: &B,
     location: Location<'c>,
     domain: Value<'c, '_>,
-    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, Error>>,
+    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, E>>,
     op_build: unsafe extern "C" fn(
         llzk_sys::MlirOpBuilder,
         mlir_sys::MlirLocation,
         mlir_sys::MlirValue,
     ) -> mlir_sys::MlirOperation,
-) -> Result<OperationRef<'c, 'a>, Error> {
+) -> Result<OperationRef<'c, 'a>, E>
+where
+    B: OpBuilderLike<'c>,
+    E: From<Error>,
+{
     let op = unsafe {
         OperationRef::from_raw(op_build(
             builder.to_raw(),
@@ -165,7 +169,7 @@ fn create_quantifier_body<'c, 'a, B: OpBuilderLike<'c>>(
     let Some(build) = build else {
         return Ok(op);
     };
-    let region = op.region(0)?;
+    let region = op.region(0).map_err(Error::Melior)?;
     let iter_type = unsafe {
         Type::from_option_raw(llzk_sys::llzkBool_QuantifierOpGetDomainIterType(
             domain.r#type().to_raw(),
@@ -190,12 +194,16 @@ fn create_quantifier_body<'c, 'a, B: OpBuilderLike<'c>>(
 /// that gets passed to the `bool.yield` terminator.
 /// If the callback is not given, the caller is responsible of adding the body's block and filling
 /// it.
-pub fn forall<'c, 'a, B: OpBuilderLike<'c>>(
+pub fn forall<'c, 'a, B, E>(
     builder: &B,
     location: Location<'c>,
     domain: Value<'c, '_>,
-    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, Error>>,
-) -> Result<OperationRef<'c, 'a>, Error> {
+    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, E>>,
+) -> Result<OperationRef<'c, 'a>, E>
+where
+    B: OpBuilderLike<'c>,
+    E: From<Error>,
+{
     create_quantifier_body(
         builder,
         location,
@@ -213,12 +221,16 @@ isa_fn!(forall);
 /// that gets passed to the `bool.yield` terminator.
 /// If the callback is not given, the caller is responsible of adding the body's block and filling
 /// it.
-pub fn exists<'c, 'a, B: OpBuilderLike<'c>>(
+pub fn exists<'c, 'a, B, E>(
     builder: &B,
     location: Location<'c>,
     domain: Value<'c, '_>,
-    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, Error>>,
-) -> Result<OperationRef<'c, 'a>, Error> {
+    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, E>>,
+) -> Result<OperationRef<'c, 'a>, E>
+where
+    B: OpBuilderLike<'c>,
+    E: From<Error>,
+{
     create_quantifier_body(
         builder,
         location,
