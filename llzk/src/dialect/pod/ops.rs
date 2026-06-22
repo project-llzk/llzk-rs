@@ -2,8 +2,7 @@
 
 use super::r#type::PodType;
 use crate::{
-    builder::OpBuilderLike, ident, map_operands::MapOperandsBuilder,
-    prelude::FlatSymbolRefAttribute,
+    builder::OpBuilderLike, map_operands::MapOperandsBuilder, prelude::FlatSymbolRefAttribute,
 };
 use llzk_sys::{
     LlzkRecordValue, llzkPod_NewPodOpBuild, llzkPod_NewPodOpBuildInferredFromInitialValues,
@@ -11,7 +10,7 @@ use llzk_sys::{
 };
 use melior::StringRef;
 use melior::ir::{
-    Location, Operation, Type, TypeLike, Value, ValueLike,
+    Identifier, Location, Operation, Type, TypeLike, Value, ValueLike,
     operation::{OperationBuilder, OperationLike},
 };
 use std::marker::PhantomData;
@@ -117,7 +116,7 @@ pub fn read<'c>(
 ) -> Operation<'c> {
     let ctx = location.context();
     OperationBuilder::new("pod.read", location)
-        .add_attributes(&[(ident!(ctx, "record_name"), record_name.into())])
+        .add_attributes(&[(Identifier::new(ctx, "record_name"), record_name.into())])
         .add_operands(&[pod_ref])
         .add_results(&[result])
         .build()
@@ -139,7 +138,7 @@ pub fn write<'c>(
 ) -> Operation<'c> {
     let ctx = location.context();
     OperationBuilder::new("pod.write", location)
-        .add_attributes(&[(ident!(ctx, "record_name"), record_name.into())])
+        .add_attributes(&[(Identifier::new(ctx, "record_name"), record_name.into())])
         .add_operands(&[pod_ref, rvalue])
         .build()
         .expect("valid operation")

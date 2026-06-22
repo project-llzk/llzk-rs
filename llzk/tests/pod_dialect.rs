@@ -127,6 +127,68 @@ fn get_type_of_record() {
 }
 
 #[test]
+fn pod_read() {
+    common::setup();
+    let context = LlzkContext::new();
+    let location = Location::unknown(&context);
+    let module = Module::new(location);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let pod_type = PodType::new(&context, &[PodRecordAttribute::new("field", Type::index(&context))]);
+    let pod = dialect::pod::new(&builder, location, &[], Some(pod_type));
+    let pod = module.body().append_operation(pod);
+    let pod_value = pod.result(0).unwrap().into();
+
+    let read = dialect::pod::read(
+        location,
+        pod_value,
+        FlatSymbolRefAttribute::new(&context, "field"),
+        Type::index(&context),
+    );
+    let read = module.body().append_operation(read);
+
+    verify_operation_with_diags(&read).unwrap();
+    let ir = format!("{read}");
+    assert_eq!(ir, "%0 = pod.read %pod[@field] : <[@field: index]>, index
+");
+}
+
+#[test]
+fn pod_write() {
+    common::setup();
+    let context = LlzkContext::new();
+    let location = Location::unknown(&context);
+    let module = Module::new(location);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let pod_type = PodType::new(&context, &[PodRecordAttribute::new("field", Type::index(&context))]);
+    let pod = dialect::pod::new(&builder, location, &[], Some(pod_type));
+    let pod = module.body().append_operation(pod);
+    let pod_value = pod.result(0).unwrap().into();
+
+    let value = arith::constant(
+        &context,
+        IntegerAttribute::new(Type::index(&context), 42).into(),
+        location,
+    );
+    let value = module.body().append_operation(value);
+    let value = value.result(0).unwrap().into();
+
+    let write = dialect::pod::write(
+        location,
+        pod_value,
+        FlatSymbolRefAttribute::new(&context, "field"),
+        value,
+    );
+    let write = module.body().append_operation(write);
+
+    verify_operation_with_diags(&write).unwrap();
+    let ir = format!("{write}");
+    assert_eq!(ir, "pod.write %pod[@field] = %c42_i64 : <[@field: index]>, index
+");
+}
+
+#[test]
 fn pod_new_empty_and_inferred() {
     common::setup();
     let context = LlzkContext::new();
