@@ -2,16 +2,18 @@
 
 use super::r#type::PodType;
 use crate::{
-    builder::OpBuilderLike, map_operands::MapOperandsBuilder, prelude::FlatSymbolRefAttribute,
+    builder::{OpBuilder, OpBuilderLike}, map_operands::MapOperandsBuilder,
+    prelude::FlatSymbolRefAttribute,
 };
 use llzk_sys::{
     LlzkRecordValue, llzkPod_NewPodOpBuild, llzkPod_NewPodOpBuildInferredFromInitialValues,
-    llzkPod_NewPodOpBuildWithMapOperands,
+    llzkPod_NewPodOpBuildWithMapOperands, llzkPod_ReadPodOpBuild, llzkPod_WritePodOpBuild,
+    mlirOpBuilderCreate,
 };
 use melior::StringRef;
 use melior::ir::{
     Identifier, Location, Operation, Type, TypeLike, Value, ValueLike,
-    operation::{OperationBuilder, OperationLike},
+    operation::OperationLike,
 };
 use std::marker::PhantomData;
 
@@ -115,12 +117,17 @@ pub fn read<'c>(
     result: Type<'c>,
 ) -> Operation<'c> {
     let ctx = location.context();
-    OperationBuilder::new("pod.read", location)
-        .add_attributes(&[(Identifier::new(ctx, "record_name"), record_name.into())])
-        .add_operands(&[pod_ref])
-        .add_results(&[result])
-        .build()
-        .expect("valid operation")
+    unsafe {
+        let ctx = ctx.to_ref();
+        let builder = OpBuilder::from_raw(mlirOpBuilderCreate(ctx.to_raw()));
+        Operation::from_raw(llzkPod_ReadPodOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            result.to_raw(),
+            pod_ref.to_raw(),
+            Identifier::new(ctx, record_name.value()).to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `pod.read`.
@@ -137,11 +144,17 @@ pub fn write<'c>(
     rvalue: Value<'c, '_>,
 ) -> Operation<'c> {
     let ctx = location.context();
-    OperationBuilder::new("pod.write", location)
-        .add_attributes(&[(Identifier::new(ctx, "record_name"), record_name.into())])
-        .add_operands(&[pod_ref, rvalue])
-        .build()
-        .expect("valid operation")
+    unsafe {
+        let ctx = ctx.to_ref();
+        let builder = OpBuilder::from_raw(mlirOpBuilderCreate(ctx.to_raw()));
+        Operation::from_raw(llzkPod_WritePodOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            pod_ref.to_raw(),
+            rvalue.to_raw(),
+            Identifier::new(ctx, record_name.value()).to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `pod.write`.
