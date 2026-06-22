@@ -144,20 +144,18 @@ pub fn assert<'c>(
 isa_fn!(assert);
 
 /// Helper for creating a quantifier op.
-fn create_quantifier_body<'c, 'a, B, E>(
+fn create_quantifier_body<'c, 'a, B>(
     builder: &B,
     location: Location<'c>,
     domain: Value<'c, '_>,
-    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, E>>,
     op_build: unsafe extern "C" fn(
         llzk_sys::MlirOpBuilder,
         mlir_sys::MlirLocation,
         mlir_sys::MlirValue,
     ) -> mlir_sys::MlirOperation,
-) -> Result<OperationRef<'c, 'a>, E>
+) -> Result<OperationRef<'c, 'a>, Error>
 where
     B: OpBuilderLike<'c>,
-    E: From<Error>,
 {
     let op = unsafe {
         OperationRef::from_raw(op_build(
@@ -166,78 +164,41 @@ where
             domain.to_raw(),
         ))
     };
-    let Some(build) = build else {
-        return Ok(op);
-    };
-    let region = op.region(0).map_err(Error::Melior)?;
-    let iter_type = unsafe {
-        Type::from_option_raw(llzk_sys::llzkBool_QuantifierOpGetDomainIterType(
-            domain.r#type().to_raw(),
-        ))
-    }
-    .ok_or_else(|| Error::GeneralError("expected valid quantifier sort type"))?;
-    let block = region.append_block(Block::new(&[(iter_type, location)]));
 
-    let saved = builder.save_insertion_point();
-    builder.set_insertion_point_at_end(block);
-    let res = build(builder, Value::from(block.argument(0).unwrap()));
-    if let Ok(res) = &res {
-        r#yield(builder, location, *res);
-    }
-    builder.restore_insertion_point(saved);
-    res.map(|_| op)
+    let region = op.region(0).map_err(Error::Melior)?;
+    let iter_type = super::quantifier_iter_type(domain.r#type())?;
+    region.append_block(Block::new(&[(iter_type, location)]));
+    Ok(op)
 }
 
 /// Creates a `bool.forall` operation.
 ///
-/// If given, the build callback receives the block's argument as parameter and must return the boolean value
-/// that gets passed to the `bool.yield` terminator.
-/// If the callback is not given, the caller is responsible of adding the body's block and filling
-/// it.
-pub fn forall<'c, 'a, B, E>(
+/// Adds an empty block with the correct iteration type based on the domain's type.
+pub fn forall<'c, 'a, B>(
     builder: &B,
     location: Location<'c>,
     domain: Value<'c, '_>,
-    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, E>>,
-) -> Result<OperationRef<'c, 'a>, E>
+) -> Result<OperationRef<'c, 'a>, Error>
 where
     B: OpBuilderLike<'c>,
-    E: From<Error>,
 {
-    create_quantifier_body(
-        builder,
-        location,
-        domain,
-        build,
-        llzk_sys::llzkBool_ForAllOpBuild,
-    )
+    create_quantifier_body(builder, location, domain, llzk_sys::llzkBool_ForAllOpBuild)
 }
 
 isa_fn!(forall);
 
 /// Creates a `bool.exists` operation.
 ///
-/// If given, the build callback receives the block's argument as parameter and must return the boolean value
-/// that gets passed to the `bool.yield` terminator.
-/// If the callback is not given, the caller is responsible of adding the body's block and filling
-/// it.
-pub fn exists<'c, 'a, B, E>(
+/// Adds an empty block with the correct iteration type based on the domain's type.
+pub fn exists<'c, 'a, B>(
     builder: &B,
     location: Location<'c>,
     domain: Value<'c, '_>,
-    build: Option<impl FnOnce(&B, Value<'c, 'a>) -> Result<Value<'c, 'a>, E>>,
-) -> Result<OperationRef<'c, 'a>, E>
+) -> Result<OperationRef<'c, 'a>, Error>
 where
     B: OpBuilderLike<'c>,
-    E: From<Error>,
 {
-    create_quantifier_body(
-        builder,
-        location,
-        domain,
-        build,
-        llzk_sys::llzkBool_ExistsOpBuild,
-    )
+    create_quantifier_body(builder, location, domain, llzk_sys::llzkBool_ExistsOpBuild)
 }
 
 isa_fn!(exists);
