@@ -832,7 +832,33 @@ impl<'a, 'c: 'a> InvariantOpLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
 impl<'a, 'c: 'a> InvariantOpMutLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
 
 /// Creates a new invariant operation.
-pub fn invariant<'c, 'o, B, E>(
+pub fn invariant<'c, 'o, B>(
+    builder: &B,
+    location: Location<'c>,
+    loop_label: &str,
+    args: &[(Type<'c>, Location<'c>)],
+) -> InvariantOpRef<'c, 'o>
+where
+    B: OpBuilderLike<'c>,
+{
+    let (types, locations): (Vec<_>, Vec<_>) =
+        args.iter().map(|(t, l)| (t.to_raw(), l.to_raw())).unzip();
+    unsafe {
+        InvariantOpRef::from_raw(llzkVerif_InvariantOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            StringRef::new(loop_label).to_raw(),
+            args.len() as isize,
+            types.as_ptr(),
+            locations.as_ptr(),
+        ))
+    }
+}
+
+/// Creates a new invariant operation.
+///
+/// Takes a callback that fills the body of the invariant.
+pub fn invariant_build<'c, 'o, B, E>(
     builder: &B,
     location: Location<'c>,
     loop_label: &str,
@@ -842,18 +868,7 @@ pub fn invariant<'c, 'o, B, E>(
 where
     B: OpBuilderLike<'c>,
 {
-    let (types, locations): (Vec<_>, Vec<_>) =
-        args.iter().map(|(t, l)| (t.to_raw(), l.to_raw())).unzip();
-    let op = unsafe {
-        InvariantOpRef::from_raw(llzkVerif_InvariantOpBuild(
-            builder.to_raw(),
-            location.to_raw(),
-            StringRef::new(loop_label).to_raw(),
-            args.len() as isize,
-            types.as_ptr(),
-            locations.as_ptr(),
-        ))
-    };
+    let op = invariant(builder, location, loop_label, args);
     let body = op.body();
     let saved = builder.save_insertion_point();
     builder.set_insertion_point_at_end(body);
@@ -902,26 +917,29 @@ isa_fn!(decreases);
 
 /// Creates a `verif.step` operation.
 ///
-/// Accepts an optional builder callback for filling the body of the operation.
+/// The operation is constructed as is and the caller is
+/// responsible of manually adding the body.
+pub fn step<'c, 'a, B>(builder: &B, location: Location<'c>) -> OperationRef<'c, 'a>
+where
+    B: OpBuilderLike<'c>,
+{
+    unsafe { OperationRef::from_raw(llzkVerif_StepOpBuild(builder.to_raw(), location.to_raw())) }
+}
+
+/// Creates a `verif.step` operation.
+///
+/// Accepts a builder callback for filling the body of the operation.
 /// The callback must return a value that is used for creating the `verif.step.yield`
 /// terminator op required by `verif.step`.
-///
-/// If the callback is not passed, then the operation is constructed as is and the caller is
-/// responsible of manually adding the body.
-pub fn step<'c, 'a, B, E>(
+pub fn step_build<'c, 'a, B, E>(
     builder: &B,
     location: Location<'c>,
-    build: Option<impl FnOnce(&B) -> Result<Value<'c, 'a>, E>>,
+    build: impl FnOnce(&B) -> Result<Value<'c, 'a>, E>,
 ) -> Result<OperationRef<'c, 'a>, E>
 where
     B: OpBuilderLike<'c>,
 {
-    let op = unsafe {
-        OperationRef::from_raw(llzkVerif_StepOpBuild(builder.to_raw(), location.to_raw()))
-    };
-    let Some(build) = build else {
-        return Ok(op);
-    };
+    let op = step(builder, location);
     let region = unsafe { RegionRef::from_raw(llzkVerif_StepOpGetRegion(op.to_raw())) };
     let block = region.append_block(Block::new(&[]));
     let saved = builder.save_insertion_point();
