@@ -189,7 +189,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Looks for an attribute in the n-th argument of the function.
     fn argument_attr(&self, idx: usize, name: &str) -> Result<Attribute<'c>, Error> {
         let arg_attrs = melior::ir::attribute::ArrayAttribute::try_from(unsafe {
-            Attribute::from_raw(llzkFunction_FuncDefOpGetArgAttrs(self.to_raw()))
+            Attribute::from_raw(dbg!(llzkFunction_FuncDefOpGetArgAttrs(self.to_raw())))
         })
         .map_err(Error::Melior)?;
         let arg = arg_attrs.element(idx)?;
