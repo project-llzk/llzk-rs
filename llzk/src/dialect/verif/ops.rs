@@ -961,7 +961,7 @@ isa_fn!(verif, step);
 
 /// Creates a `verif.step.yield` operation.
 ///
-/// When creating a `verif.step` operation with [`step_build`] is not necessary to use this
+/// When creating a `verif.step` operation with [`step_build`] it's not necessary to use this
 /// factory to add the terminator since it's added automatically.
 pub fn step_yield<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
