@@ -50,7 +50,7 @@ use crate::{
     attributes::{array::ArrayAttribute, null_attr, rebuild_array_attr},
     builder::OpBuilderLike,
     error::Error,
-    macros::llzk_op_type,
+    macros::{isa_fn, llzk_op_type},
     symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
     type_ext::FunctionTypeExt as _,
     value_ext::ValueRange,
@@ -190,23 +190,6 @@ mod include_op_ext {
 }
 
 pub use include_op_ext::IncludeArgOperandsIter;
-
-/// Defines a `is_$name` operation that checks if the given operation matches the expected
-/// operation type.
-macro_rules! isa_fn {
-    ($name:ident, $op_name:expr) => {
-        paste::paste! {
-            #[doc = concat!("Returns `true` iff the given op is `verif.", $op_name, "`.")]
-            #[inline]
-            pub fn [<is_ $name>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("verif.", $op_name))
-            }
-        }
-    };
-    ($name:ident) => {
-        isa_fn!($name, stringify!($name));
-    };
-}
 
 #[inline]
 fn create_out_of_bounds_error<'c: 'a, 'a>(
@@ -394,7 +377,7 @@ pub fn contract<'c, 'a, 'b>(
     }
 }
 
-isa_fn!(contract);
+isa_fn!(verif, contract);
 
 //===----------------------------------------------------------------------===//
 // ContractEndOp
@@ -416,7 +399,7 @@ pub fn contract_end<'c, 'a>(
     }
 }
 
-isa_fn!(contract_end);
+isa_fn!(verif, contract_end);
 
 //===----------------------------------------------------------------------===//
 // IncludeOpLike
@@ -635,7 +618,7 @@ pub fn include_with_map_operands_slice<'c, 'g, 'v, 'a>(
     )
 }
 
-isa_fn!(include);
+isa_fn!(verif, include);
 
 //===----------------------------------------------------------------------===//
 // ConditionOpLike
@@ -814,7 +797,7 @@ pub trait InvariantOpMutLike<'c: 'a, 'a>: InvariantOpLike<'c, 'a> {
         let context = self.context();
         let name = StringAttribute::new(unsafe { context.to_ref() }, name);
         unsafe {
-            llzkVerif_InvariantOpSetLoopName(self.to_raw(), Attribute::from(name).to_raw());
+            llzkVerif_InvariantOpSetLoopName(self.to_raw(), name.to_raw());
         }
     }
 
@@ -901,7 +884,7 @@ where
     res.map(|_| op)
 }
 
-isa_fn!(invariant);
+isa_fn!(verif, invariant);
 
 /// Creates an `verif.increases` operation.
 pub fn increases<'c, 'a>(
@@ -918,7 +901,7 @@ pub fn increases<'c, 'a>(
     }
 }
 
-isa_fn!(increases);
+isa_fn!(verif, increases);
 
 /// Creates a `verif.decreases` operation.
 pub fn decreases<'c, 'a>(
@@ -935,7 +918,7 @@ pub fn decreases<'c, 'a>(
     }
 }
 
-isa_fn!(decreases);
+isa_fn!(verif, decreases);
 
 /// Creates a `verif.step` operation.
 ///
@@ -974,12 +957,12 @@ where
     res.map(|_| op)
 }
 
-isa_fn!(step);
+isa_fn!(verif, step);
 
 /// Creates a `verif.step.yield` operation.
 ///
-/// When creating a [`step`] operation with a builder callback is not necessary to call this
-/// factory.
+/// When creating a `verif.step` operation with [`step_build`] is not necessary to use this
+/// factory to add the terminator since it's added automatically.
 pub fn step_yield<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
@@ -994,7 +977,7 @@ pub fn step_yield<'c, 'a>(
     }
 }
 
-isa_fn!(step_yield, "step.yield");
+isa_fn!(verif, step_yield, "step.yield");
 
 /// Creates a `verif.old` operation.
 pub fn old<'c, 'a>(
@@ -1011,4 +994,4 @@ pub fn old<'c, 'a>(
     }
 }
 
-isa_fn!(old);
+isa_fn!(verif, old);

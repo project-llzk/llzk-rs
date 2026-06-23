@@ -3,6 +3,7 @@ use crate::{
     dialect::bool::{CmpPredicate, CmpPredicateAttribute},
     error::Error,
     ident,
+    macros::isa_fn,
 };
 
 use llzk_sys::MlirOpBuilder;
@@ -14,23 +15,6 @@ use melior::ir::{
     r#type::IntegerType,
 };
 use mlir_sys::{MlirLocation, MlirValue};
-
-/// Defines a `is_$name` operation that checks if the given operation matches the expected
-/// operation type.
-macro_rules! isa_fn {
-    ($name:ident, $op_name:expr) => {
-        paste::paste! {
-            #[doc = concat!("Returns `true` iff the given op is `bool.", $op_name, "`.")]
-            #[inline]
-            pub fn [<is_bool_ $name>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("bool.", $op_name))
-            }
-        }
-    };
-    ($name:ident) => {
-        isa_fn!($name, stringify!($name));
-    };
-}
 
 fn build_cmp_op<'c>(
     pred: CmpPredicate,
@@ -69,7 +53,7 @@ cmp_binop!(le, CmpPredicate::Le);
 cmp_binop!(lt, CmpPredicate::Lt);
 cmp_binop!(ne, CmpPredicate::Ne);
 
-isa_fn!(cmp);
+isa_fn!(prefixed bool, cmp);
 
 fn build_op<'c>(
     name: &str,
@@ -98,7 +82,7 @@ macro_rules! binop {
             build_op($opname, location, &[lhs, rhs])
         }
 
-        isa_fn!($name);
+        isa_fn!(prefixed bool, $name);
     };
 }
 
@@ -115,7 +99,7 @@ macro_rules! unop {
             build_op($opname, location, &[value])
         }
 
-        isa_fn!($name);
+        isa_fn!(prefixed bool, $name);
     };
 }
 
@@ -141,7 +125,7 @@ pub fn assert<'c>(
     builder.build().map_err(Into::into)
 }
 
-isa_fn!(assert);
+isa_fn!(prefixed bool, assert);
 
 /// Helper for creating a quantifier op.
 fn create_quantifier_body<'c, 'a, B>(
@@ -185,7 +169,7 @@ where
     create_quantifier_body(builder, location, domain, llzk_sys::llzkBool_ForAllOpBuild)
 }
 
-isa_fn!(forall);
+isa_fn!(prefixed bool, forall);
 
 /// Creates a `bool.exists` operation.
 ///
@@ -201,7 +185,7 @@ where
     create_quantifier_body(builder, location, domain, llzk_sys::llzkBool_ExistsOpBuild)
 }
 
-isa_fn!(exists);
+isa_fn!(prefixed bool, exists);
 
 /// Creates a `bool.yield` operation.
 pub fn r#yield<'c, 'a, B: OpBuilderLike<'c>>(
@@ -218,4 +202,4 @@ pub fn r#yield<'c, 'a, B: OpBuilderLike<'c>>(
     }
 }
 
-isa_fn!(r#yield);
+isa_fn!(prefixed bool, r#yield);
