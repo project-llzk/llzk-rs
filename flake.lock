@@ -35,16 +35,15 @@
         "release-helpers": "release-helpers"
       },
       "locked": {
-        "lastModified": 1781868272,
-        "narHash": "sha256-C25gUIj+Svs8cCe6d6R+F0ZiBJ1M79eksRwB6LpfwlM=",
+        "lastModified": 1782227732,
+        "narHash": "sha256-tlefGU7OIJzh6KZXOXrkTEg4bHsnbuMFK2KAI42S4Rg=",
         "owner": "project-llzk",
         "repo": "llzk-lib",
-        "rev": "10e77a87c694dd298b9d25ee20d906b30521a088",
+        "rev": "ca53600e216ddc45b18a75a00aee9f264228a2aa",
         "type": "github"
       },
       "original": {
         "owner": "project-llzk",
-        "ref": "dani/quantifier-ops",
         "repo": "llzk-lib",
         "type": "github"
       }
