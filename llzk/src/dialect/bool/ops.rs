@@ -1,15 +1,20 @@
 use crate::{
+    builder::OpBuilderLike,
     dialect::bool::{CmpPredicate, CmpPredicateAttribute},
     error::Error,
     ident,
+    macros::isa_fn,
 };
 
+use llzk_sys::MlirOpBuilder;
 use melior::ir::{
-    Location, Operation, Value,
+    Block, BlockLike, Location, Operation, OperationRef, RegionLike, Type, TypeLike, Value,
+    ValueLike,
     attribute::StringAttribute,
     operation::{OperationBuilder, OperationLike},
     r#type::IntegerType,
 };
+use mlir_sys::{MlirLocation, MlirValue};
 
 fn build_cmp_op<'c>(
     pred: CmpPredicate,
@@ -48,11 +53,7 @@ cmp_binop!(le, CmpPredicate::Le);
 cmp_binop!(lt, CmpPredicate::Lt);
 cmp_binop!(ne, CmpPredicate::Ne);
 
-/// Return `true` iff the given op is `bool.cmp`.
-#[inline]
-pub fn is_bool_cmp<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "bool.cmp")
-}
+isa_fn!(prefixed bool, cmp);
 
 fn build_op<'c>(
     name: &str,
@@ -81,13 +82,7 @@ macro_rules! binop {
             build_op($opname, location, &[lhs, rhs])
         }
 
-        paste::paste! {
-            #[doc = concat!("Return `true` iff the given op is `bool.", $opname ,"`.")]
-            #[inline]
-            pub fn [<is_bool_ $name>]<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("bool.", $opname))
-            }
-        }
+        isa_fn!(prefixed bool, $name);
     };
 }
 
@@ -104,13 +99,7 @@ macro_rules! unop {
             build_op($opname, location, &[value])
         }
 
-        paste::paste! {
-            #[doc = concat!("Return `true` iff the given op is `bool.", $opname ,"`.")]
-            #[inline]
-            pub fn [<is_bool_ $name>]<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("bool.", $opname))
-            }
-        }
+        isa_fn!(prefixed bool, $name);
     };
 }
 
@@ -136,8 +125,81 @@ pub fn assert<'c>(
     builder.build().map_err(Into::into)
 }
 
-/// Return `true` iff the given op is `bool.assert`.
-#[inline]
-pub fn is_bool_assert<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "bool.assert")
+isa_fn!(prefixed bool, assert);
+
+/// Helper for creating a quantifier op.
+fn create_quantifier_body<'c, 'a, B>(
+    builder: &B,
+    location: Location<'c>,
+    domain: Value<'c, '_>,
+    op_build: unsafe extern "C" fn(
+        llzk_sys::MlirOpBuilder,
+        mlir_sys::MlirLocation,
+        mlir_sys::MlirValue,
+    ) -> mlir_sys::MlirOperation,
+) -> Result<OperationRef<'c, 'a>, Error>
+where
+    B: OpBuilderLike<'c>,
+{
+    let op = unsafe {
+        OperationRef::from_raw(op_build(
+            builder.to_raw(),
+            location.to_raw(),
+            domain.to_raw(),
+        ))
+    };
+
+    let region = op.region(0).map_err(Error::Melior)?;
+    let iter_type = super::quantifier_iter_type(domain.r#type())?;
+    region.append_block(Block::new(&[(iter_type, location)]));
+    Ok(op)
 }
+
+/// Creates a `bool.forall` operation.
+///
+/// Adds an empty block with the correct iteration type based on the domain's type.
+pub fn forall<'c, 'a, B>(
+    builder: &B,
+    location: Location<'c>,
+    domain: Value<'c, '_>,
+) -> Result<OperationRef<'c, 'a>, Error>
+where
+    B: OpBuilderLike<'c>,
+{
+    create_quantifier_body(builder, location, domain, llzk_sys::llzkBool_ForAllOpBuild)
+}
+
+isa_fn!(prefixed bool, forall);
+
+/// Creates a `bool.exists` operation.
+///
+/// Adds an empty block with the correct iteration type based on the domain's type.
+pub fn exists<'c, 'a, B>(
+    builder: &B,
+    location: Location<'c>,
+    domain: Value<'c, '_>,
+) -> Result<OperationRef<'c, 'a>, Error>
+where
+    B: OpBuilderLike<'c>,
+{
+    create_quantifier_body(builder, location, domain, llzk_sys::llzkBool_ExistsOpBuild)
+}
+
+isa_fn!(prefixed bool, exists);
+
+/// Creates a `bool.yield` operation.
+pub fn r#yield<'c, 'a, B: OpBuilderLike<'c>>(
+    builder: &B,
+    location: Location<'c>,
+    value: Value<'c, '_>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzk_sys::llzkBool_YieldOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            value.to_raw(),
+        ))
+    }
+}
+
+isa_fn!(prefixed bool, r#yield);

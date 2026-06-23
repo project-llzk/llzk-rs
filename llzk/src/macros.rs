@@ -340,3 +340,37 @@ macro_rules! llzk_op_type {
 }
 
 pub(crate) use llzk_op_type;
+
+/// Defines a `is_$name` function that checks if the given operation matches the expected
+/// operation type.
+///
+/// If the dialect name is prefixed by the `prefixed` keyword then the function is defined as
+/// `is_$dialect_$name`.
+macro_rules! isa_fn {
+    ($dialect:ident, $name:ident, $op_name:expr) => {
+        paste::paste! {
+            #[doc = concat!("Returns `true` iff the given op is `", stringify!($dialect), ".", $op_name, "`.")]
+            #[inline]
+            pub fn [<is_ $name>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
+                crate::operation::isa(op, concat!(stringify!($dialect), ".", $op_name))
+            }
+        }
+    };
+    ($dialect:ident, $name:ident) => {
+        isa_fn!($dialect, $name, stringify!($name));
+    };
+    (prefixed $dialect:ident, $name:ident, $op_name:expr) => {
+        paste::paste! {
+            #[doc = concat!("Returns `true` iff the given op is `", stringify!($dialect), ".", $op_name, "`.")]
+            #[inline]
+            pub fn [<is_ $dialect _ $name>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
+                crate::operation::isa(op, concat!(stringify!($dialect), ".", $op_name))
+            }
+        }
+    };
+    (prefixed $dialect:ident, $name:ident) => {
+        isa_fn!(prefixed $dialect, $name, stringify!($name));
+    };
+}
+
+pub(crate) use isa_fn;
