@@ -136,10 +136,11 @@ pub fn is_pod_read<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 pub fn write<'c>(
     location: Location<'c>,
     pod_ref: Value<'c, '_>,
-    record_name: FlatSymbolRefAttribute<'c>,
+    record_name: &str,
     rvalue: Value<'c, '_>,
 ) -> Operation<'c> {
     let ctx = location.context();
+    let record_name = StringAttribute::new(unsafe { ctx.to_ref() }, record_name);
     OperationBuilder::new("pod.write", location)
         .add_attributes(&[(ident!(ctx, "record_name"), record_name.into())])
         .add_operands(&[pod_ref, rvalue])
