@@ -10,12 +10,12 @@ pub use ops::{
     EnsureComputeOp, EnsureComputeOpRef, EnsureConstrainOp, EnsureConstrainOpRef,
     IncludeArgOperandsIter, IncludeOp, IncludeOpLike, IncludeOpRef, IncludeOpRefMut, InvariantOp,
     InvariantOpLike, InvariantOpMutLike, InvariantOpRef, InvariantOpRefMut, RequireComputeOp,
-    RequireComputeOpRef, RequireConstrainOp, RequireConstrainOpRef, contract, decreases,
-    ensure_compute, ensure_constrain, include, include_with_map_operands,
+    RequireComputeOpRef, RequireConstrainOp, RequireConstrainOpRef, contract, contract_end,
+    decreases, ensure_compute, ensure_constrain, include, include_with_map_operands,
     include_with_map_operands_slice, increases, invariant, invariant_build, is_contract,
-    is_decreases, is_ensure_compute, is_ensure_constrain, is_include, is_increases, is_invariant,
-    is_old, is_require_compute, is_require_constrain, is_step, is_step_yield, old, require_compute,
-    require_constrain, step, step_build, step_yield,
+    is_contract_end, is_decreases, is_ensure_compute, is_ensure_constrain, is_include,
+    is_increases, is_invariant, is_old, is_require_compute, is_require_constrain, is_step,
+    is_step_yield, old, require_compute, require_constrain, step, step_build, step_yield,
 };
 
 /// Returns a handle to the `verif` dialect.

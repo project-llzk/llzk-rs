@@ -4,11 +4,11 @@ use llzk_sys::{
     llzkOperationIsA_Verif_ContractOp, llzkOperationIsA_Verif_EnsureComputeOp,
     llzkOperationIsA_Verif_EnsureConstrainOp, llzkOperationIsA_Verif_IncludeOp,
     llzkOperationIsA_Verif_InvariantOp, llzkOperationIsA_Verif_RequireComputeOp,
-    llzkOperationIsA_Verif_RequireConstrainOp, llzkVerif_ContractOpBuildFromTargetAttr,
-    llzkVerif_ContractOpGetArgAttrs, llzkVerif_ContractOpGetBody,
-    llzkVerif_ContractOpGetCallableRegion, llzkVerif_ContractOpGetFullyQualifiedName,
-    llzkVerif_ContractOpGetFunctionType, llzkVerif_ContractOpGetSymName,
-    llzkVerif_ContractOpGetTarget, llzkVerif_ContractOpHasArgName,
+    llzkOperationIsA_Verif_RequireConstrainOp, llzkVerif_ContractEndOpBuild,
+    llzkVerif_ContractOpBuildFromTargetAttr, llzkVerif_ContractOpGetArgAttrs,
+    llzkVerif_ContractOpGetBody, llzkVerif_ContractOpGetCallableRegion,
+    llzkVerif_ContractOpGetFullyQualifiedName, llzkVerif_ContractOpGetFunctionType,
+    llzkVerif_ContractOpGetSymName, llzkVerif_ContractOpGetTarget, llzkVerif_ContractOpHasArgName,
     llzkVerif_ContractOpHasArgPublicAttr, llzkVerif_ContractOpHasFuncTarget,
     llzkVerif_ContractOpHasStructTarget, llzkVerif_ContractOpIsDeclaration,
     llzkVerif_ContractOpSetArgAttrs, llzkVerif_ContractOpSetFunctionType,
@@ -395,6 +395,28 @@ pub fn contract<'c, 'a, 'b>(
 }
 
 isa_fn!(contract);
+
+//===----------------------------------------------------------------------===//
+// ContractEndOp
+//===----------------------------------------------------------------------===//
+
+/// Creates a `verif.contract_end` operation.
+///
+/// This is the terminator op for `verif.contract` operations and must be added at the
+/// end of the block.
+pub fn contract_end<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkVerif_ContractEndOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+        ))
+    }
+}
+
+isa_fn!(contract_end);
 
 //===----------------------------------------------------------------------===//
 // IncludeOpLike
