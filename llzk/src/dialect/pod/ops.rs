@@ -10,6 +10,7 @@ use llzk_sys::{
     llzkPod_NewPodOpBuildWithMapOperands,
 };
 use melior::StringRef;
+use melior::ir::attribute::StringAttribute;
 use melior::ir::{
     Location, Operation, Type, TypeLike, Value, ValueLike,
     operation::{OperationBuilder, OperationLike},
@@ -112,10 +113,11 @@ pub fn is_pod_new<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 pub fn read<'c>(
     location: Location<'c>,
     pod_ref: Value<'c, '_>,
-    record_name: FlatSymbolRefAttribute<'c>,
+    record_name: &str,
     result: Type<'c>,
 ) -> Operation<'c> {
     let ctx = location.context();
+    let record_name = StringAttribute::new(unsafe { ctx.to_ref() }, record_name);
     OperationBuilder::new("pod.read", location)
         .add_attributes(&[(ident!(ctx, "record_name"), record_name.into())])
         .add_operands(&[pod_ref])
