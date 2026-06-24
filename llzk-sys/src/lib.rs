@@ -57,19 +57,19 @@ macro_rules! c_str_constant {
 }
 
 c_str_constant!(
-    /// Symbol name for the witness generation function within a component.
+    /// Symbol name for the @compute function within a struct.
     FUNC_NAME_COMPUTE,
     LLZK_FUNC_NAME_COMPUTE
 );
 
 c_str_constant!(
-    /// Symbol name for the constraint generation function within a component.
+    /// Symbol name for the @constraint function within a struct.
     FUNC_NAME_CONSTRAIN,
     LLZK_FUNC_NAME_CONSTRAIN
 );
 
 c_str_constant!(
-    /// Symbol name for the product generation function within a component.
+    /// Symbol name for the @product function within a struct.
     FUNC_NAME_PRODUCT,
     LLZK_FUNC_NAME_PRODUCT
 );

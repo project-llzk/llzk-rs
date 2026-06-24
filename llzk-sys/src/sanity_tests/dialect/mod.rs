@@ -1,7 +1,9 @@
 use crate::sanity_tests::{TestContext, context};
 use mlir_sys::{
-    MlirOperation, mlirIdentifierGet, mlirIndexTypeGet, mlirIntegerAttrGet, mlirLocationUnknownGet,
-    mlirNamedAttributeGet, mlirOperationCreate, mlirOperationDestroy,
+    MlirContext, MlirModule, MlirOperation, mlirBlockGetFirstOperation, mlirIdentifierGet,
+    mlirIndexTypeGet, mlirIntegerAttrGet, mlirLocationUnknownGet, mlirModuleCreateParse,
+    mlirModuleDestroy, mlirNamedAttributeGet, mlirOperationCreate, mlirOperationDestroy,
+    mlirOperationGetNextInBlock,
     mlirOperationStateAddAttributes, mlirOperationStateAddResults, mlirOperationStateGet,
     mlirStringRefCreateFromCString,
 };
@@ -17,6 +19,41 @@ struct TestOp {
 impl Drop for TestOp {
     fn drop(&mut self) {
         unsafe { mlirOperationDestroy(self.op) }
+    }
+}
+
+pub(crate) struct TestModule {
+    pub(crate) module: MlirModule,
+}
+
+impl Drop for TestModule {
+    fn drop(&mut self) {
+        unsafe { mlirModuleDestroy(self.module) }
+    }
+}
+
+pub(crate) fn parse_module(ctx: MlirContext, source: &str) -> TestModule {
+    unsafe {
+        let source = CString::new(source).expect("module source must not contain interior NUL");
+        let module = mlirModuleCreateParse(ctx, mlirStringRefCreateFromCString(source.as_ptr()));
+        assert!(!module.ptr.is_null(), "failed to parse test module");
+        TestModule { module }
+    }
+}
+
+pub(crate) fn first_op(block: mlir_sys::MlirBlock) -> MlirOperation {
+    unsafe {
+        let op = mlirBlockGetFirstOperation(block);
+        assert!(!op.ptr.is_null(), "expected operation in block");
+        op
+    }
+}
+
+pub(crate) fn next_op(op: MlirOperation) -> MlirOperation {
+    unsafe {
+        let next = mlirOperationGetNextInBlock(op);
+        assert!(!next.ptr.is_null(), "expected next operation");
+        next
     }
 }
 

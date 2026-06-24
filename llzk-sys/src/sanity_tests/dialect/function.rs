@@ -1,3 +1,5 @@
+use super::{first_op, next_op, parse_module};
+
 use crate::{
     llzkAffineMapOperandsBuilderCreate, llzkAffineMapOperandsBuilderDestroy,
     llzkFunction_CallOpBuild, llzkFunction_CallOpBuildToCallee,
@@ -15,22 +17,17 @@ use crate::{
     llzkFunction_FuncDefOpIsStructProduct, llzkFunction_FuncDefOpNameIsCompute,
     llzkFunction_FuncDefOpNameIsConstrain, llzkFunction_FuncDefOpNameIsProduct,
     llzkFunction_FuncDefOpSetAllowConstraintAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
-    llzkFunction_ReturnOpBuild, llzkOperationIsA_Function_CallOp,
-    llzkOperationIsA_Function_FuncDefOp, llzkStruct_CreateStructOpBuild,
-    llzkStruct_CreateStructOpGetResult, llzkStruct_StructDefOpBuild,
-    llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetType,
+    llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
+    llzkStruct_StructDefOpGetBody,
     mlirGetDialectHandle__llzk__function__, mlirOpBuilderCreate, mlirOpBuilderDestroy,
-    mlirOpBuilderSetInsertionPointToEnd,
     sanity_tests::{TestContext, context, str_ref},
 };
 use mlir_sys::{
-    MlirAttribute, MlirBlock, MlirContext, MlirModule, MlirNamedAttribute, MlirOperation, MlirType,
-    mlirBlockAppendOwnedOperation, mlirBlockCreate, mlirDictionaryAttrGet,
-    mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet, mlirIdentifierGet, mlirIndexTypeGet,
-    mlirLocationUnknownGet, mlirModuleCreateEmpty, mlirModuleDestroy, mlirModuleGetBody,
-    mlirModuleGetOperation, mlirOperationDestroy, mlirOperationGetContext,
-    mlirOperationSetAttributeByName, mlirOperationVerify, mlirRegionAppendOwnedBlock,
-    mlirStringRefCreateFromCString, mlirTypeEqual, mlirUnitAttrGet,
+    MlirAttribute, MlirContext, MlirNamedAttribute, MlirOperation, MlirType,
+    mlirDictionaryAttrGet, mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet, mlirIndexTypeGet,
+    mlirLocationUnknownGet, mlirModuleGetBody, mlirOperationDestroy, mlirOperationGetContext,
+    mlirOperationVerify, mlirRegionGetFirstBlock,
+    mlirStringRefCreateFromCString, mlirTypeEqual,
 };
 use rstest::{fixture, rstest};
 use std::{ffi::CString, ptr::null};
@@ -77,26 +74,8 @@ fn create_func_def_op(
     }
 }
 
-struct TestModule {
-    module: MlirModule,
-}
-
-impl Drop for TestModule {
-    fn drop(&mut self) {
-        unsafe { mlirModuleDestroy(self.module) }
-    }
-}
-
 fn empty_arg_attrs<const N: usize>(ctx: MlirContext, _: &[MlirType; N]) -> [MlirAttribute; N] {
     std::array::from_fn(|_| unsafe { mlirDictionaryAttrGet(ctx, 0, null()) })
-}
-
-fn append_empty_block(region: mlir_sys::MlirRegion) -> MlirBlock {
-    unsafe {
-        let block = mlirBlockCreate(0, null(), null());
-        mlirRegionAppendOwnedBlock(region, block);
-        block
-    }
 }
 
 #[rstest]
@@ -456,76 +435,38 @@ call_pred_test!(
 
 #[rstest]
 fn test_llzk_call_op_get_callee_is_product_positive(context: TestContext) {
-    let loc = unsafe { mlirLocationUnknownGet(context.ctx) };
-    let module = TestModule {
-        module: unsafe { mlirModuleCreateEmpty(loc) },
-    };
-    let builder = unsafe { mlirOpBuilderCreate(context.ctx) };
+    let module = parse_module(
+        context.ctx,
+        r#"
+module attributes {llzk.lang} {
+  struct.def @StructProdA {
+    function.def @product() -> !struct.type<@StructProdA<[]>> attributes {function.allow_constraint, function.allow_non_native_field_ops, function.allow_witness} {
+      %self = struct.new : <@StructProdA<[]>>
+      function.return %self : !struct.type<@StructProdA<[]>>
+    }
+  }
+  struct.def @StructProdB {
+    function.def @product() -> !struct.type<@StructProdB<[]>> attributes {function.allow_constraint, function.allow_non_native_field_ops, function.allow_witness} {
+      %self = struct.new : <@StructProdB<[]>>
+      %0 = function.call @StructProdA::@product() : () -> !struct.type<@StructProdA<[]>>
+      function.return %self : !struct.type<@StructProdB<[]>>
+    }
+  }
+}
+"#,
+    );
 
     unsafe {
-        mlirOperationSetAttributeByName(
-            mlirModuleGetOperation(module.module),
-            str_ref("llzk.lang"),
-            mlirUnitAttrGet(context.ctx),
-        );
-        let module_body = mlirModuleGetBody(module.module);
-        mlirOpBuilderSetInsertionPointToEnd(builder, module_body);
-
-        let struct_a = llzkStruct_StructDefOpBuild(
-            builder,
-            loc,
-            mlirIdentifierGet(context.ctx, str_ref("StructProdA")),
-        );
-        let struct_a_body = append_empty_block(llzkStruct_StructDefOpGetBodyRegion(struct_a));
-        let struct_a_type = llzkStruct_StructDefOpGetType(struct_a);
-        let product_a = create_func_def_op(
-            context.ctx,
-            "product",
-            create_func_type(context.ctx, &[], &[struct_a_type]),
-            &[],
-            &[],
-        );
-        mlirBlockAppendOwnedOperation(struct_a_body, product_a);
-        let product_a_body = append_empty_block(llzkFunction_FuncDefOpGetBody(product_a));
-        mlirOpBuilderSetInsertionPointToEnd(builder, product_a_body);
-        let self_a = llzkStruct_CreateStructOpGetResult(llzkStruct_CreateStructOpBuild(
-            builder,
-            loc,
-            struct_a_type,
-        ));
-        llzkFunction_ReturnOpBuild(builder, loc, 1, &self_a);
-
-        mlirOpBuilderSetInsertionPointToEnd(builder, module_body);
-        let struct_b = llzkStruct_StructDefOpBuild(
-            builder,
-            loc,
-            mlirIdentifierGet(context.ctx, str_ref("StructProdB")),
-        );
-        let struct_b_body = append_empty_block(llzkStruct_StructDefOpGetBodyRegion(struct_b));
-        let struct_b_type = llzkStruct_StructDefOpGetType(struct_b);
-        let product_b = create_func_def_op(
-            context.ctx,
-            "product",
-            create_func_type(context.ctx, &[], &[struct_b_type]),
-            &[],
-            &[],
-        );
-        mlirBlockAppendOwnedOperation(struct_b_body, product_b);
-        let product_b_body = append_empty_block(llzkFunction_FuncDefOpGetBody(product_b));
-        mlirOpBuilderSetInsertionPointToEnd(builder, product_b_body);
-        let self_b = llzkStruct_CreateStructOpGetResult(llzkStruct_CreateStructOpBuild(
-            builder,
-            loc,
-            struct_b_type,
-        ));
-        let call = llzkFunction_CallOpBuildToCallee(builder, loc, product_a, 0, null());
-        llzkFunction_ReturnOpBuild(builder, loc, 1, &self_b);
-
+        let struct_a = first_op(mlirModuleGetBody(module.module));
+        let struct_b = next_op(struct_a);
+        let product_b = first_op(llzkStruct_StructDefOpGetBody(struct_b));
+        let product_b_body = mlirRegionGetFirstBlock(llzkFunction_FuncDefOpGetBody(product_b));
+        assert!(!product_b_body.ptr.is_null(), "expected product body block");
+        let call = next_op(first_op(product_b_body));
         assert!(llzkFunction_CallOpCalleeIsProduct(call));
         assert!(llzkFunction_CallOpCalleeIsStructProduct(call));
         assert!(!llzkFunction_CallOpCalleeIsCompute(call));
         assert!(!llzkFunction_CallOpCalleeIsConstrain(call));
-        mlirOpBuilderDestroy(builder);
     }
 }
 

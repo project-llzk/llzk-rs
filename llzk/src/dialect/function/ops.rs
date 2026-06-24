@@ -145,7 +145,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_FuncDefOpIsStructConstrain(self.to_raw()) }
     }
 
-    /// Returns true if the function is the struct's product definition.
+    /// Returns true if the function is the struct's product function.
     fn is_struct_product(&self) -> bool {
         unsafe { llzkFunction_FuncDefOpIsStructProduct(self.to_raw()) }
     }
