@@ -6,10 +6,10 @@ use llzk_sys::{
     llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetFullyQualifiedName,
     llzkStruct_StructDefOpGetMemberDef, llzkStruct_StructDefOpGetMemberDefs,
     llzkStruct_StructDefOpGetNumMemberDefs, llzkStruct_StructDefOpGetNumTemplateExprOpNames,
-    llzkStruct_StructDefOpGetNumTemplateParamOpNames, llzkStruct_StructDefOpGetTemplateExprOpNames,
-    llzkStruct_StructDefOpGetTemplateParamOpNames, llzkStruct_StructDefOpGetType,
-    llzkStruct_StructDefOpGetTypeWithParams, llzkStruct_StructDefOpHasColumns,
-    llzkStruct_StructDefOpIsMainComponent,
+    llzkStruct_StructDefOpGetNumTemplateParamOpNames, llzkStruct_StructDefOpGetProductFuncOp,
+    llzkStruct_StructDefOpGetTemplateExprOpNames, llzkStruct_StructDefOpGetTemplateParamOpNames,
+    llzkStruct_StructDefOpGetType, llzkStruct_StructDefOpGetTypeWithParams,
+    llzkStruct_StructDefOpHasColumns, llzkStruct_StructDefOpIsMainComponent,
 };
 use melior::ir::{
     Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
@@ -185,6 +185,24 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// If the result operation is not a `function.def`.
     fn constrain_func<'b>(&self) -> Option<FuncDefOpRef<'c, 'b>> {
         let raw_op = unsafe { llzkStruct_StructDefOpGetConstrainFuncOp(self.to_raw()) };
+        if raw_op.ptr.is_null() {
+            return None;
+        }
+        Some(
+            unsafe { OperationRef::from_raw(raw_op) }
+                .try_into()
+                .expect("op of type 'function.def'"),
+        )
+    }
+
+    /// Returns a [`FuncDefOpRef`] reference to the operation that defines the product body of the
+    /// struct.
+    ///
+    /// # Panics
+    ///
+    /// If the result operation is not a `function.def`.
+    fn product_func<'b>(&self) -> Option<FuncDefOpRef<'c, 'b>> {
+        let raw_op = unsafe { llzkStruct_StructDefOpGetProductFuncOp(self.to_raw()) };
         if raw_op.ptr.is_null() {
             return None;
         }

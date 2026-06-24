@@ -1,10 +1,7 @@
 //! `pod` dialect operations and helper functions.
 
 use super::r#type::PodType;
-use crate::{
-    builder::OpBuilderLike, ident, map_operands::MapOperandsBuilder,
-    prelude::FlatSymbolRefAttribute,
-};
+use crate::{builder::OpBuilderLike, ident, map_operands::MapOperandsBuilder};
 use llzk_sys::{
     LlzkRecordValue, llzkPod_NewPodOpBuild, llzkPod_NewPodOpBuildInferredFromInitialValues,
     llzkPod_NewPodOpBuildWithMapOperands,

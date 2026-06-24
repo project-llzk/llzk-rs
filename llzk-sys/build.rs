@@ -85,6 +85,8 @@ fn run() -> Result<()> {
 /// have doc comments added to them in this crate:
 ///
 /// - `pub fn mlir*`: tablegen-generated dialect/pass registration functions.
+/// - `pub type Llzk* = c_uint/i*_t/u*_t`: enum typedef aliases emitted by bindgen from the CAPI's
+///   `typedef enum ... Name;` pattern, where bindgen documents the constants but not the alias.
 /// - `pub struct <name>` where the name contains "bindgen": anonymous types emitted by bindgen.
 /// - `impl <type>` where the type contains "bindgen": impl blocks for bindgen types (e.g.
 ///   `impl<T> __BindgenUnionField<T>`).
@@ -96,6 +98,27 @@ fn suppress_missing_docs(source: &str) -> String {
         let trimmed = line.trim_start();
         let indent = &line[..line.len() - trimmed.len()];
         let needs_allow = trimmed.starts_with("pub fn mlir")
+            || trimmed
+                .strip_prefix("pub type ")
+                .and_then(|rest| rest.split_once('='))
+                .is_some_and(|(name, ty)| {
+                    let name = name.trim();
+                    let ty = ty.trim().trim_end_matches(';');
+                    name.starts_with("Llzk")
+                        && matches!(
+                            ty,
+                            "::std::os::raw::c_uint"
+                                | "::std::os::raw::c_int"
+                                | "::std::os::raw::c_uchar"
+                                | "::std::os::raw::c_ushort"
+                                | "::std::os::raw::c_ulong"
+                                | "::std::os::raw::c_ulonglong"
+                                | "::std::os::raw::c_schar"
+                                | "::std::os::raw::c_short"
+                                | "::std::os::raw::c_long"
+                                | "::std::os::raw::c_longlong"
+                        )
+                })
             || (trimmed.starts_with("impl") && trimmed.to_ascii_lowercase().contains("bindgen"))
             || trimmed
                 .strip_prefix("pub struct ")

@@ -1,7 +1,8 @@
 use std::ffi::{CStr, c_char};
 
 use crate::{
-    LLZK_FUNC_NAME_COMPUTE, LLZK_FUNC_NAME_CONSTRAIN, LLZK_LANG_ATTR_NAME, LLZK_MAIN_ATTR_NAME,
+    LLZK_FUNC_NAME_COMPUTE, LLZK_FUNC_NAME_CONSTRAIN, LLZK_FUNC_NAME_PRODUCT, LLZK_LANG_ATTR_NAME,
+    LLZK_MAIN_ATTR_NAME,
 };
 
 fn unwrap(s: *const c_char) -> String {
@@ -12,6 +13,7 @@ fn unwrap(s: *const c_char) -> String {
 fn test_llzk_constants() {
     assert_eq!(unwrap(unsafe { LLZK_FUNC_NAME_COMPUTE }), "compute");
     assert_eq!(unwrap(unsafe { LLZK_FUNC_NAME_CONSTRAIN }), "constrain");
+    assert_eq!(unwrap(unsafe { LLZK_FUNC_NAME_PRODUCT }), "product");
     assert_eq!(unwrap(unsafe { LLZK_LANG_ATTR_NAME }), "llzk.lang");
     assert_eq!(unwrap(unsafe { LLZK_MAIN_ATTR_NAME }), "llzk.main");
 }

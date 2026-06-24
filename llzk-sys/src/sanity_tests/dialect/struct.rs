@@ -5,32 +5,104 @@ use std::{
 
 use crate::sanity_tests::dialect::{TestOp, test_op};
 use mlir_sys::{
-    MlirOperation, mlirAffineConstantExprGet, mlirAffineMapGet, mlirArrayAttrGet,
-    mlirAttributeEqual, mlirFlatSymbolRefAttrGet, mlirIndexTypeGet, mlirLocationUnknownGet,
-    mlirOperationCreate, mlirOperationDestroy, mlirOperationGetContext, mlirOperationGetResult,
-    mlirOperationStateAddResults, mlirOperationStateGet, mlirStringRefCreateFromCString,
+    MlirAttribute, MlirModule, MlirOperation, MlirStringRef, MlirType, mlirAffineConstantExprGet,
+    mlirAffineMapGet, mlirArrayAttrGet, mlirAttributeEqual, mlirBlockAppendOwnedOperation,
+    mlirBlockCreate, mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet, mlirIdentifierGet,
+    mlirIdentifierStr, mlirIndexTypeGet, mlirLocationUnknownGet, mlirModuleCreateEmpty,
+    mlirModuleDestroy, mlirModuleGetBody, mlirModuleGetOperation, mlirOperationCreate,
+    mlirOperationDestroy, mlirOperationGetContext, mlirOperationGetName, mlirOperationGetResult,
+    mlirOperationSetAttributeByName, mlirOperationStateAddResults, mlirOperationStateGet,
+    mlirRegionAppendOwnedBlock, mlirStringRefCreateFromCString, mlirUnitAttrGet,
 };
 use rstest::rstest;
 use std::alloc::{Layout, alloc, dealloc};
 
 use crate::{
-    MlirValueRange, llzkOperationIsA_Struct_MemberDefOp, llzkOperationIsA_Struct_StructDefOp,
-    llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetPublicAttr,
-    llzkStruct_MemberReadOpBuild, llzkStruct_MemberReadOpBuildWithAffineMapDistance,
+    MlirValueRange, llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs,
+    llzkFunction_FuncDefOpGetBody, llzkFunction_ReturnOpBuild, llzkOperationIsA_Struct_MemberDefOp,
+    llzkOperationIsA_Struct_StructDefOp, llzkStruct_CreateStructOpBuild,
+    llzkStruct_CreateStructOpGetResult, llzkStruct_MemberDefOpHasPublicAttr,
+    llzkStruct_MemberDefOpSetPublicAttr, llzkStruct_MemberReadOpBuild,
+    llzkStruct_MemberReadOpBuildWithAffineMapDistance,
     llzkStruct_MemberReadOpBuildWithLiteralDistance,
-    llzkStruct_MemberReadOpBuildWithTemplateSymbolDistance, llzkStruct_StructDefOpGetBody,
-    llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
-    llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetFullyQualifiedName,
-    llzkStruct_StructDefOpGetHeaderString, llzkStruct_StructDefOpGetMemberDef,
-    llzkStruct_StructDefOpGetMemberDefs, llzkStruct_StructDefOpGetNumMemberDefs,
+    llzkStruct_MemberReadOpBuildWithTemplateSymbolDistance, llzkStruct_StructDefOpBuild,
+    llzkStruct_StructDefOpGetBody, llzkStruct_StructDefOpGetBodyRegion,
+    llzkStruct_StructDefOpGetComputeFuncOp, llzkStruct_StructDefOpGetConstrainFuncOp,
+    llzkStruct_StructDefOpGetFullyQualifiedName, llzkStruct_StructDefOpGetHeaderString,
+    llzkStruct_StructDefOpGetMemberDef, llzkStruct_StructDefOpGetMemberDefs,
+    llzkStruct_StructDefOpGetNumMemberDefs, llzkStruct_StructDefOpGetProductFuncOp,
     llzkStruct_StructDefOpGetType, llzkStruct_StructDefOpGetTypeWithParams,
     llzkStruct_StructDefOpHasColumns, llzkStruct_StructDefOpIsMainComponent,
     llzkStruct_StructTypeGet, llzkStruct_StructTypeGetNameRef, llzkStruct_StructTypeGetParams,
     llzkStruct_StructTypeGetWithArrayAttr, llzkStruct_StructTypeGetWithAttrs,
     llzkTypeIsA_Struct_StructType, mlirGetDialectHandle__llzk__component__, mlirOpBuilderCreate,
-    mlirOpBuilderDestroy,
+    mlirOpBuilderDestroy, mlirOpBuilderSetInsertionPointToEnd,
     sanity_tests::{TestContext, context, identifier, str_ref},
 };
+
+struct ParsedModule {
+    module: MlirModule,
+}
+
+impl Drop for ParsedModule {
+    fn drop(&mut self) {
+        unsafe { mlirModuleDestroy(self.module) }
+    }
+}
+
+fn string_ref_eq(value: MlirStringRef, expected: &str) -> bool {
+    value.length == expected.len()
+        && !value.data.is_null()
+        && unsafe { std::slice::from_raw_parts(value.data.cast::<u8>(), value.length) }
+            == expected.as_bytes()
+}
+
+fn op_name_eq(op: MlirOperation, expected: &str) -> bool {
+    unsafe { string_ref_eq(mlirIdentifierStr(mlirOperationGetName(op)), expected) }
+}
+
+fn create_func_type(ctx: mlir_sys::MlirContext, ins: &[MlirType], outs: &[MlirType]) -> MlirType {
+    unsafe {
+        mlirFunctionTypeGet(
+            ctx,
+            isize::try_from(ins.len()).expect("ins too large"),
+            ins.as_ptr(),
+            isize::try_from(outs.len()).expect("outs too large"),
+            outs.as_ptr(),
+        )
+    }
+}
+
+fn create_func_def_op(
+    ctx: mlir_sys::MlirContext,
+    name: &str,
+    r#type: MlirType,
+    attrs: &[mlir_sys::MlirNamedAttribute],
+    arg_attrs: &[MlirAttribute],
+) -> MlirOperation {
+    unsafe {
+        let location = mlirLocationUnknownGet(ctx);
+        let name = CString::new(name).unwrap();
+        let name = mlirStringRefCreateFromCString(name.as_ptr());
+        llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs(
+            location,
+            name,
+            r#type,
+            isize::try_from(attrs.len()).expect("attrs too large"),
+            attrs.as_ptr(),
+            isize::try_from(arg_attrs.len()).expect("arg_attrs too large"),
+            arg_attrs.as_ptr(),
+        )
+    }
+}
+
+fn append_empty_block(region: mlir_sys::MlirRegion) -> mlir_sys::MlirBlock {
+    unsafe {
+        let block = mlirBlockCreate(0, null(), null());
+        mlirRegionAppendOwnedBlock(region, block);
+        block
+    }
+}
 
 #[test]
 fn test_mlir_get_dialect_handle_llzk_component() {
@@ -215,6 +287,64 @@ fn test_llzk_struct_def_op_get_constrain_func_op(test_op: TestOp) {
         if llzkOperationIsA_Struct_StructDefOp(test_op.op) {
             llzkStruct_StructDefOpGetConstrainFuncOp(test_op.op);
         }
+    }
+}
+
+#[rstest]
+fn test_llzk_struct_def_op_get_product_func_op(test_op: TestOp) {
+    unsafe {
+        if llzkOperationIsA_Struct_StructDefOp(test_op.op) {
+            llzkStruct_StructDefOpGetProductFuncOp(test_op.op);
+        }
+    }
+}
+
+#[rstest]
+fn test_llzk_struct_def_op_get_product_func_op_positive(context: TestContext) {
+    let loc = unsafe { mlirLocationUnknownGet(context.ctx) };
+    let module = ParsedModule {
+        module: unsafe { mlirModuleCreateEmpty(loc) },
+    };
+    let builder = unsafe { mlirOpBuilderCreate(context.ctx) };
+
+    unsafe {
+        mlirOperationSetAttributeByName(
+            mlirModuleGetOperation(module.module),
+            str_ref("llzk.lang"),
+            mlirUnitAttrGet(context.ctx),
+        );
+        let module_body = mlirModuleGetBody(module.module);
+        mlirOpBuilderSetInsertionPointToEnd(builder, module_body);
+        let struct_def = llzkStruct_StructDefOpBuild(
+            builder,
+            loc,
+            mlirIdentifierGet(context.ctx, str_ref("StructProd")),
+        );
+        assert!(op_name_eq(struct_def, "struct.def"));
+
+        let struct_body = append_empty_block(llzkStruct_StructDefOpGetBodyRegion(struct_def));
+        let struct_type = llzkStruct_StructDefOpGetType(struct_def);
+        let product = create_func_def_op(
+            context.ctx,
+            "product",
+            create_func_type(context.ctx, &[], &[struct_type]),
+            &[],
+            &[],
+        );
+        mlirBlockAppendOwnedOperation(struct_body, product);
+        let product_body = append_empty_block(llzkFunction_FuncDefOpGetBody(product));
+        mlirOpBuilderSetInsertionPointToEnd(builder, product_body);
+        let self_value = llzkStruct_CreateStructOpGetResult(llzkStruct_CreateStructOpBuild(
+            builder,
+            loc,
+            struct_type,
+        ));
+        llzkFunction_ReturnOpBuild(builder, loc, 1, &self_value);
+
+        let got = llzkStruct_StructDefOpGetProductFuncOp(struct_def);
+        assert!(!got.ptr.is_null());
+        assert!(op_name_eq(got, "function.def"));
+        mlirOpBuilderDestroy(builder);
     }
 }
 

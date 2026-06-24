@@ -14,8 +14,8 @@ use crate::{
     dialect,
     error::Error,
     prelude::{
-        FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FeltType, FuncDefOp, FuncDefOpLike as _,
-        StructDefOp,
+        FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FUNC_NAME_PRODUCT, FeltType, FuncDefOp,
+        FuncDefOpLike as _, StructDefOp,
     },
 };
 
@@ -87,6 +87,41 @@ pub fn constrain_fn<'c>(
         let block = Block::new(&all_inputs);
         block.append_operation(dialect::function::r#return(loc, &[]));
         f.set_allow_constraint_attr(true);
+        f.set_allow_non_native_field_ops_attr(true);
+        f.region(0)?.append_block(block);
+        Ok(f)
+    })
+}
+
+/// Creates an empty `@product` function with the configuration expected by `struct.def`.
+pub fn product_fn<'c>(
+    loc: Location<'c>,
+    struct_type: StructType<'c>,
+    inputs: &[(Type<'c>, Location<'c>)],
+    arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
+) -> Result<FuncDefOp<'c>, Error> {
+    let context = loc.context();
+    let input_types: Vec<Type<'c>> = inputs.iter().map(|(t, _)| *t).collect();
+    dialect::function::def(
+        loc,
+        FUNC_NAME_PRODUCT.as_ref(),
+        FunctionType::new(
+            unsafe { context.to_ref() },
+            &input_types,
+            &[struct_type.into()],
+        ),
+        &[],
+        arg_attrs,
+    )
+    .and_then(|f| {
+        let block = Block::new(inputs);
+        let new_struct = block.append_operation(super::new(loc, struct_type));
+        block.append_operation(dialect::function::r#return(
+            loc,
+            &[new_struct.result(0)?.into()],
+        ));
+        f.set_allow_constraint_attr(true);
+        f.set_allow_witness_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
         f.region(0)?.append_block(block);
         Ok(f)

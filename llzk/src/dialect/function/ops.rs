@@ -11,8 +11,9 @@ use crate::{
 use llzk_sys::{
     llzkFunction_CallOpBuild, llzkFunction_CallOpBuildWithMapOperands,
     llzkFunction_CallOpBuildWithTemplateParams, llzkFunction_CallOpCalleeIsCompute,
-    llzkFunction_CallOpCalleeIsConstrain, llzkFunction_CallOpCalleeIsStructCompute,
-    llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpGetArgOperandsAt,
+    llzkFunction_CallOpCalleeIsConstrain, llzkFunction_CallOpCalleeIsProduct,
+    llzkFunction_CallOpCalleeIsStructCompute, llzkFunction_CallOpCalleeIsStructConstrain,
+    llzkFunction_CallOpCalleeIsStructProduct, llzkFunction_CallOpGetArgOperandsAt,
     llzkFunction_CallOpGetArgOperandsCount, llzkFunction_CallOpGetCallee,
     llzkFunction_CallOpGetMapOperandsAt, llzkFunction_CallOpGetMapOperandsCount,
     llzkFunction_CallOpGetSelfValueFromCompute, llzkFunction_CallOpGetSelfValueFromConstrain,
@@ -27,8 +28,9 @@ use llzk_sys::{
     llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
     llzkFunction_FuncDefOpHasArgPublicAttr, llzkFunction_FuncDefOpIsDeclaration,
     llzkFunction_FuncDefOpIsInStruct, llzkFunction_FuncDefOpIsStructCompute,
-    llzkFunction_FuncDefOpIsStructConstrain, llzkFunction_FuncDefOpNameIsCompute,
-    llzkFunction_FuncDefOpNameIsConstrain, llzkFunction_FuncDefOpSetAllowConstraintAttr,
+    llzkFunction_FuncDefOpIsStructConstrain, llzkFunction_FuncDefOpIsStructProduct,
+    llzkFunction_FuncDefOpNameIsCompute, llzkFunction_FuncDefOpNameIsConstrain,
+    llzkFunction_FuncDefOpNameIsProduct, llzkFunction_FuncDefOpSetAllowConstraintAttr,
     llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
     llzkFunction_FuncDefOpSetFunctionType, llzkFunction_FuncDefOpSetSymName,
     llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
@@ -123,6 +125,11 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_FuncDefOpNameIsConstrain(self.to_raw()) }
     }
 
+    /// Returns true if the function's name is [`FUNC_NAME_PRODUCT`](llzk_sys::FUNC_NAME_PRODUCT).
+    fn name_is_product(&self) -> bool {
+        unsafe { llzkFunction_FuncDefOpNameIsProduct(self.to_raw()) }
+    }
+
     /// Returns true if the function's defined inside a struct.
     fn is_in_struct(&self) -> bool {
         unsafe { llzkFunction_FuncDefOpIsInStruct(self.to_raw()) }
@@ -136,6 +143,11 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns true if the function is the struct's constrain definition.
     fn is_struct_constrain(&self) -> bool {
         unsafe { llzkFunction_FuncDefOpIsStructConstrain(self.to_raw()) }
+    }
+
+    /// Returns true if the function is the struct's product definition.
+    fn is_struct_product(&self) -> bool {
+        unsafe { llzkFunction_FuncDefOpIsStructProduct(self.to_raw()) }
     }
 
     /// If the function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE), return the "self"
@@ -289,6 +301,11 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_CallOpCalleeIsConstrain(self.to_raw()) }
     }
 
+    /// Returns true if the call target name is [`FUNC_NAME_PRODUCT`](llzk_sys::FUNC_NAME_PRODUCT).
+    fn callee_is_product(&self) -> bool {
+        unsafe { llzkFunction_CallOpCalleeIsProduct(self.to_raw()) }
+    }
+
     /// Return `true` iff the callee function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE) within a StructDefOp.
     fn callee_is_struct_compute(&self) -> bool {
         unsafe { llzkFunction_CallOpCalleeIsStructCompute(self.to_raw()) }
@@ -297,6 +314,11 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Return `true` iff the callee function name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN) within a StructDefOp.
     fn callee_is_struct_constrain(&self) -> bool {
         unsafe { llzkFunction_CallOpCalleeIsStructConstrain(self.to_raw()) }
+    }
+
+    /// Return `true` iff the callee function name is [`FUNC_NAME_PRODUCT`](llzk_sys::FUNC_NAME_PRODUCT) within a StructDefOp.
+    fn callee_is_struct_product(&self) -> bool {
+        unsafe { llzkFunction_CallOpCalleeIsStructProduct(self.to_raw()) }
     }
 
     /// If the function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE), return the "self"

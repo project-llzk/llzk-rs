@@ -69,6 +69,12 @@ c_str_constant!(
 );
 
 c_str_constant!(
+    /// Symbol name for the product generation function within a component.
+    FUNC_NAME_PRODUCT,
+    LLZK_FUNC_NAME_PRODUCT
+);
+
+c_str_constant!(
     /// Name of the attribute on the top-level ModuleOp that identifies the ModuleOp as the
     /// root module and specifies the frontend language name that the IR was compiled from,
     /// if available.
