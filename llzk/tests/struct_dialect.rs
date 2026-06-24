@@ -13,6 +13,13 @@ fn default_funcs<'c>(
     ]
 }
 
+fn product_only_funcs<'c>(
+    loc: Location<'c>,
+    typ: StructType<'c>,
+) -> [Result<Operation<'c>, LlzkError>; 1] {
+    [dialect::r#struct::helpers::product_fn(loc, typ, &[], None).map(Into::into)]
+}
+
 #[test]
 fn struct_type_with_flat_name() {
     common::setup();
@@ -139,4 +146,23 @@ fn struct_readm() {
     );
 
     assert_test!(readm_op, module, @file "expected/read_member.mlir");
+}
+
+#[test]
+fn product_only_struct_product_func() {
+    common::setup();
+    let name = "product_only";
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context), None);
+    let loc = Location::unknown(&context);
+    let typ = StructType::from_str_params(&context, name, &[]);
+
+    let s = dialect::r#struct::def(loc, name, product_only_funcs(loc, typ)).unwrap();
+    let s = StructDefOpRef::try_from(module.body().append_operation(s.into())).unwrap();
+
+    assert!(s.compute_func().is_none());
+    assert!(s.constrain_func().is_none());
+    let product = s.product_func().expect("failed to get product function");
+    assert!(product.name_is_product());
+    assert!(product.is_struct_product());
 }

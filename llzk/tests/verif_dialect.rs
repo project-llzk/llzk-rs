@@ -386,12 +386,17 @@ fn require_compute_op() {
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
     let builder = OpBuilder::at_block_end(&context, body);
-    let true_val: Value = builder.insert(Location::unknown(&context), |_, _| bool_constant(&context, true))
+    let true_val: Value = builder
+        .insert(Location::unknown(&context), |_, _| {
+            bool_constant(&context, true)
+        })
         .result(0)
         .unwrap()
         .into();
     let false_val: Value = builder
-        .insert(Location::unknown(&context), |_, _| bool_constant(&context, false))
+        .insert(Location::unknown(&context), |_, _| {
+            bool_constant(&context, false)
+        })
         .result(0)
         .unwrap()
         .into();
@@ -420,12 +425,17 @@ fn require_constrain_op() {
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
     let builder = OpBuilder::at_block_end(&context, body);
-    let true_val: Value = builder.insert(Location::unknown(&context), |_, _| bool_constant(&context, true))
+    let true_val: Value = builder
+        .insert(Location::unknown(&context), |_, _| {
+            bool_constant(&context, true)
+        })
         .result(0)
         .unwrap()
         .into();
     let false_val: Value = builder
-        .insert(Location::unknown(&context), |_, _| bool_constant(&context, false))
+        .insert(Location::unknown(&context), |_, _| {
+            bool_constant(&context, false)
+        })
         .result(0)
         .unwrap()
         .into();
@@ -454,12 +464,17 @@ fn ensure_compute_op() {
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
     let builder = OpBuilder::at_block_end(&context, body);
-    let true_val: Value = builder.insert(Location::unknown(&context), |_, _| bool_constant(&context, true))
+    let true_val: Value = builder
+        .insert(Location::unknown(&context), |_, _| {
+            bool_constant(&context, true)
+        })
         .result(0)
         .unwrap()
         .into();
     let false_val: Value = builder
-        .insert(Location::unknown(&context), |_, _| bool_constant(&context, false))
+        .insert(Location::unknown(&context), |_, _| {
+            bool_constant(&context, false)
+        })
         .result(0)
         .unwrap()
         .into();
@@ -488,12 +503,17 @@ fn ensure_constrain_op() {
     .unwrap();
     let body = contract.body().unwrap().first_block().unwrap();
     let builder = OpBuilder::at_block_end(&context, body);
-    let true_val: Value = builder.insert(Location::unknown(&context), |_, _| bool_constant(&context, true))
+    let true_val: Value = builder
+        .insert(Location::unknown(&context), |_, _| {
+            bool_constant(&context, true)
+        })
         .result(0)
         .unwrap()
         .into();
     let false_val: Value = builder
-        .insert(Location::unknown(&context), |_, _| bool_constant(&context, false))
+        .insert(Location::unknown(&context), |_, _| {
+            bool_constant(&context, false)
+        })
         .result(0)
         .unwrap()
         .into();

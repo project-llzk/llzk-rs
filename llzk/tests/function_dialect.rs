@@ -145,6 +145,15 @@ fn make_empty_struct<'c>(context: &'c LlzkContext, name: &str) -> StructDefOp<'c
     .unwrap()
 }
 
+fn make_product_struct<'c>(context: &'c LlzkContext, name: &str) -> StructDefOp<'c> {
+    let loc = Location::unknown(context);
+    let typ = StructType::from_str(context, name);
+    dialect::r#struct::def(loc, name, {
+        [dialect::r#struct::helpers::product_fn(loc, typ, &[], None).map(Into::into)]
+    })
+    .unwrap()
+}
+
 #[test]
 fn func_def_op_self_value_of_compute() {
     common::setup();
@@ -241,6 +250,44 @@ fn call_op_self_value_of_compute() {
         // Yes, the line does have a trailing space, here and in the entire IR above.
         "%0 = function.call @StructA::@compute() : () -> !struct.type<@StructA> "
     );
+}
+
+#[test]
+fn call_op_product_classifiers() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context), None);
+    let module_body = module.body();
+
+    let s1 = make_product_struct(&context, "StructProdA");
+    let s1 = StructDefOpRef::try_from(module_body.append_operation(s1.into())).unwrap();
+    assert!(s1.verify());
+
+    let s2 = make_product_struct(&context, "StructProdB");
+    let s2 = StructDefOpRef::try_from(module_body.append_operation(s2.into())).unwrap();
+    assert!(s2.verify());
+
+    let product_body = s2
+        .product_func()
+        .expect("failed to get product function")
+        .region(0)
+        .expect("failed to get first region")
+        .first_block()
+        .expect("failed to get first block");
+    let builder = OpBuilder::at_block_end(&context, product_body);
+    let loc = Location::unknown(&context);
+    let call = builder.insert(loc, |_, loc| {
+        let name = SymbolRefAttribute::new_from_str(&context, "StructProdA", &["product"]);
+        dialect::function::call(&builder, loc, name, &[], &[s1.r#type()])
+            .unwrap()
+            .into()
+    });
+
+    let call = CallOpRef::try_from(call).unwrap();
+    assert!(call.callee_is_product());
+    assert!(call.callee_is_struct_product());
+    assert!(!call.callee_is_compute());
+    assert!(!call.callee_is_constrain());
 }
 
 #[test]

@@ -128,7 +128,9 @@ pub mod dialect {
 }
 
 /// Exports LLZK constants.
-pub use llzk_sys::{FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, LANG_ATTR_NAME, MAIN_ATTR_NAME};
+pub use llzk_sys::{
+    FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FUNC_NAME_PRODUCT, LANG_ATTR_NAME, MAIN_ATTR_NAME,
+};
 
 /// melior reexports of commonly used types.
 pub use melior::{

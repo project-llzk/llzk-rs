@@ -3,34 +3,47 @@ use std::{
     ptr::{null, null_mut},
 };
 
-use crate::sanity_tests::dialect::{TestOp, test_op};
+use crate::sanity_tests::dialect::{TestOp, first_op, parse_module, test_op};
 use mlir_sys::{
-    MlirOperation, mlirAffineConstantExprGet, mlirAffineMapGet, mlirArrayAttrGet,
-    mlirAttributeEqual, mlirFlatSymbolRefAttrGet, mlirIndexTypeGet, mlirLocationUnknownGet,
-    mlirOperationCreate, mlirOperationDestroy, mlirOperationGetContext, mlirOperationGetResult,
+    MlirOperation, MlirStringRef, mlirAffineConstantExprGet, mlirAffineMapGet, mlirArrayAttrGet,
+    mlirAttributeEqual, mlirFlatSymbolRefAttrGet, mlirIdentifierStr, mlirIndexTypeGet,
+    mlirLocationUnknownGet, mlirModuleGetBody, mlirOperationCreate, mlirOperationDestroy,
+    mlirOperationGetContext, mlirOperationGetName, mlirOperationGetResult,
     mlirOperationStateAddResults, mlirOperationStateGet, mlirStringRefCreateFromCString,
 };
 use rstest::rstest;
 use std::alloc::{Layout, alloc, dealloc};
 
 use crate::{
-    MlirValueRange, llzkOperationIsA_Struct_MemberDefOp, llzkOperationIsA_Struct_StructDefOp,
-    llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetPublicAttr,
-    llzkStruct_MemberReadOpBuild, llzkStruct_MemberReadOpBuildWithAffineMapDistance,
+    MlirValueRange, llzkFunction_FuncDefOpNameIsProduct, llzkOperationIsA_Struct_MemberDefOp,
+    llzkOperationIsA_Struct_StructDefOp, llzkStruct_MemberDefOpHasPublicAttr,
+    llzkStruct_MemberDefOpSetPublicAttr, llzkStruct_MemberReadOpBuild,
+    llzkStruct_MemberReadOpBuildWithAffineMapDistance,
     llzkStruct_MemberReadOpBuildWithLiteralDistance,
     llzkStruct_MemberReadOpBuildWithTemplateSymbolDistance, llzkStruct_StructDefOpGetBody,
-    llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
-    llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetFullyQualifiedName,
-    llzkStruct_StructDefOpGetHeaderString, llzkStruct_StructDefOpGetMemberDef,
-    llzkStruct_StructDefOpGetMemberDefs, llzkStruct_StructDefOpGetNumMemberDefs,
+    llzkStruct_StructDefOpGetBodyRegion,
+    llzkStruct_StructDefOpGetComputeFuncOp, llzkStruct_StructDefOpGetConstrainFuncOp,
+    llzkStruct_StructDefOpGetFullyQualifiedName, llzkStruct_StructDefOpGetHeaderString,
+    llzkStruct_StructDefOpGetMemberDef, llzkStruct_StructDefOpGetMemberDefs,
+    llzkStruct_StructDefOpGetNumMemberDefs, llzkStruct_StructDefOpGetProductFuncOp,
     llzkStruct_StructDefOpGetType, llzkStruct_StructDefOpGetTypeWithParams,
     llzkStruct_StructDefOpHasColumns, llzkStruct_StructDefOpIsMainComponent,
     llzkStruct_StructTypeGet, llzkStruct_StructTypeGetNameRef, llzkStruct_StructTypeGetParams,
     llzkStruct_StructTypeGetWithArrayAttr, llzkStruct_StructTypeGetWithAttrs,
     llzkTypeIsA_Struct_StructType, mlirGetDialectHandle__llzk__component__, mlirOpBuilderCreate,
-    mlirOpBuilderDestroy,
-    sanity_tests::{TestContext, context, identifier, str_ref},
+    mlirOpBuilderDestroy, sanity_tests::{TestContext, context, identifier, str_ref},
 };
+
+fn string_ref_eq(value: MlirStringRef, expected: &str) -> bool {
+    value.length == expected.len()
+        && !value.data.is_null()
+        && unsafe { std::slice::from_raw_parts(value.data.cast::<u8>(), value.length) }
+            == expected.as_bytes()
+}
+
+fn op_name_eq(op: MlirOperation, expected: &str) -> bool {
+    unsafe { string_ref_eq(mlirIdentifierStr(mlirOperationGetName(op)), expected) }
+}
 
 #[test]
 fn test_mlir_get_dialect_handle_llzk_component() {
@@ -215,6 +228,41 @@ fn test_llzk_struct_def_op_get_constrain_func_op(test_op: TestOp) {
         if llzkOperationIsA_Struct_StructDefOp(test_op.op) {
             llzkStruct_StructDefOpGetConstrainFuncOp(test_op.op);
         }
+    }
+}
+
+#[rstest]
+fn test_llzk_struct_def_op_get_product_func_op(test_op: TestOp) {
+    unsafe {
+        if llzkOperationIsA_Struct_StructDefOp(test_op.op) {
+            llzkStruct_StructDefOpGetProductFuncOp(test_op.op);
+        }
+    }
+}
+
+#[rstest]
+fn test_llzk_struct_def_op_get_product_func_op_positive(context: TestContext) {
+    let module = parse_module(
+        context.ctx,
+        r#"
+module attributes {llzk.lang} {
+  struct.def @StructProd {
+    function.def @product() -> !struct.type<@StructProd<[]>> attributes {function.allow_constraint, function.allow_non_native_field_ops, function.allow_witness} {
+      %self = struct.new : <@StructProd<[]>>
+      function.return %self : !struct.type<@StructProd<[]>>
+    }
+  }
+}
+"#,
+    );
+
+    unsafe {
+        let struct_def = first_op(mlirModuleGetBody(module.module));
+        assert!(op_name_eq(struct_def, "struct.def"));
+        let got = llzkStruct_StructDefOpGetProductFuncOp(struct_def);
+        assert!(!got.ptr.is_null());
+        assert!(op_name_eq(got, "function.def"));
+        assert!(llzkFunction_FuncDefOpNameIsProduct(got));
     }
 }
 

@@ -1,25 +1,32 @@
+use super::{first_op, next_op, parse_module};
+
 use crate::{
     llzkAffineMapOperandsBuilderCreate, llzkAffineMapOperandsBuilderDestroy,
     llzkFunction_CallOpBuild, llzkFunction_CallOpBuildToCallee,
     llzkFunction_CallOpBuildToCalleeWithMapOperands, llzkFunction_CallOpBuildWithMapOperands,
     llzkFunction_CallOpCalleeIsCompute, llzkFunction_CallOpCalleeIsConstrain,
-    llzkFunction_CallOpCalleeIsStructCompute, llzkFunction_CallOpCalleeIsStructConstrain,
+    llzkFunction_CallOpCalleeIsProduct, llzkFunction_CallOpCalleeIsStructCompute,
+    llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpCalleeIsStructProduct,
     llzkFunction_CallOpGetSingleResultTypeOfCompute, llzkFunction_CallOpGetTypeSignature,
-    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetFullyQualifiedName,
+    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetBody,
+    llzkFunction_FuncDefOpGetFullyQualifiedName,
     llzkFunction_FuncDefOpGetSingleResultTypeOfCompute,
     llzkFunction_FuncDefOpHasAllowConstraintAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
     llzkFunction_FuncDefOpHasArgPublicAttr, llzkFunction_FuncDefOpIsInStruct,
     llzkFunction_FuncDefOpIsStructCompute, llzkFunction_FuncDefOpIsStructConstrain,
-    llzkFunction_FuncDefOpNameIsCompute, llzkFunction_FuncDefOpNameIsConstrain,
+    llzkFunction_FuncDefOpIsStructProduct, llzkFunction_FuncDefOpNameIsCompute,
+    llzkFunction_FuncDefOpNameIsConstrain, llzkFunction_FuncDefOpNameIsProduct,
     llzkFunction_FuncDefOpSetAllowConstraintAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
     llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
+    llzkStruct_StructDefOpGetBody,
     mlirGetDialectHandle__llzk__function__, mlirOpBuilderCreate, mlirOpBuilderDestroy,
     sanity_tests::{TestContext, context, str_ref},
 };
 use mlir_sys::{
-    MlirAttribute, MlirContext, MlirNamedAttribute, MlirOperation, MlirType, mlirDictionaryAttrGet,
-    mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet, mlirIndexTypeGet, mlirLocationUnknownGet,
-    mlirOperationDestroy, mlirOperationGetContext, mlirOperationVerify,
+    MlirAttribute, MlirContext, MlirNamedAttribute, MlirOperation, MlirType,
+    mlirDictionaryAttrGet, mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet, mlirIndexTypeGet,
+    mlirLocationUnknownGet, mlirModuleGetBody, mlirOperationDestroy, mlirOperationGetContext,
+    mlirOperationVerify, mlirRegionGetFirstBlock,
     mlirStringRefCreateFromCString, mlirTypeEqual,
 };
 use rstest::{fixture, rstest};
@@ -231,6 +238,10 @@ false_pred_test!(
     llzkFunction_FuncDefOpNameIsConstrain
 );
 false_pred_test!(
+    test_llzk_func_def_op_get_name_is_product,
+    llzkFunction_FuncDefOpNameIsProduct
+);
+false_pred_test!(
     test_llzk_func_def_op_get_is_in_struct,
     llzkFunction_FuncDefOpIsInStruct
 );
@@ -241,6 +252,10 @@ false_pred_test!(
 false_pred_test!(
     test_llzk_func_def_op_get_is_struct_constrain,
     llzkFunction_FuncDefOpIsStructConstrain
+);
+false_pred_test!(
+    test_llzk_func_def_op_get_is_struct_product,
+    llzkFunction_FuncDefOpIsStructProduct
 );
 
 #[rstest]
@@ -398,6 +413,11 @@ call_pred_test!(
     false
 );
 call_pred_test!(
+    test_llzk_call_op_get_callee_is_product,
+    llzkFunction_CallOpCalleeIsProduct,
+    false
+);
+call_pred_test!(
     test_llzk_call_op_get_callee_is_struct_compute,
     llzkFunction_CallOpCalleeIsStructCompute,
     false
@@ -407,6 +427,48 @@ call_pred_test!(
     llzkFunction_CallOpCalleeIsStructConstrain,
     false
 );
+call_pred_test!(
+    test_llzk_call_op_get_callee_is_struct_product,
+    llzkFunction_CallOpCalleeIsStructProduct,
+    false
+);
+
+#[rstest]
+fn test_llzk_call_op_get_callee_is_product_positive(context: TestContext) {
+    let module = parse_module(
+        context.ctx,
+        r#"
+module attributes {llzk.lang} {
+  struct.def @StructProdA {
+    function.def @product() -> !struct.type<@StructProdA<[]>> attributes {function.allow_constraint, function.allow_non_native_field_ops, function.allow_witness} {
+      %self = struct.new : <@StructProdA<[]>>
+      function.return %self : !struct.type<@StructProdA<[]>>
+    }
+  }
+  struct.def @StructProdB {
+    function.def @product() -> !struct.type<@StructProdB<[]>> attributes {function.allow_constraint, function.allow_non_native_field_ops, function.allow_witness} {
+      %self = struct.new : <@StructProdB<[]>>
+      %0 = function.call @StructProdA::@product() : () -> !struct.type<@StructProdA<[]>>
+      function.return %self : !struct.type<@StructProdB<[]>>
+    }
+  }
+}
+"#,
+    );
+
+    unsafe {
+        let struct_a = first_op(mlirModuleGetBody(module.module));
+        let struct_b = next_op(struct_a);
+        let product_b = first_op(llzkStruct_StructDefOpGetBody(struct_b));
+        let product_b_body = mlirRegionGetFirstBlock(llzkFunction_FuncDefOpGetBody(product_b));
+        assert!(!product_b_body.ptr.is_null(), "expected product body block");
+        let call = next_op(first_op(product_b_body));
+        assert!(llzkFunction_CallOpCalleeIsProduct(call));
+        assert!(llzkFunction_CallOpCalleeIsStructProduct(call));
+        assert!(!llzkFunction_CallOpCalleeIsCompute(call));
+        assert!(!llzkFunction_CallOpCalleeIsConstrain(call));
+    }
+}
 
 #[rstest]
 fn test_llzk_call_op_get_single_result_type_of_compute(test_function0: TestFuncDefOp) {

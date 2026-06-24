@@ -6,15 +6,12 @@ use crate::{
     macros::isa_fn,
 };
 
-use llzk_sys::MlirOpBuilder;
 use melior::ir::{
-    Block, BlockLike, Location, Operation, OperationRef, RegionLike, Type, TypeLike, Value,
-    ValueLike,
+    Block, Location, Operation, OperationRef, RegionLike, Value, ValueLike,
     attribute::StringAttribute,
     operation::{OperationBuilder, OperationLike},
     r#type::IntegerType,
 };
-use mlir_sys::{MlirLocation, MlirValue};
 
 fn build_cmp_op<'c>(
     pred: CmpPredicate,
