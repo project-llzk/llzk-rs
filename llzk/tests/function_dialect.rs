@@ -4,7 +4,7 @@ use llzk::{
     map_operands::MapOperandsBuilder,
     prelude::*,
 };
-use melior::ir::{Location, r#type::FunctionType};
+use melior::ir::{Identifier, Location, r#type::FunctionType};
 
 mod common;
 
@@ -459,6 +459,166 @@ fn func_def_op_get_body() {
         .expect("function.def must have at least 1 region")
         .append_block(block);
     assert!(op.body().is_ok());
+}
+
+#[test]
+fn func_def_op_arg_name_round_trip() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let op = dialect::function::def(
+        loc,
+        "named_arg",
+        FunctionType::new(&context, &[felt_type], &[]),
+        &[],
+        None,
+    )
+    .unwrap();
+
+    assert!(op.arg_name_attr(0).unwrap().is_none());
+    assert!(!op.has_arg_name(0));
+    op.set_arg_name(0, "input").unwrap();
+    assert!(op.has_arg_name(0));
+    assert_eq!(op.arg_name_attr(0).unwrap().unwrap().value(), "input");
+}
+
+#[test]
+fn func_def_op_res_name_round_trip() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let op = dialect::function::def(
+        loc,
+        "named_res",
+        FunctionType::new(&context, &[], &[felt_type]),
+        &[],
+        None,
+    )
+    .unwrap();
+
+    assert!(op.res_name_attr(0).unwrap().is_none());
+    assert!(!op.has_res_name(0));
+    op.set_res_name(0, "output").unwrap();
+    assert!(op.has_res_name(0));
+    assert_eq!(op.res_name_attr(0).unwrap().unwrap().value(), "output");
+}
+
+#[test]
+fn func_def_op_def_with_signature_attrs_prints_named_arg_and_result() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let op = dialect::function::def_with_signature_attrs(
+        loc,
+        "named_signature",
+        FunctionType::new(&context, &[felt_type], &[felt_type]),
+        &[],
+        Some(&[vec![dialect::function::arg_name_attr(&context, "input")]]),
+        Some(&[vec![dialect::function::res_name_attr(&context, "output")]]),
+    )
+    .unwrap();
+
+    let block = Block::new(&[(felt_type, loc)]);
+    let arg: Value = block.argument(0).unwrap().into();
+    block.append_operation(dialect::function::r#return(loc, &[arg]));
+    op.region(0).unwrap().append_block(block);
+
+    let ir = format!("{op}");
+    assert!(ir.contains("{function.arg_name = \"input\"}"));
+    assert!(ir.contains("{function.res_name = \"output\"}"));
+}
+
+#[test]
+fn func_def_op_signature_name_accessors_return_out_of_bounds() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let op = dialect::function::def(
+        loc,
+        "bounds",
+        FunctionType::new(&context, &[felt_type], &[felt_type]),
+        &[],
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(
+        op.arg_name_attr(1).unwrap_err(),
+        LlzkError::OutOfBoundsArgument(Some("@bounds".to_string()), 1)
+    );
+    assert_eq!(
+        op.res_name_attr(1).unwrap_err(),
+        LlzkError::OutOfBoundsArgument(Some("@bounds".to_string()), 1)
+    );
+    assert_eq!(
+        op.set_arg_name(1, "input").unwrap_err(),
+        LlzkError::OutOfBoundsArgument(Some("@bounds".to_string()), 1)
+    );
+    assert_eq!(
+        op.set_res_name(1, "output").unwrap_err(),
+        LlzkError::OutOfBoundsArgument(Some("@bounds".to_string()), 1)
+    );
+}
+
+#[test]
+fn func_def_op_arg_and_res_attrs_round_trip() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let felt_type: Type = FeltType::new(&context).into();
+    let op = dialect::function::def(
+        loc,
+        "attrs_round_trip",
+        FunctionType::new(&context, &[felt_type], &[felt_type]),
+        &[],
+        None,
+    )
+    .unwrap();
+
+    let arg_attrs = ArrayAttribute::new(
+        &context,
+        &[Attribute::from(unsafe {
+            melior::ir::Attribute::from_raw(mlir_sys::mlirDictionaryAttrGet(
+                context.to_raw(),
+                1,
+                [{
+                    mlir_sys::mlirNamedAttributeGet(
+                        Identifier::new(&context, "function.arg_name").to_raw(),
+                        StringAttribute::new(&context, "input").to_raw(),
+                    )
+                }]
+                .as_ptr(),
+            ))
+        })],
+    );
+    let res_attrs = ArrayAttribute::new(
+        &context,
+        &[Attribute::from(unsafe {
+            melior::ir::Attribute::from_raw(mlir_sys::mlirDictionaryAttrGet(
+                context.to_raw(),
+                1,
+                [{
+                    mlir_sys::mlirNamedAttributeGet(
+                        Identifier::new(&context, "function.res_name").to_raw(),
+                        StringAttribute::new(&context, "output").to_raw(),
+                    )
+                }]
+                .as_ptr(),
+            ))
+        })],
+    );
+
+    op.set_arg_attrs(arg_attrs);
+    op.set_res_attrs(res_attrs);
+
+    assert_eq!(op.arg_attrs().unwrap().len(), 1);
+    assert_eq!(op.res_attrs().unwrap().len(), 1);
+    assert_eq!(op.arg_name_attr(0).unwrap().unwrap().value(), "input");
+    assert_eq!(op.res_name_attr(0).unwrap().unwrap().value(), "output");
 }
 
 // Tests for CallOpLike methods added in e2157c6

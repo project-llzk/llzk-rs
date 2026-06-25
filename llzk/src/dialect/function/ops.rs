@@ -22,6 +22,7 @@ use llzk_sys::{
     llzkFunction_CallOpSetTemplateParams, llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs,
     llzkFunction_FuncDefOpGetArgAttrs, llzkFunction_FuncDefOpGetBody,
     llzkFunction_FuncDefOpGetFullyQualifiedName, llzkFunction_FuncDefOpGetFunctionType,
+    llzkFunction_FuncDefOpGetResAttrs,
     llzkFunction_FuncDefOpGetSelfValueFromCompute, llzkFunction_FuncDefOpGetSelfValueFromConstrain,
     llzkFunction_FuncDefOpGetSingleResultTypeOfCompute, llzkFunction_FuncDefOpGetSymName,
     llzkFunction_FuncDefOpHasAllowConstraintAttr,
@@ -32,7 +33,8 @@ use llzk_sys::{
     llzkFunction_FuncDefOpNameIsCompute, llzkFunction_FuncDefOpNameIsConstrain,
     llzkFunction_FuncDefOpNameIsProduct, llzkFunction_FuncDefOpSetAllowConstraintAttr,
     llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
-    llzkFunction_FuncDefOpSetFunctionType, llzkFunction_FuncDefOpSetSymName,
+    llzkFunction_FuncDefOpSetArgAttrs, llzkFunction_FuncDefOpSetFunctionType,
+    llzkFunction_FuncDefOpSetResAttrs, llzkFunction_FuncDefOpSetSymName,
     llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
 };
 use melior::{
@@ -44,9 +46,13 @@ use melior::{
         block::BlockArgument,
         operation::{OperationBuilder, OperationLike, OperationMutLike},
         r#type::FunctionType,
+        Identifier,
     },
 };
-use mlir_sys::{MlirAttribute, MlirNamedAttribute, mlirDictionaryAttrGet, mlirNamedAttributeGet};
+use mlir_sys::{
+    MlirAttribute, MlirNamedAttribute, mlirDictionaryAttrGet, mlirDictionaryAttrGetElement,
+    mlirDictionaryAttrGetElementByName, mlirDictionaryAttrGetNumElements, mlirNamedAttributeGet,
+};
 
 use std::ptr::null;
 
@@ -54,6 +60,7 @@ use std::ptr::null;
 // Helpers
 //===----------------------------------------------------------------------===//
 
+/// Builds the standard out-of-bounds error used by `function.def` helpers.
 fn create_out_of_bounds_error<'c: 'a, 'a>(
     func: &(impl FuncDefOpLike<'c, 'a> + ?Sized),
     idx: usize,
@@ -62,12 +69,178 @@ fn create_out_of_bounds_error<'c: 'a, 'a>(
     Error::OutOfBoundsArgument(Some(fqn.to_string()), idx)
 }
 
+/// Selects whether helper methods operate on function arguments or results.
+#[derive(Debug, Copy, Clone)]
+pub enum SignaturePosition {
+    /// Select the function inputs.
+    Argument,
+    /// Select the function results.
+    Result,
+}
+
+impl SignaturePosition {
+    fn label(self) -> &'static str {
+        match self {
+            SignaturePosition::Argument => "argument",
+            SignaturePosition::Result => "result",
+        }
+    }
+}
+
+/// Creates an empty dictionary attribute in the provided context.
+fn empty_dictionary_attr(context: &Context) -> Attribute<'_> {
+    unsafe { Attribute::from_raw(mlirDictionaryAttrGet(context.to_raw(), 0, null())) }
+}
+
+/// Converts a slice of named attributes into a dictionary attribute.
+fn named_attributes_to_dictionary_attr<'c>(
+    context: &'c Context,
+    attrs: &[NamedAttribute<'c>],
+) -> Attribute<'c> {
+    let named_attrs: Vec<_> = attrs.iter().map(tuple_to_named_attr).collect();
+    unsafe {
+        Attribute::from_raw(mlirDictionaryAttrGet(
+            context.to_raw(),
+            isize::try_from(named_attrs.len()).expect("named_attrs too large"),
+            named_attrs.as_ptr(),
+        ))
+    }
+}
+
+/// Expands a dictionary attribute back into its `(Identifier, Attribute)` pairs.
+fn dictionary_attr_entries<'c>(attr: Attribute<'c>) -> Vec<NamedAttribute<'c>> {
+    (0..unsafe { mlirDictionaryAttrGetNumElements(attr.to_raw()) })
+        .map(|idx| unsafe { mlirDictionaryAttrGetElement(attr.to_raw(), idx) })
+        .map(|attr| unsafe {
+            (
+                Identifier::from_raw(attr.name),
+                Attribute::from_raw(attr.attribute),
+            )
+        })
+        .collect()
+}
+
 //===----------------------------------------------------------------------===//
 // FuncDefOpLike
 //===----------------------------------------------------------------------===//
 
 /// Defines the public API of the 'function.def' op.
 pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+    /// Returns the raw attribute array attached to either the function arguments or results.
+    fn get_signature_attrs(
+        &self,
+        position: SignaturePosition,
+    ) -> Result<ArrayAttribute<'c>, Error> {
+        let raw = match position {
+            SignaturePosition::Argument => unsafe { llzkFunction_FuncDefOpGetArgAttrs(self.to_raw()) },
+            SignaturePosition::Result => unsafe { llzkFunction_FuncDefOpGetResAttrs(self.to_raw()) },
+        };
+        let attr = unsafe { Attribute::from_option_raw(raw) }.ok_or_else(|| {
+            Error::AttributeNotFound(format!("function.def {} attributes", position.label()))
+        })?;
+        ArrayAttribute::try_from(attr)
+    }
+
+    /// Replaces the raw attribute array attached to either the function arguments or results.
+    fn set_signature_attrs(&self, position: SignaturePosition, attr: ArrayAttribute<'c>) {
+        match position {
+            SignaturePosition::Argument => unsafe {
+                llzkFunction_FuncDefOpSetArgAttrs(self.to_raw(), attr.to_raw())
+            },
+            SignaturePosition::Result => unsafe {
+                llzkFunction_FuncDefOpSetResAttrs(self.to_raw(), attr.to_raw())
+            },
+        }
+    }
+
+    /// Returns the number of entries in the selected portion of the function signature.
+    fn signature_count(&self, position: SignaturePosition) -> Result<usize, Error> {
+        let ty = self.function_type()?;
+        Ok(match position {
+            SignaturePosition::Argument => ty.input_count(),
+            SignaturePosition::Result => ty.result_count(),
+        })
+    }
+
+    /// Looks up a named attribute on the selected argument or result position.
+    fn get_signature_named_attr(
+        &self,
+        position: SignaturePosition,
+        idx: usize,
+        name: &str,
+    ) -> Result<Option<Attribute<'c>>, Error> {
+        let count = self.signature_count(position)?;
+        if idx >= count {
+            return Err(create_out_of_bounds_error(self, idx));
+        }
+
+        let attrs = match self.get_signature_attrs(position) {
+            Ok(attrs) => attrs,
+            Err(Error::AttributeNotFound(_)) => return Ok(None),
+            Err(err) => return Err(err),
+        };
+        let dict = attrs.get(idx).expect("signature attrs length should match arity");
+        let raw = unsafe {
+            mlirDictionaryAttrGetElementByName(dict.to_raw(), StringRef::new(name).to_raw())
+        };
+        Ok(unsafe { Attribute::from_option_raw(raw) })
+    }
+
+    /// Sets a named attribute on the selected argument or result position.
+    fn set_signature_named_attr(
+        &self,
+        position: SignaturePosition,
+        idx: usize,
+        name: Identifier<'c>,
+        attr: Attribute<'c>,
+    ) -> Result<(), Error> {
+        let count = self.signature_count(position)?;
+        if idx >= count {
+            return Err(create_out_of_bounds_error(self, idx));
+        }
+
+        let context = unsafe { self.context().to_ref() };
+        let mut dicts: Vec<_> = match self.get_signature_attrs(position) {
+            Ok(attrs) => attrs.into_iter().collect(),
+            Err(Error::AttributeNotFound(_)) => vec![empty_dictionary_attr(context); count],
+            Err(err) => return Err(err),
+        };
+        if dicts.len() < count {
+            dicts.resize(count, empty_dictionary_attr(context));
+        }
+
+        let mut entries = dictionary_attr_entries(dicts[idx]);
+        if let Some(existing) = entries.iter_mut().find(|(existing_name, _)| *existing_name == name)
+        {
+            existing.1 = attr;
+        } else {
+            entries.push((name, attr));
+        }
+        dicts[idx] = named_attributes_to_dictionary_attr(context, &entries);
+        self.set_signature_attrs(position, ArrayAttribute::new(context, &dicts));
+        Ok(())
+    }
+
+    /// Returns the argument attribute array.
+    fn arg_attrs(&self) -> Result<ArrayAttribute<'c>, Error> {
+        self.get_signature_attrs(SignaturePosition::Argument)
+    }
+
+    /// Sets the argument attribute array.
+    fn set_arg_attrs(&self, attr: ArrayAttribute<'c>) {
+        self.set_signature_attrs(SignaturePosition::Argument, attr)
+    }
+
+    /// Returns the result attribute array.
+    fn res_attrs(&self) -> Result<ArrayAttribute<'c>, Error> {
+        self.get_signature_attrs(SignaturePosition::Result)
+    }
+
+    /// Sets the result attribute array.
+    fn set_res_attrs(&self, attr: ArrayAttribute<'c>) {
+        self.set_signature_attrs(SignaturePosition::Result, attr)
+    }
+
     /// Returns true if the FuncDefOp has the allow_constraint attribute.
     fn has_allow_constraint_attr(&self) -> bool {
         unsafe { llzkFunction_FuncDefOpHasAllowConstraintAttr(self.to_raw()) }
@@ -101,6 +274,62 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns true if the `idx`-th argument has the Pub attribute.
     fn arg_is_pub(&self, idx: u32) -> bool {
         unsafe { llzkFunction_FuncDefOpHasArgPublicAttr(self.to_raw(), idx) }
+    }
+
+    /// Returns true if the `idx`-th argument has a `function.arg_name` attribute.
+    fn has_arg_name(&self, idx: u32) -> bool {
+        matches!(self.arg_name_attr(idx as usize), Ok(Some(_)))
+    }
+
+    /// Returns the `function.arg_name` attribute for the `idx`-th argument.
+    fn arg_name_attr(&self, idx: usize) -> Result<Option<StringAttribute<'c>>, Error> {
+        self.get_signature_named_attr(SignaturePosition::Argument, idx, "function.arg_name")?
+            .map(StringAttribute::try_from)
+            .transpose()
+            .map_err(Error::Melior)
+    }
+
+    /// Sets the `function.arg_name` attribute for the `idx`-th argument.
+    fn set_arg_name_attr(&self, idx: usize, attr: StringAttribute<'c>) -> Result<(), Error> {
+        self.set_signature_named_attr(
+            SignaturePosition::Argument,
+            idx,
+            Identifier::new(unsafe { self.context().to_ref() }, "function.arg_name"),
+            attr.into(),
+        )
+    }
+
+    /// Sets the `function.arg_name` attribute for the `idx`-th argument from a string.
+    fn set_arg_name(&self, idx: usize, name: &str) -> Result<(), Error> {
+        self.set_arg_name_attr(idx, StringAttribute::new(unsafe { self.context().to_ref() }, name))
+    }
+
+    /// Returns true if the `idx`-th result has a `function.res_name` attribute.
+    fn has_res_name(&self, idx: u32) -> bool {
+        matches!(self.res_name_attr(idx as usize), Ok(Some(_)))
+    }
+
+    /// Returns the `function.res_name` attribute for the `idx`-th result.
+    fn res_name_attr(&self, idx: usize) -> Result<Option<StringAttribute<'c>>, Error> {
+        self.get_signature_named_attr(SignaturePosition::Result, idx, "function.res_name")?
+            .map(StringAttribute::try_from)
+            .transpose()
+            .map_err(Error::Melior)
+    }
+
+    /// Sets the `function.res_name` attribute for the `idx`-th result.
+    fn set_res_name_attr(&self, idx: usize, attr: StringAttribute<'c>) -> Result<(), Error> {
+        self.set_signature_named_attr(
+            SignaturePosition::Result,
+            idx,
+            Identifier::new(unsafe { self.context().to_ref() }, "function.res_name"),
+            attr.into(),
+        )
+    }
+
+    /// Sets the `function.res_name` attribute for the `idx`-th result from a string.
+    fn set_res_name(&self, idx: usize, name: &str) -> Result<(), Error> {
+        self.set_res_name_attr(idx, StringAttribute::new(unsafe { self.context().to_ref() }, name))
     }
 
     /// Returns the fully qualified name of the function.
@@ -200,22 +429,8 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Looks for an attribute in the n-th argument of the function.
     fn argument_attr(&self, idx: usize, name: &str) -> Result<Attribute<'c>, Error> {
-        let arg_attrs = melior::ir::attribute::ArrayAttribute::try_from(
-            unsafe { Attribute::from_option_raw(llzkFunction_FuncDefOpGetArgAttrs(self.to_raw())) }
-                .ok_or_else(|| {
-                    Error::AttributeNotFound(format!("function.def argument attributes"))
-                })?,
-        )
-        .map_err(Error::Melior)?;
-        let arg = arg_attrs.element(idx)?;
-        let name_ref = StringRef::new(name);
-        unsafe {
-            Attribute::from_option_raw(mlir_sys::mlirDictionaryAttrGetElementByName(
-                arg.to_raw(),
-                name_ref.to_raw(),
-            ))
-        }
-        .ok_or_else(|| Error::AttributeNotFound(name.to_string()))
+        self.get_signature_named_attr(SignaturePosition::Argument, idx, name)?
+            .ok_or_else(|| Error::AttributeNotFound(name.to_string()))
     }
 
     ///  Gets the [FunctionType] attribute.
@@ -447,10 +662,12 @@ impl<'a, 'c: 'a> CallOpLike<'c, 'a> for CallOpRefMut<'c, 'a> {}
 // Operation factories
 //===----------------------------------------------------------------------===//
 
+/// Converts a Rust named-attribute tuple to the raw C API representation.
 fn tuple_to_named_attr((name, attr): &NamedAttribute) -> MlirNamedAttribute {
     unsafe { mlirNamedAttributeGet(name.to_raw(), attr.to_raw()) }
 }
 
+/// Builds one dictionary attribute per function argument.
 fn prepare_arg_attrs<'c>(
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
     input_count: usize,
@@ -464,16 +681,7 @@ fn prepare_arg_attrs<'c>(
     assert_eq!(arg_attrs.len(), input_count);
     arg_attrs
         .iter()
-        .map(|arg_attr| {
-            let named_attrs = Vec::from_iter(arg_attr.iter().map(tuple_to_named_attr));
-            unsafe {
-                mlirDictionaryAttrGet(
-                    ctx.to_raw(),
-                    isize::try_from(named_attrs.len()).expect("named_attrs too large"),
-                    named_attrs.as_ptr(),
-                )
-            }
-        })
+        .map(|arg_attr| named_attributes_to_dictionary_attr(ctx, arg_attr).to_raw())
         .collect()
 }
 
@@ -503,6 +711,40 @@ pub fn def<'c>(
         ))
     }
     .try_into()
+}
+
+/// Creates a `function.def` operation and optionally sets both argument and result attributes.
+pub fn def_with_signature_attrs<'c>(
+    location: Location<'c>,
+    name: &str,
+    r#type: FunctionType<'c>,
+    attrs: &[NamedAttribute<'c>],
+    arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
+    res_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
+) -> Result<FuncDefOp<'c>, Error> {
+    let context = unsafe { location.context().to_ref() };
+    let op = def(location, name, r#type, attrs, arg_attrs)?;
+    if let Some(arg_attrs) = arg_attrs {
+        let attr = ArrayAttribute::new(
+            context,
+            &prepare_arg_attrs(Some(arg_attrs), r#type.input_count(), context)
+                .into_iter()
+                .map(|attr| unsafe { Attribute::from_raw(attr) })
+                .collect::<Vec<_>>(),
+        );
+        op.set_arg_attrs(attr);
+    }
+    if let Some(res_attrs) = res_attrs {
+        let attr = ArrayAttribute::new(
+            context,
+            &prepare_arg_attrs(Some(res_attrs), r#type.result_count(), context)
+                .into_iter()
+                .map(|attr| unsafe { Attribute::from_raw(attr) })
+                .collect::<Vec<_>>(),
+        );
+        op.set_res_attrs(attr);
+    }
+    Ok(op)
 }
 
 /// Return `true` iff the given op is `function.def`.
