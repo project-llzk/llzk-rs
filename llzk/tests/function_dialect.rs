@@ -4,6 +4,7 @@ use llzk::{
     map_operands::MapOperandsBuilder,
     prelude::*,
 };
+use llzk_sys::{FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME};
 use melior::ir::{Identifier, Location, r#type::FunctionType};
 
 mod common;
@@ -587,7 +588,7 @@ fn func_def_op_arg_and_res_attrs_round_trip() {
                 1,
                 [{
                     mlir_sys::mlirNamedAttributeGet(
-                        Identifier::new(&context, "function.arg_name").to_raw(),
+                        Identifier::new(&context, FUNCTION_ARG_NAME_ATTR_NAME.as_ref()).to_raw(),
                         StringAttribute::new(&context, "input").to_raw(),
                     )
                 }]
@@ -603,7 +604,7 @@ fn func_def_op_arg_and_res_attrs_round_trip() {
                 1,
                 [{
                     mlir_sys::mlirNamedAttributeGet(
-                        Identifier::new(&context, "function.res_name").to_raw(),
+                        Identifier::new(&context, FUNCTION_RES_NAME_ATTR_NAME.as_ref()).to_raw(),
                         StringAttribute::new(&context, "output").to_raw(),
                     )
                 }]

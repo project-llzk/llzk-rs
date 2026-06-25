@@ -4,6 +4,7 @@ use llzk::{
     prelude::*,
     value_ext::{OwningValueRange, ValueRange},
 };
+use llzk_sys::{FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME};
 use melior::{
     dialect::arith,
     ir::{Identifier, attribute::DenseI32ArrayAttribute},
@@ -259,7 +260,10 @@ fn function_arg_name_attr_helper() {
     let context = LlzkContext::new();
     let (identifier, attr) = dialect::function::arg_name_attr(&context, "input");
 
-    assert_eq!(identifier, Identifier::new(&context, "function.arg_name"));
+    assert_eq!(
+        identifier,
+        Identifier::new(&context, FUNCTION_ARG_NAME_ATTR_NAME.as_ref())
+    );
     let attr = StringAttribute::try_from(attr).unwrap();
     assert_eq!(attr.value(), "input");
 }
@@ -270,7 +274,10 @@ fn function_res_name_attr_helper() {
     let context = LlzkContext::new();
     let (identifier, attr) = dialect::function::res_name_attr(&context, "output");
 
-    assert_eq!(identifier, Identifier::new(&context, "function.res_name"));
+    assert_eq!(
+        identifier,
+        Identifier::new(&context, FUNCTION_RES_NAME_ATTR_NAME.as_ref())
+    );
     let attr = StringAttribute::try_from(attr).unwrap();
     assert_eq!(attr.value(), "output");
 }
