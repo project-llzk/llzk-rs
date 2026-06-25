@@ -67,7 +67,7 @@ pub mod dialect {
     }
 
     /// Exports functions from the 'function' dialect
-        pub mod function {
+    pub mod function {
         pub use crate::dialect::function::{
             arg_name_attr, call, call_with_map_operands, call_with_template_params, def,
             def_with_signature_attrs, res_name_attr, r#return,
