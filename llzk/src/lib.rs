@@ -6,6 +6,7 @@
 use llzk_sys::llzkRegisterAllDialects;
 use melior::dialect::DialectRegistry;
 
+pub mod affine;
 pub mod attributes;
 pub mod builder;
 pub mod context;
