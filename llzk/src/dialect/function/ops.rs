@@ -383,12 +383,6 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .and_then(|block| block.argument(idx).map_err(Into::into))
     }
 
-    /// Looks for an attribute in the n-th argument of the function.
-    fn argument_attr(&self, idx: usize, name: &str) -> Result<Attribute<'c>, Error> {
-        self.arg_named_attr(idx, name)?
-            .ok_or_else(|| Error::AttributeNotFound(name.to_string()))
-    }
-
     ///  Gets the [FunctionType] attribute.
     fn function_type(&self) -> Result<FunctionType<'c>, Error> {
         let attr =

@@ -482,6 +482,7 @@ fn func_def_op_arg_name_round_trip() {
     op.set_arg_name(0, "input").unwrap();
     assert!(op.has_arg_name(0));
     assert_eq!(op.arg_name_attr(0).unwrap().unwrap().value(), "input");
+    assert_eq!(op.arg_name(0).unwrap(), Some("input".to_string()));
 }
 
 #[test]
@@ -504,6 +505,7 @@ fn func_def_op_res_name_round_trip() {
     op.set_res_name(0, "output").unwrap();
     assert!(op.has_res_name(0));
     assert_eq!(op.res_name_attr(0).unwrap().unwrap().value(), "output");
+    assert_eq!(op.res_name(0).unwrap(), Some("output".to_string()));
 }
 
 #[test]

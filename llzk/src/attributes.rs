@@ -101,7 +101,8 @@ pub(crate) fn dictionary_attr_set_named<'c>(
     named_attributes_to_dictionary_attr(context, &entries)
 }
 
-/// Extends or rewrites the attribute dictionary at `idx` and returns the updated array.
+/// Extends or rewrites the dictionary attribute element at `idx` inside an array
+/// of dictionary attributes.
 pub(crate) fn set_named_attr_in_dict_array<'c>(
     context: &'c Context,
     count: usize,
