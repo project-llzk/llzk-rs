@@ -139,7 +139,8 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             return Err(create_out_of_bounds_error(self, idx));
         }
 
-        let context = unsafe { self.context().to_ref() };
+        let context_ref = self.context();
+        let context = unsafe { context_ref.to_ref() };
         let current_attrs = self.arg_attrs().ok();
         self.set_arg_attrs(set_named_attr_in_dict_array(
             context,
@@ -180,7 +181,8 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             return Err(create_out_of_bounds_error(self, idx));
         }
 
-        let context = unsafe { self.context().to_ref() };
+        let context_ref = self.context();
+        let context = unsafe { context_ref.to_ref() };
         let current_attrs = self.res_attrs().ok();
         self.set_res_attrs(set_named_attr_in_dict_array(
             context,
@@ -241,21 +243,28 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .map_err(Error::Melior)
     }
 
+    /// Returns the source-level name of the `idx`-th argument, if present.
+    fn arg_name(&self, idx: usize) -> Result<Option<String>, Error> {
+        self.arg_name_attr(idx)
+            .map(|attr| attr.map(|attr| attr.value().to_string()))
+    }
+
     /// Sets the `function.arg_name` attribute for the `idx`-th argument.
     fn set_arg_name_attr(&self, idx: usize, attr: StringAttribute<'c>) -> Result<(), Error> {
+        let context_ref = self.context();
+        let context = unsafe { context_ref.to_ref() };
         self.set_arg_named_attr(
             idx,
-            Identifier::new(
-                unsafe { self.context().to_ref() },
-                FUNCTION_ARG_NAME_ATTR_NAME.as_ref(),
-            ),
+            Identifier::new(context, FUNCTION_ARG_NAME_ATTR_NAME.as_ref()),
             attr.into(),
         )
     }
 
     /// Sets the `function.arg_name` attribute for the `idx`-th argument from a string.
     fn set_arg_name(&self, idx: usize, name: &str) -> Result<(), Error> {
-        self.set_arg_name_attr(idx, StringAttribute::new(unsafe { self.context().to_ref() }, name))
+        let context_ref = self.context();
+        let context = unsafe { context_ref.to_ref() };
+        self.set_arg_name_attr(idx, StringAttribute::new(context, name))
     }
 
     /// Returns true if the `idx`-th result has a `function.res_name` attribute.
@@ -271,21 +280,28 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .map_err(Error::Melior)
     }
 
+    /// Returns the source-level name of the `idx`-th result, if present.
+    fn res_name(&self, idx: usize) -> Result<Option<String>, Error> {
+        self.res_name_attr(idx)
+            .map(|attr| attr.map(|attr| attr.value().to_string()))
+    }
+
     /// Sets the `function.res_name` attribute for the `idx`-th result.
     fn set_res_name_attr(&self, idx: usize, attr: StringAttribute<'c>) -> Result<(), Error> {
+        let context_ref = self.context();
+        let context = unsafe { context_ref.to_ref() };
         self.set_res_named_attr(
             idx,
-            Identifier::new(
-                unsafe { self.context().to_ref() },
-                FUNCTION_RES_NAME_ATTR_NAME.as_ref(),
-            ),
+            Identifier::new(context, FUNCTION_RES_NAME_ATTR_NAME.as_ref()),
             attr.into(),
         )
     }
 
     /// Sets the `function.res_name` attribute for the `idx`-th result from a string.
     fn set_res_name(&self, idx: usize, name: &str) -> Result<(), Error> {
-        self.set_res_name_attr(idx, StringAttribute::new(unsafe { self.context().to_ref() }, name))
+        let context_ref = self.context();
+        let context = unsafe { context_ref.to_ref() };
+        self.set_res_name_attr(idx, StringAttribute::new(context, name))
     }
 
     /// Returns the fully qualified name of the function.
@@ -667,7 +683,8 @@ pub fn def_with_signature_attrs<'c>(
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
     res_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
 ) -> Result<FuncDefOp<'c>, Error> {
-    let context = unsafe { location.context().to_ref() };
+    let context_ref = location.context();
+    let context = unsafe { context_ref.to_ref() };
     let op = def(location, name, r#type, attrs, arg_attrs)?;
     if let Some(arg_attrs) = arg_attrs {
         let attr = ArrayAttribute::new(
