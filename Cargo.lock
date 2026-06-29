@@ -412,7 +412,7 @@ checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
 
 [[package]]
 name = "llzk"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "llzk-macro",
  "llzk-sys",
@@ -443,7 +443,7 @@ dependencies = [
 
 [[package]]
 name = "llzk-sys"
-version = "20.0.0"
+version = "30.0.0"
 dependencies = [
  "anyhow",
  "llzk-sys-build-support",
