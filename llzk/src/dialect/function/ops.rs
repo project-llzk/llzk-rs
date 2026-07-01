@@ -85,7 +85,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         self.function_type().map(|ty| ty.result_count())
     }
 
-    /// Returns the raw argument attribute array.
+    /// Returns the argument attribute array.
     fn arg_attrs(&self) -> Result<ArrayAttribute<'c>, Error> {
         let raw = unsafe { llzkFunction_FuncDefOpGetArgAttrs(self.to_raw()) };
         let attr = unsafe { Attribute::from_option_raw(raw) }
@@ -93,12 +93,12 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         ArrayAttribute::try_from(attr)
     }
 
-    /// Sets the raw argument attribute array.
+    /// Sets the argument attribute array.
     fn set_arg_attrs(&self, attr: ArrayAttribute<'c>) {
         unsafe { llzkFunction_FuncDefOpSetArgAttrs(self.to_raw(), attr.to_raw()) }
     }
 
-    /// Returns the raw result attribute array.
+    /// Returns the result attribute array.
     fn res_attrs(&self) -> Result<ArrayAttribute<'c>, Error> {
         let raw = unsafe { llzkFunction_FuncDefOpGetResAttrs(self.to_raw()) };
         let attr = unsafe { Attribute::from_option_raw(raw) }
@@ -106,7 +106,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         ArrayAttribute::try_from(attr)
     }
 
-    /// Sets the raw result attribute array.
+    /// Sets the result attribute array.
     fn set_res_attrs(&self, attr: ArrayAttribute<'c>) {
         unsafe { llzkFunction_FuncDefOpSetResAttrs(self.to_raw(), attr.to_raw()) }
     }
@@ -230,12 +230,12 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_FuncDefOpHasArgPublicAttr(self.to_raw(), idx) }
     }
 
-    /// Returns true if the `idx`-th argument has a `function.arg_name` attribute.
-    fn has_arg_name(&self, idx: u32) -> bool {
-        matches!(self.arg_name_attr(idx as usize), Ok(Some(_)))
+    /// Returns true if the `idx`-th argument has a `FUNCTION_ARG_NAME_ATTR_NAME` attribute.
+    fn has_arg_name(&self, idx: usize) -> bool {
+        matches!(self.arg_name_attr(idx), Ok(Some(_)))
     }
 
-    /// Returns the `function.arg_name` attribute for the `idx`-th argument.
+    /// Returns the `FUNCTION_ARG_NAME_ATTR_NAME` attribute for the `idx`-th argument.
     fn arg_name_attr(&self, idx: usize) -> Result<Option<StringAttribute<'c>>, Error> {
         self.arg_named_attr(idx, FUNCTION_ARG_NAME_ATTR_NAME.as_ref())?
             .map(StringAttribute::try_from)
@@ -249,7 +249,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .map(|attr| attr.map(|attr| attr.value().to_string()))
     }
 
-    /// Sets the `function.arg_name` attribute for the `idx`-th argument.
+    /// Sets the `FUNCTION_ARG_NAME_ATTR_NAME` attribute for the `idx`-th argument.
     fn set_arg_name_attr(&self, idx: usize, attr: StringAttribute<'c>) -> Result<(), Error> {
         let context_ref = self.context();
         let context = unsafe { context_ref.to_ref() };
@@ -260,19 +260,19 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         )
     }
 
-    /// Sets the `function.arg_name` attribute for the `idx`-th argument from a string.
+    /// Sets the `FUNCTION_ARG_NAME_ATTR_NAME` attribute for the `idx`-th argument from a string.
     fn set_arg_name(&self, idx: usize, name: &str) -> Result<(), Error> {
         let context_ref = self.context();
         let context = unsafe { context_ref.to_ref() };
         self.set_arg_name_attr(idx, StringAttribute::new(context, name))
     }
 
-    /// Returns true if the `idx`-th result has a `function.res_name` attribute.
-    fn has_res_name(&self, idx: u32) -> bool {
-        matches!(self.res_name_attr(idx as usize), Ok(Some(_)))
+    /// Returns true if the `idx`-th result has a `FUNCTION_RES_NAME_ATTR_NAME` attribute.
+    fn has_res_name(&self, idx: usize) -> bool {
+        matches!(self.res_name_attr(idx), Ok(Some(_)))
     }
 
-    /// Returns the `function.res_name` attribute for the `idx`-th result.
+    /// Returns the `FUNCTION_RES_NAME_ATTR_NAME` attribute for the `idx`-th result.
     fn res_name_attr(&self, idx: usize) -> Result<Option<StringAttribute<'c>>, Error> {
         self.res_named_attr(idx, FUNCTION_RES_NAME_ATTR_NAME.as_ref())?
             .map(StringAttribute::try_from)
@@ -286,7 +286,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             .map(|attr| attr.map(|attr| attr.value().to_string()))
     }
 
-    /// Sets the `function.res_name` attribute for the `idx`-th result.
+    /// Sets the `FUNCTION_RES_NAME_ATTR_NAME` attribute for the `idx`-th result.
     fn set_res_name_attr(&self, idx: usize, attr: StringAttribute<'c>) -> Result<(), Error> {
         let context_ref = self.context();
         let context = unsafe { context_ref.to_ref() };
@@ -297,7 +297,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         )
     }
 
-    /// Sets the `function.res_name` attribute for the `idx`-th result from a string.
+    /// Sets the `FUNCTION_RES_NAME_ATTR_NAME` attribute for the `idx`-th result from a string.
     fn set_res_name(&self, idx: usize, name: &str) -> Result<(), Error> {
         let context_ref = self.context();
         let context = unsafe { context_ref.to_ref() };
