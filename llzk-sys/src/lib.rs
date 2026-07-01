@@ -90,5 +90,17 @@ c_str_constant!(
     LLZK_MAIN_ATTR_NAME
 );
 
+c_str_constant!(
+    /// Name of the attribute on function arguments that stores source-level argument names.
+    FUNCTION_ARG_NAME_ATTR_NAME,
+    LLZK_FUNCTION_ARG_NAME_ATTR_NAME
+);
+
+c_str_constant!(
+    /// Name of the attribute on function results that stores source-level result names.
+    FUNCTION_RES_NAME_ATTR_NAME,
+    LLZK_FUNCTION_RES_NAME_ATTR_NAME
+);
+
 #[cfg(test)]
 mod sanity_tests;
