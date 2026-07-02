@@ -1,3 +1,6 @@
+#![allow(unused_crate_dependencies)]
+//! Integration tests for the function dialect.
+
 use llzk::{
     attributes::array::ArrayAttribute,
     builder::{OpBuilder, OpBuilderLike},
@@ -5,7 +8,7 @@ use llzk::{
     prelude::*,
 };
 use llzk_sys::{FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME};
-use melior::ir::{Identifier, Location, r#type::FunctionType};
+use melior::ir::Identifier;
 
 mod common;
 
@@ -584,7 +587,7 @@ fn func_def_op_arg_and_res_attrs_round_trip() {
 
     let arg_attrs = ArrayAttribute::new(
         &context,
-        &[Attribute::from(unsafe {
+        &[unsafe {
             melior::ir::Attribute::from_raw(mlir_sys::mlirDictionaryAttrGet(
                 context.to_raw(),
                 1,
@@ -596,11 +599,11 @@ fn func_def_op_arg_and_res_attrs_round_trip() {
                 }]
                 .as_ptr(),
             ))
-        })],
+        }],
     );
     let res_attrs = ArrayAttribute::new(
         &context,
-        &[Attribute::from(unsafe {
+        &[unsafe {
             melior::ir::Attribute::from_raw(mlir_sys::mlirDictionaryAttrGet(
                 context.to_raw(),
                 1,
@@ -612,7 +615,7 @@ fn func_def_op_arg_and_res_attrs_round_trip() {
                 }]
                 .as_ptr(),
             ))
-        })],
+        }],
     );
 
     op.set_arg_attrs(arg_attrs);

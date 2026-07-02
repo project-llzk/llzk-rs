@@ -3,9 +3,8 @@ use mlir_sys::{
     MlirContext, MlirModule, MlirOperation, mlirBlockGetFirstOperation, mlirIdentifierGet,
     mlirIndexTypeGet, mlirIntegerAttrGet, mlirLocationUnknownGet, mlirModuleCreateParse,
     mlirModuleDestroy, mlirNamedAttributeGet, mlirOperationCreate, mlirOperationDestroy,
-    mlirOperationGetNextInBlock,
-    mlirOperationStateAddAttributes, mlirOperationStateAddResults, mlirOperationStateGet,
-    mlirStringRefCreateFromCString,
+    mlirOperationGetNextInBlock, mlirOperationStateAddAttributes, mlirOperationStateAddResults,
+    mlirOperationStateGet, mlirStringRefCreateFromCString,
 };
 use rstest::fixture;
 use std::ffi::CString;

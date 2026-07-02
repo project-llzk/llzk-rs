@@ -1,7 +1,5 @@
 #![doc = include_str!("../README.md")]
-#![deny(rustdoc::broken_intra_doc_links)]
-#![deny(missing_debug_implementations)]
-#![deny(missing_docs)]
+#![cfg_attr(test, allow(unused_crate_dependencies))]
 
 use llzk_sys::llzkRegisterAllDialects;
 use melior::dialect::DialectRegistry;

@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 //! Heavily commented example of creating IR representing a circuit for a division gadget.
 //!
 //! The gadget performs the division and constrains the dividend to be equal to the quotient times

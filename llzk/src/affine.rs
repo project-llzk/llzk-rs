@@ -33,10 +33,7 @@ impl<'ctx> AffineMap<'ctx> {
         symbols: usize,
         exprs: &[AffineExpr<'ctx>],
     ) -> Self {
-        let mut exprs = exprs
-            .iter()
-            .map(|expr| unsafe { expr.to_raw() })
-            .collect::<Vec<_>>();
+        let mut exprs: Vec<_> = exprs.iter().map(AffineExpr::to_raw).collect();
         Self {
             raw: unsafe {
                 mlirAffineMapGet(
@@ -52,7 +49,7 @@ impl<'ctx> AffineMap<'ctx> {
     }
 
     /// Returns the raw representation of the affine map.
-    pub unsafe fn to_raw(&self) -> MlirAffineMap {
+    pub fn to_raw(&self) -> MlirAffineMap {
         self.raw
     }
 }
@@ -102,7 +99,7 @@ impl<'ctx> AffineExpr<'ctx> {
     }
 
     /// Returns the raw representation of the affine expression.
-    pub unsafe fn to_raw(&self) -> MlirAffineExpr {
+    pub fn to_raw(&self) -> MlirAffineExpr {
         self.raw
     }
 

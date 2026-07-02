@@ -1,3 +1,6 @@
+#![allow(unused_crate_dependencies)]
+//! Integration tests for symbol reference utilities.
+
 use llzk::prelude::*;
 
 mod common;

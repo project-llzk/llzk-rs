@@ -201,7 +201,6 @@ impl<'ctx> From<AffineMapAttribute<'ctx>> for Attribute<'ctx> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use melior::Context;
 
     #[test]
     fn parse_affine_map_attribute() {

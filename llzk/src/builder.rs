@@ -355,7 +355,7 @@ pub trait OpBuilderListener {
     /// * If the operation was unlinked before it was inserted, then `previous`
     ///   is empty.
     ///
-    /// Note: Creating an (unlinked) op does not trigger this notification.   
+    /// Note: Creating an (unlinked) op does not trigger this notification.
     fn notify_operation_inserted<'ctx, 'blk>(
         &mut self,
         op: OperationRef<'ctx, 'blk>,
@@ -483,12 +483,8 @@ mod tests {
     use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
     use melior::{
-        Context,
         dialect::arith,
-        ir::{
-            BlockLike, Location, Module, Type, attribute::IntegerAttribute,
-            operation::OperationLike,
-        },
+        ir::{Module, Type, attribute::IntegerAttribute},
     };
     use rstest::rstest;
 
