@@ -22,7 +22,7 @@ pub mod module {
         os::raw::c_void,
     };
 
-    use llzk_sys::LLZK_LANG_ATTR_NAME;
+    use llzk_sys::{LLZK_FIELD_ATTR_NAME, LLZK_LANG_ATTR_NAME};
     use melior::ir::{
         Location, Module,
         attribute::{Attribute, StringAttribute},
@@ -91,9 +91,9 @@ pub mod module {
                 let op = mlirModuleGetOperation(self.to_raw());
                 OperationRefMut::from_raw(op)
             };
-            // TODO: The LLZK_FIELD_ATTR_NAME is declared in the CAPI but not defined, causing
-            // linking errors.
-            let attr_name = "llzk.fields";
+            let attr_name = unsafe { CStr::from_ptr(LLZK_FIELD_ATTR_NAME) }
+                .to_str()
+                .unwrap();
             let elts = if op.has_attribute(attr_name) {
                 let array = ArrayAttribute::try_from(op.attribute(attr_name).unwrap()).unwrap();
                 array
