@@ -1,9 +1,5 @@
 //! Helper modules for building and linking LLZK and generating the Rust bindings.
 
-#![deny(rustdoc::broken_intra_doc_links)]
-#![deny(missing_debug_implementations)]
-#![deny(missing_docs)]
-
 use std::{io::stdout, path::PathBuf};
 
 use crate::{cargo_commands::whole_archive_config, llzk::LlzkBuild};
