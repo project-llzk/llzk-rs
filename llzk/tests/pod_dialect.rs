@@ -1,3 +1,5 @@
+//! Integration tests for the pod dialect.
+
 use llzk::builder::OpBuilder;
 use llzk::map_operands::MapOperandsBuilder;
 use llzk::prelude::melior_dialects::arith;

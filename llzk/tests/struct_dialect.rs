@@ -1,3 +1,5 @@
+//! Integration tests for the struct dialect.
+
 use llzk::{builder::OpBuilder, prelude::*};
 
 mod common;

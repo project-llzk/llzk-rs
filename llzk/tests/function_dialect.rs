@@ -1,3 +1,5 @@
+//! Integration tests for the function dialect.
+
 use llzk::{
     attributes::array::ArrayAttribute,
     builder::{OpBuilder, OpBuilderLike},

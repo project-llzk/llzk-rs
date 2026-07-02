@@ -1,3 +1,5 @@
+//! Integration tests for the poly dialect.
+
 use llzk::{
     builder::{OpBuilder, OpBuilderLike as _},
     dialect::poly::{

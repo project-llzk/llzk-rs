@@ -1,3 +1,5 @@
+//! Integration tests for the bool dialect.
+
 use llzk::prelude::*;
 use melior::dialect::arith;
 

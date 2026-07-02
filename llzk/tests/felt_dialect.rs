@@ -1,3 +1,5 @@
+//! Integration tests for the felt dialect.
+
 use llzk::prelude::*;
 
 mod common;

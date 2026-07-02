@@ -1,3 +1,5 @@
+//! Integration tests for the llzk dialect.
+
 use llzk::dialect::llzk::*;
 use llzk::prelude::*;
 

@@ -1,3 +1,5 @@
+//! Integration tests for type utilities.
+
 use llzk::{prelude::*, typing};
 
 mod common;

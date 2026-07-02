@@ -1,3 +1,5 @@
+//! Integration tests for symbol table behavior.
+
 use llzk::dialect;
 use llzk::dialect::module::llzk_module;
 use llzk::prelude::{BlockLike, FuncDefOp, FuncDefOpLike, FuncDefOpRef, FunctionType, LlzkContext};

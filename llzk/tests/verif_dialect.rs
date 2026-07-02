@@ -1,3 +1,5 @@
+//! Integration tests for the verif dialect.
+
 use llzk::{
     attributes::NamedAttribute,
     builder::{OpBuilder, OpBuilderLike},

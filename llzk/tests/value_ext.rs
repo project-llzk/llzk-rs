@@ -1,3 +1,5 @@
+//! Integration tests for value extension helpers.
+
 use llzk::{
     attributes::array::AffineMapAttribute,
     prelude::*,

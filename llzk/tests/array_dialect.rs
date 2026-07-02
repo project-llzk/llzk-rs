@@ -1,3 +1,5 @@
+//! Integration tests for the array dialect.
+
 use llzk::{
     builder::OpBuilder,
     dialect::array::ArrayCtor,

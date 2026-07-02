@@ -1,3 +1,5 @@
+//! Integration tests for the cast dialect.
+
 use llzk::dialect::cast::*;
 use llzk::prelude::melior_dialects::arith;
 use llzk::prelude::*;
