@@ -22,13 +22,15 @@ pub mod module {
         os::raw::c_void,
     };
 
-    use llzk_sys::LLZK_LANG_ATTR_NAME;
+    use llzk_sys::{LLZK_FIELD_ATTR_NAME, LLZK_LANG_ATTR_NAME};
     use melior::ir::{
         Location, Module,
         attribute::{Attribute, StringAttribute},
-        operation::OperationMutLike as _,
+        operation::{OperationLike, OperationMutLike as _, OperationRefMut},
     };
     use mlir_sys::{MlirModule, MlirStringRef, mlirModuleGetOperation, mlirOperationWriteBytecode};
+
+    use crate::{attributes::array::ArrayAttribute, prelude::FieldSpecAttribute};
 
     /// Creates a new `builtin.module` operation preconfigured to meet LLZK's specifications.
     pub fn llzk_module<'c>(location: Location<'c>, lang: Option<&str>) -> Module<'c> {
@@ -47,7 +49,7 @@ pub mod module {
     }
 
     /// Extension methods for [`Module`].
-    pub trait ModuleExt {
+    pub trait ModuleExt<'c> {
         /// Return the raw representation of the module.
         fn to_raw(&self) -> MlirModule;
 
@@ -77,9 +79,39 @@ pub mod module {
 
             wrap.1
         }
+
+        /// Adds the spec attribute to the module, creating the `llzk.fields` attribute if
+        /// necessary.
+        ///
+        /// # Panics
+        ///
+        /// If the existing `llzk.fields` is not an array attribute.
+        fn add_field_spec(&mut self, spec: FieldSpecAttribute<'c>) {
+            let mut op = unsafe {
+                let op = mlirModuleGetOperation(self.to_raw());
+                OperationRefMut::from_raw(op)
+            };
+            let attr_name = unsafe { CStr::from_ptr(LLZK_FIELD_ATTR_NAME) }
+                .to_str()
+                .unwrap();
+            let elts = if op.has_attribute(attr_name) {
+                let array = ArrayAttribute::try_from(op.attribute(attr_name).unwrap()).unwrap();
+                array
+                    .into_iter()
+                    .chain(std::iter::once(spec.into()))
+                    .collect::<Vec<_>>()
+            } else {
+                vec![spec.into()]
+            };
+            let context = op.context();
+            op.set_attribute(
+                attr_name,
+                ArrayAttribute::new(unsafe { context.to_ref() }, &elts).into(),
+            );
+        }
     }
 
-    impl ModuleExt for Module<'_> {
+    impl<'c> ModuleExt<'c> for Module<'c> {
         fn to_raw(&self) -> MlirModule {
             self.to_raw()
         }

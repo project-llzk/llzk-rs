@@ -1,13 +1,15 @@
 use llzk_sys::{
-    llzkAttributeIsA_Felt_FeltConstAttr, llzkFelt_FeltConstAttrGet,
-    llzkFelt_FeltConstAttrGetFromParts, llzkFelt_FeltConstAttrGetFromPartsUnspecified,
-    llzkFelt_FeltConstAttrGetFromString, llzkFelt_FeltConstAttrGetFromStringUnspecified,
-    llzkFelt_FeltConstAttrGetType, llzkFelt_FeltConstAttrGetUnspecified,
-    llzkFelt_FeltConstAttrGetWithBits, llzkFelt_FeltConstAttrGetWithBitsUnspecified,
+    llzkAttributeIsA_Felt_FeltConstAttr, llzkAttributeIsA_Felt_FieldSpecAttr,
+    llzkFelt_FeltConstAttrGet, llzkFelt_FeltConstAttrGetFromParts,
+    llzkFelt_FeltConstAttrGetFromPartsUnspecified, llzkFelt_FeltConstAttrGetFromString,
+    llzkFelt_FeltConstAttrGetFromStringUnspecified, llzkFelt_FeltConstAttrGetType,
+    llzkFelt_FeltConstAttrGetUnspecified, llzkFelt_FeltConstAttrGetWithBits,
+    llzkFelt_FeltConstAttrGetWithBitsUnspecified, llzkFelt_FieldSpecAttrGetFromParts,
+    llzkFelt_FieldSpecAttrGetFromString,
 };
 use melior::{
     Context, StringRef,
-    ir::{Attribute, AttributeLike, TypeLike},
+    ir::{Attribute, AttributeLike, Identifier, TypeLike},
 };
 use mlir_sys::MlirAttribute;
 
@@ -195,6 +197,120 @@ impl<'c> std::fmt::Display for FeltConstAttribute<'c> {
 
 impl<'c> From<FeltConstAttribute<'c>> for Attribute<'c> {
     fn from(attr: FeltConstAttribute<'c>) -> Attribute<'c> {
+        attr.inner
+    }
+}
+
+/// A specification of a prime field for use by felt types.
+///
+/// These specifications are provided in the `llzk.fields` attribute on the root
+/// module as either a single element or a flat array, for example:
+///
+/// ```text
+///    module attributes {llzk.lang, llzk.fields = field<foo, 7> { ... }
+///    module attributes {llzk.lang, llzk.fields = [field<>]} { ... }
+/// ```
+///
+/// Specifications should not be provided for built-in fields, which include:
+///  - `babybear`
+///  - `bn128/bn254`
+///  - `goldilocks`
+///  - `grumpkin`
+///  - `koalabear`
+///  - `mersenne31`
+pub struct FieldSpecAttribute<'c> {
+    inner: Attribute<'c>,
+}
+impl<'c> FieldSpecAttribute<'c> {
+    /// # Safety
+    /// The MLIR attribute must contain a valid pointer of type `FieldSpecAttr`.
+    pub unsafe fn from_raw(attr: MlirAttribute) -> Self {
+        unsafe {
+            Self {
+                inner: Attribute::from_raw(attr),
+            }
+        }
+    }
+
+    /// Creates a `llzk::felt::FieldSpecAttr` from a base-10 representation of the prime.
+    pub fn new(ctx: &'c Context, name: &str, bitlen: u32, prime: &str) -> Self {
+        unsafe {
+            Self::from_raw(llzkFelt_FieldSpecAttrGetFromString(
+                ctx.to_raw(),
+                Identifier::new(ctx, name).to_raw(),
+                bitlen,
+                StringRef::new(prime).to_raw(),
+            ))
+        }
+    }
+
+    /// Creates a `llzk::felt::FieldSpecAttr` from an array of big-integer parts in LSB order representing
+    /// the prime.
+    ///
+    /// # Panics
+    ///
+    /// If the parts slice is empty.
+    pub fn from_parts(ctx: &'c Context, name: &str, bitlen: u32, parts: &[u64]) -> Self {
+        assert!(!parts.is_empty());
+        unsafe {
+            Self::from_raw(llzkFelt_FieldSpecAttrGetFromParts(
+                ctx.to_raw(),
+                Identifier::new(ctx, name).to_raw(),
+                bitlen,
+                parts.as_ptr(),
+                isize::try_from(parts.len()).expect("part count too large"),
+            ))
+        }
+    }
+
+    /// Creates a `llzk::felt::FieldSpecAttr` from a [`num_bigint::BigUint`].
+    ///
+    /// # Panics
+    ///
+    /// If the number of bits required to represent the BigUint exceeds `u32::MAX - 1`.
+    #[cfg(feature = "bigint")]
+    pub fn from_biguint(ctx: &'c Context, name: &str, value: &num_bigint::BigUint) -> Self {
+        // Increase by one to ensure the value is kept unsigned.
+        let bitlen = value.bits() + 1;
+        let parts = value.to_u64_digits();
+        Self::from_parts(ctx, name, bitlen.try_into().unwrap(), &parts)
+    }
+}
+
+impl<'c> AttributeLike<'c> for FieldSpecAttribute<'c> {
+    fn to_raw(&self) -> MlirAttribute {
+        self.inner.to_raw()
+    }
+}
+
+impl<'c> TryFrom<Attribute<'c>> for FieldSpecAttribute<'c> {
+    type Error = melior::Error;
+
+    fn try_from(t: Attribute<'c>) -> Result<Self, Self::Error> {
+        if unsafe { llzkAttributeIsA_Felt_FieldSpecAttr(t.to_raw()) } {
+            Ok(unsafe { Self::from_raw(t.to_raw()) })
+        } else {
+            Err(Self::Error::AttributeExpected("llzk felt", t.to_string()))
+        }
+    }
+}
+
+impl<'c> std::fmt::Debug for FieldSpecAttribute<'c> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "FieldSpecAttribute(")?;
+        std::fmt::Display::fmt(&self.inner, f)?;
+        write!(f, ")")
+    }
+}
+
+impl<'c> std::fmt::Display for FieldSpecAttribute<'c> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.inner, formatter)
+    }
+}
+
+impl<'c> From<FieldSpecAttribute<'c>> for Attribute<'c> {
+    fn from(attr: FieldSpecAttribute<'c>) -> Attribute<'c> {
         attr.inner
     }
 }
