@@ -2,6 +2,7 @@ use log::LevelFilter;
 use simplelog::{Config, TestLogger};
 
 #[macro_export]
+/// Verifies an operation and compares the emitted module against an expected MLIR file.
 macro_rules! assert_test {
     ($op:expr, $module:expr, @file $expected:literal ) => {{
         verify_operation_with_diags(&$op).unwrap();

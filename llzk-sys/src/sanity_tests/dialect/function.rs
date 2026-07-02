@@ -18,16 +18,15 @@ use crate::{
     llzkFunction_FuncDefOpNameIsConstrain, llzkFunction_FuncDefOpNameIsProduct,
     llzkFunction_FuncDefOpSetAllowConstraintAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
     llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
-    llzkStruct_StructDefOpGetBody,
-    mlirGetDialectHandle__llzk__function__, mlirOpBuilderCreate, mlirOpBuilderDestroy,
+    llzkStruct_StructDefOpGetBody, mlirGetDialectHandle__llzk__function__, mlirOpBuilderCreate,
+    mlirOpBuilderDestroy,
     sanity_tests::{TestContext, context, str_ref},
 };
 use mlir_sys::{
-    MlirAttribute, MlirContext, MlirNamedAttribute, MlirOperation, MlirType,
-    mlirDictionaryAttrGet, mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet, mlirIndexTypeGet,
-    mlirLocationUnknownGet, mlirModuleGetBody, mlirOperationDestroy, mlirOperationGetContext,
-    mlirOperationVerify, mlirRegionGetFirstBlock,
-    mlirStringRefCreateFromCString, mlirTypeEqual,
+    MlirAttribute, MlirContext, MlirNamedAttribute, MlirOperation, MlirType, mlirDictionaryAttrGet,
+    mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet, mlirIndexTypeGet, mlirLocationUnknownGet,
+    mlirModuleGetBody, mlirOperationDestroy, mlirOperationGetContext, mlirOperationVerify,
+    mlirRegionGetFirstBlock, mlirStringRefCreateFromCString, mlirTypeEqual,
 };
 use rstest::{fixture, rstest};
 use std::{ffi::CString, ptr::null};

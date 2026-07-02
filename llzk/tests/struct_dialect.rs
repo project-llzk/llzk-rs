@@ -1,5 +1,7 @@
+#![allow(unused_crate_dependencies)]
+//! Integration tests for the struct dialect.
+
 use llzk::{builder::OpBuilder, prelude::*};
-use melior::ir::Location;
 
 mod common;
 

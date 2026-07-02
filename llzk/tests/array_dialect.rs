@@ -1,3 +1,6 @@
+#![allow(unused_crate_dependencies)]
+//! Integration tests for the array dialect.
+
 use llzk::{
     builder::OpBuilder,
     dialect::array::ArrayCtor,
@@ -5,7 +8,6 @@ use llzk::{
     prelude::*,
     value_ext::{OwningValueRange, ValueRange},
 };
-use melior::ir::{Location, Type, r#type::FunctionType};
 
 mod common;
 

@@ -418,7 +418,6 @@ dependencies = [
  "llzk-sys",
  "log",
  "melior",
- "melior-macro",
  "mlir-sys",
  "mlir-testutils",
  "num-bigint",

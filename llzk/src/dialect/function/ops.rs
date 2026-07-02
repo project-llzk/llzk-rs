@@ -1,8 +1,7 @@
 use crate::{
     attributes::{
-        NamedAttribute, array::ArrayAttribute, dictionary_attr_get_named,
-        empty_dictionary_attr, named_attributes_to_dictionary_attr,
-        set_named_attr_in_dict_array, tuple_to_raw_named_attr,
+        NamedAttribute, array::ArrayAttribute, dictionary_attr_get_named, empty_dictionary_attr,
+        named_attributes_to_dictionary_attr, set_named_attr_in_dict_array, tuple_to_raw_named_attr,
     },
     builder::OpBuilderLike,
     dialect::r#struct::StructType,
@@ -13,20 +12,20 @@ use crate::{
 };
 
 use llzk_sys::{
-    llzkFunction_CallOpBuild, llzkFunction_CallOpBuildWithMapOperands,
-    llzkFunction_CallOpBuildWithTemplateParams, llzkFunction_CallOpCalleeIsCompute,
-    llzkFunction_CallOpCalleeIsConstrain, llzkFunction_CallOpCalleeIsProduct,
-    llzkFunction_CallOpCalleeIsStructCompute, llzkFunction_CallOpCalleeIsStructConstrain,
-    llzkFunction_CallOpCalleeIsStructProduct, llzkFunction_CallOpGetArgOperandsAt,
-    llzkFunction_CallOpGetArgOperandsCount, llzkFunction_CallOpGetCallee,
-    llzkFunction_CallOpGetMapOperandsAt, llzkFunction_CallOpGetMapOperandsCount,
-    llzkFunction_CallOpGetSelfValueFromCompute, llzkFunction_CallOpGetSelfValueFromConstrain,
-    llzkFunction_CallOpGetTemplateParams, llzkFunction_CallOpSetArgOperands,
-    llzkFunction_CallOpSetCallee, llzkFunction_CallOpSetMapOperands,
-    llzkFunction_CallOpSetTemplateParams, llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs,
-    llzkFunction_FuncDefOpGetArgAttrs, llzkFunction_FuncDefOpGetBody,
-    llzkFunction_FuncDefOpGetFullyQualifiedName, llzkFunction_FuncDefOpGetFunctionType,
-    llzkFunction_FuncDefOpGetResAttrs,
+    FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME, llzkFunction_CallOpBuild,
+    llzkFunction_CallOpBuildWithMapOperands, llzkFunction_CallOpBuildWithTemplateParams,
+    llzkFunction_CallOpCalleeIsCompute, llzkFunction_CallOpCalleeIsConstrain,
+    llzkFunction_CallOpCalleeIsProduct, llzkFunction_CallOpCalleeIsStructCompute,
+    llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpCalleeIsStructProduct,
+    llzkFunction_CallOpGetArgOperandsAt, llzkFunction_CallOpGetArgOperandsCount,
+    llzkFunction_CallOpGetCallee, llzkFunction_CallOpGetMapOperandsAt,
+    llzkFunction_CallOpGetMapOperandsCount, llzkFunction_CallOpGetSelfValueFromCompute,
+    llzkFunction_CallOpGetSelfValueFromConstrain, llzkFunction_CallOpGetTemplateParams,
+    llzkFunction_CallOpSetArgOperands, llzkFunction_CallOpSetCallee,
+    llzkFunction_CallOpSetMapOperands, llzkFunction_CallOpSetTemplateParams,
+    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetArgAttrs,
+    llzkFunction_FuncDefOpGetBody, llzkFunction_FuncDefOpGetFullyQualifiedName,
+    llzkFunction_FuncDefOpGetFunctionType, llzkFunction_FuncDefOpGetResAttrs,
     llzkFunction_FuncDefOpGetSelfValueFromCompute, llzkFunction_FuncDefOpGetSelfValueFromConstrain,
     llzkFunction_FuncDefOpGetSingleResultTypeOfCompute, llzkFunction_FuncDefOpGetSymName,
     llzkFunction_FuncDefOpHasAllowConstraintAttr,
@@ -40,18 +39,16 @@ use llzk_sys::{
     llzkFunction_FuncDefOpSetArgAttrs, llzkFunction_FuncDefOpSetFunctionType,
     llzkFunction_FuncDefOpSetResAttrs, llzkFunction_FuncDefOpSetSymName,
     llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
-    FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME,
 };
 use melior::{
     Context, StringRef,
     ir::{
-        Attribute, AttributeLike, BlockLike as _, Location, Operation, RegionLike as _, RegionRef,
-        Type, TypeLike, Value,
+        Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, RegionLike as _,
+        RegionRef, Type, TypeLike, Value,
         attribute::{StringAttribute, TypeAttribute},
         block::BlockArgument,
         operation::{OperationBuilder, OperationLike, OperationMutLike},
         r#type::FunctionType,
-        Identifier,
     },
 };
 use mlir_sys::MlirAttribute;
@@ -123,7 +120,9 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             Err(Error::AttributeNotFound(_)) => return Ok(None),
             Err(err) => return Err(err),
         };
-        let dict = attrs.get(idx).expect("argument attrs length should match arity");
+        let dict = attrs
+            .get(idx)
+            .expect("argument attrs length should match arity");
         Ok(dictionary_attr_get_named(dict, name))
     }
 
@@ -165,7 +164,9 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             Err(Error::AttributeNotFound(_)) => return Ok(None),
             Err(err) => return Err(err),
         };
-        let dict = attrs.get(idx).expect("result attrs length should match arity");
+        let dict = attrs
+            .get(idx)
+            .expect("result attrs length should match arity");
         Ok(dictionary_attr_get_named(dict, name))
     }
 

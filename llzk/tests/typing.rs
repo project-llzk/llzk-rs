@@ -1,5 +1,7 @@
-use llzk::{context::LlzkContext, prelude::*, typing};
-use melior::{StringRef, ir::r#type::Type};
+#![allow(unused_crate_dependencies)]
+//! Integration tests for type utilities.
+
+use llzk::{prelude::*, typing};
 
 mod common;
 

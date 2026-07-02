@@ -1,5 +1,7 @@
+#![allow(unused_crate_dependencies)]
+//! Integration tests for the felt dialect.
+
 use llzk::prelude::*;
-use melior::ir::{Location, Type, r#type::FunctionType};
 
 mod common;
 
