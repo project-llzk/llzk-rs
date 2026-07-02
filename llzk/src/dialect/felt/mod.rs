@@ -4,7 +4,7 @@ mod attrs;
 mod ops;
 mod r#type;
 
-pub use attrs::FeltConstAttribute;
+pub use attrs::{FeltConstAttribute, FieldSpecAttribute};
 use llzk_sys::mlirGetDialectHandle__llzk__felt__;
 use melior::dialect::DialectHandle;
 pub use ops::{
@@ -25,6 +25,6 @@ pub fn handle() -> DialectHandle {
 
 /// Exports the common types of the felt dialect.
 pub mod prelude {
-    pub use super::attrs::FeltConstAttribute;
+    pub use super::attrs::{FeltConstAttribute, FieldSpecAttribute};
     pub use super::r#type::{FeltType, is_felt_type};
 }
