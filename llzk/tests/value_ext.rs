@@ -3,7 +3,6 @@ use llzk::{
     prelude::*,
     value_ext::{has_uses, replace_all_uses_in_block_with, users_of},
 };
-use melior::ir::{Location, Type};
 
 mod common;
 

@@ -1,12 +1,5 @@
 use llzk::prelude::*;
-use melior::{
-    dialect::arith,
-    ir::{
-        Location, Type,
-        attribute::BoolAttribute,
-        r#type::{FunctionType, IntegerType},
-    },
-};
+use melior::dialect::arith;
 
 mod common;
 

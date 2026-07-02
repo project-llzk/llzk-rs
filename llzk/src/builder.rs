@@ -483,12 +483,8 @@ mod tests {
     use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
     use melior::{
-        Context,
         dialect::arith,
-        ir::{
-            BlockLike, Location, Module, Type, attribute::IntegerAttribute,
-            operation::OperationLike,
-        },
+        ir::{Module, Type, attribute::IntegerAttribute},
     };
     use rstest::rstest;
 

@@ -5,7 +5,7 @@ use llzk::{
     prelude::*,
 };
 use llzk_sys::{FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME};
-use melior::ir::{Identifier, Location, r#type::FunctionType};
+use melior::ir::Identifier;
 
 mod common;
 

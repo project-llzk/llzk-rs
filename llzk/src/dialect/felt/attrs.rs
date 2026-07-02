@@ -322,10 +322,6 @@ mod tests {
     use super::*;
     use crate::prelude::*;
     use log::LevelFilter;
-    use melior::ir::{
-        attribute::{IntegerAttribute, StringAttribute},
-        r#type::IntegerType,
-    };
     use quickcheck::{Arbitrary, Gen};
     use quickcheck_macros::quickcheck;
     use simplelog::{Config, TestLogger};

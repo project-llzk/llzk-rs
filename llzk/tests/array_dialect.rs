@@ -5,7 +5,6 @@ use llzk::{
     prelude::*,
     value_ext::{OwningValueRange, ValueRange},
 };
-use melior::ir::{Location, Type, r#type::FunctionType};
 
 mod common;
 

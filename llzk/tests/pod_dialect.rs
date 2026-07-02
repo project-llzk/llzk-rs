@@ -1,5 +1,4 @@
 use llzk::builder::OpBuilder;
-use llzk::dialect::pod::ops::RecordValue;
 use llzk::map_operands::MapOperandsBuilder;
 use llzk::prelude::melior_dialects::arith;
 use llzk::prelude::*;

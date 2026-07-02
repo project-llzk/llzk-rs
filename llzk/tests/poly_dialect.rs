@@ -1,14 +1,12 @@
 use llzk::{
     builder::{OpBuilder, OpBuilderLike as _},
     dialect::poly::{
-        TemplateExprOpLike, TemplateOpLike, TemplateParamOpLike, TemplateSymbolBindingOpLike,
-        TemplateSymbolBindingOpRef, applymap, expr, is_applymap_op, is_expr_op, is_param_op,
-        is_template_op, is_unifiable_cast_op, is_yield_op, param, template, unifiable_cast,
-        r#yield,
+        applymap, expr, is_applymap_op, is_expr_op, is_param_op, is_template_op,
+        is_unifiable_cast_op, is_yield_op, param, template, unifiable_cast, r#yield,
     },
     prelude::*,
 };
-use melior::{dialect::arith, ir::Location};
+use melior::dialect::arith;
 use rstest::rstest;
 
 mod common;
