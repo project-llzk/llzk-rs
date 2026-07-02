@@ -43,3 +43,6 @@ rstest = "0.25.0"
 [features]
 default = []
 pcl-backend = []
+
+[lints]
+workspace = true

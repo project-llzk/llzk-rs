@@ -1,5 +1,5 @@
 [workspace]
-members = [ 
+members = [
   "llzk",
   "llzk-sys",
   "llzk-sys/build-support",
@@ -12,3 +12,12 @@ melior-macro = "0.18.0"
 melior = "0.25"
 mlir-sys = "0.5.0"
 ff = "0.13"
+
+[workspace.lints.rust]
+missing_debug_implementations = "deny"
+
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "warn"
+
+[workspace.lints.clippy]
+cast_lossless = "deny"
