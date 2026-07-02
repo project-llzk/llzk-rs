@@ -42,7 +42,9 @@ pub(crate) fn empty_dictionary_attr(context: &Context) -> Attribute<'_> {
 }
 
 /// Converts a Rust named-attribute tuple to the raw C API representation.
-pub(crate) fn tuple_to_raw_named_attr((name, attr): &NamedAttribute) -> mlir_sys::MlirNamedAttribute {
+pub(crate) fn tuple_to_raw_named_attr(
+    (name, attr): &NamedAttribute,
+) -> mlir_sys::MlirNamedAttribute {
     unsafe { mlirNamedAttributeGet(name.to_raw(), attr.to_raw()) }
 }
 
@@ -79,9 +81,8 @@ pub(crate) fn dictionary_attr_get_named<'c>(
     dict: Attribute<'c>,
     name: &str,
 ) -> Option<Attribute<'c>> {
-    let raw = unsafe {
-        mlirDictionaryAttrGetElementByName(dict.to_raw(), StringRef::new(name).to_raw())
-    };
+    let raw =
+        unsafe { mlirDictionaryAttrGetElementByName(dict.to_raw(), StringRef::new(name).to_raw()) };
     unsafe { Attribute::from_option_raw(raw) }
 }
 
@@ -93,7 +94,10 @@ pub(crate) fn dictionary_attr_set_named<'c>(
     attr: Attribute<'c>,
 ) -> Attribute<'c> {
     let mut entries = dictionary_attr_entries(dict);
-    if let Some(existing) = entries.iter_mut().find(|(existing_name, _)| *existing_name == name) {
+    if let Some(existing) = entries
+        .iter_mut()
+        .find(|(existing_name, _)| *existing_name == name)
+    {
         existing.1 = attr;
     } else {
         entries.push((name, attr));

@@ -355,7 +355,7 @@ pub trait OpBuilderListener {
     /// * If the operation was unlinked before it was inserted, then `previous`
     ///   is empty.
     ///
-    /// Note: Creating an (unlinked) op does not trigger this notification.   
+    /// Note: Creating an (unlinked) op does not trigger this notification.
     fn notify_operation_inserted<'ctx, 'blk>(
         &mut self,
         op: OperationRef<'ctx, 'blk>,
