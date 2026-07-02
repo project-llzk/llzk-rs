@@ -28,5 +28,5 @@ pub fn quantifier_iter_type(r#type: Type) -> Result<Type, Error> {
             r#type.to_raw(),
         ))
     }
-    .ok_or_else(|| Error::GeneralError("expected valid quantifier sort type"))
+    .ok_or(Error::GeneralError("expected valid quantifier sort type"))
 }
