@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 //! Integration tests for type utilities.
 
 use llzk::{prelude::*, typing};

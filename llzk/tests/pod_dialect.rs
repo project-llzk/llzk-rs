@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 //! Integration tests for the pod dialect.
 
 use llzk::builder::OpBuilder;
