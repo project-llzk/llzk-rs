@@ -8,25 +8,29 @@ use crate::{
     llzkFunction_CallOpCalleeIsProduct, llzkFunction_CallOpCalleeIsStructCompute,
     llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpCalleeIsStructProduct,
     llzkFunction_CallOpGetSingleResultTypeOfCompute, llzkFunction_CallOpGetTypeSignature,
-    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetBody,
-    llzkFunction_FuncDefOpGetFullyQualifiedName,
-    llzkFunction_FuncDefOpGetSingleResultTypeOfCompute,
+    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetArgNameAttr,
+    llzkFunction_FuncDefOpGetBody, llzkFunction_FuncDefOpGetFullyQualifiedName,
+    llzkFunction_FuncDefOpGetResNameAttr, llzkFunction_FuncDefOpGetSingleResultTypeOfCompute,
     llzkFunction_FuncDefOpHasAllowConstraintAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
-    llzkFunction_FuncDefOpHasArgPublicAttr, llzkFunction_FuncDefOpIsInStruct,
+    llzkFunction_FuncDefOpHasArgName, llzkFunction_FuncDefOpHasArgPublicAttr,
+    llzkFunction_FuncDefOpHasResName, llzkFunction_FuncDefOpIsInStruct,
     llzkFunction_FuncDefOpIsStructCompute, llzkFunction_FuncDefOpIsStructConstrain,
     llzkFunction_FuncDefOpIsStructProduct, llzkFunction_FuncDefOpNameIsCompute,
     llzkFunction_FuncDefOpNameIsConstrain, llzkFunction_FuncDefOpNameIsProduct,
     llzkFunction_FuncDefOpSetAllowConstraintAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
+    llzkFunction_FuncDefOpSetArgName, llzkFunction_FuncDefOpSetArgNameAttr,
+    llzkFunction_FuncDefOpSetResName, llzkFunction_FuncDefOpSetResNameAttr,
     llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
     llzkStruct_StructDefOpGetBody, mlirGetDialectHandle__llzk__function__, mlirOpBuilderCreate,
     mlirOpBuilderDestroy,
     sanity_tests::{TestContext, context, str_ref},
 };
 use mlir_sys::{
-    MlirAttribute, MlirContext, MlirNamedAttribute, MlirOperation, MlirType, mlirDictionaryAttrGet,
-    mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet, mlirIndexTypeGet, mlirLocationUnknownGet,
-    mlirModuleGetBody, mlirOperationDestroy, mlirOperationGetContext, mlirOperationVerify,
-    mlirRegionGetFirstBlock, mlirStringRefCreateFromCString, mlirTypeEqual,
+    MlirAttribute, MlirContext, MlirNamedAttribute, MlirOperation, MlirType, mlirAttributeEqual,
+    mlirAttributeGetNull, mlirDictionaryAttrGet, mlirFlatSymbolRefAttrGet, mlirFunctionTypeGet,
+    mlirIndexTypeGet, mlirLocationUnknownGet, mlirModuleGetBody, mlirOperationDestroy,
+    mlirOperationGetContext, mlirOperationVerify, mlirRegionGetFirstBlock, mlirStringAttrGet,
+    mlirStringRefCreateFromCString, mlirTypeEqual,
 };
 use rstest::{fixture, rstest};
 use std::{ffi::CString, ptr::null};
@@ -265,6 +269,61 @@ fn test_llzk_func_def_op_get_single_result_type_of_compute(test_function: TestFu
         if llzkFunction_FuncDefOpIsStructCompute(test_function.op) {
             llzkFunction_FuncDefOpGetSingleResultTypeOfCompute(test_function.op);
         }
+    }
+}
+
+#[rstest]
+fn test_llzk_func_def_op_arg_name_round_trip(test_function: TestFuncDefOp) {
+    unsafe {
+        let ctx = mlirOperationGetContext(test_function.op);
+        let arg0_name = mlirStringAttrGet(ctx, str_ref("lhs"));
+
+        assert!(!llzkFunction_FuncDefOpHasArgName(test_function.op, 0));
+        assert!(mlirAttributeEqual(
+            llzkFunction_FuncDefOpGetArgNameAttr(test_function.op, 0),
+            mlirAttributeGetNull(),
+        ));
+
+        llzkFunction_FuncDefOpSetArgNameAttr(test_function.op, 0, arg0_name);
+        assert!(llzkFunction_FuncDefOpHasArgName(test_function.op, 0));
+        assert!(mlirAttributeEqual(
+            llzkFunction_FuncDefOpGetArgNameAttr(test_function.op, 0),
+            arg0_name,
+        ));
+
+        llzkFunction_FuncDefOpSetArgName(test_function.op, 1, str_ref("rhs"));
+        assert!(llzkFunction_FuncDefOpHasArgName(test_function.op, 1));
+        assert!(mlirAttributeEqual(
+            llzkFunction_FuncDefOpGetArgNameAttr(test_function.op, 1),
+            mlirStringAttrGet(ctx, str_ref("rhs")),
+        ));
+    }
+}
+
+#[rstest]
+fn test_llzk_func_def_op_res_name_round_trip(test_function: TestFuncDefOp) {
+    unsafe {
+        let ctx = mlirOperationGetContext(test_function.op);
+        let res0_name = mlirStringAttrGet(ctx, str_ref("output"));
+
+        assert!(!llzkFunction_FuncDefOpHasResName(test_function.op, 0));
+        assert!(mlirAttributeEqual(
+            llzkFunction_FuncDefOpGetResNameAttr(test_function.op, 0),
+            mlirAttributeGetNull(),
+        ));
+
+        llzkFunction_FuncDefOpSetResNameAttr(test_function.op, 0, res0_name);
+        assert!(llzkFunction_FuncDefOpHasResName(test_function.op, 0));
+        assert!(mlirAttributeEqual(
+            llzkFunction_FuncDefOpGetResNameAttr(test_function.op, 0),
+            res0_name,
+        ));
+
+        llzkFunction_FuncDefOpSetResName(test_function.op, 0, str_ref("new_output"));
+        assert!(mlirAttributeEqual(
+            llzkFunction_FuncDefOpGetResNameAttr(test_function.op, 0),
+            mlirStringAttrGet(ctx, str_ref("new_output")),
+        ));
     }
 }
 
