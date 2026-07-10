@@ -64,7 +64,7 @@ pub(crate) fn named_attributes_to_dictionary_attr<'c>(
 }
 
 /// Expands a dictionary attribute back into its `(Identifier, Attribute)` pairs.
-pub(crate) fn dictionary_attr_entries<'c>(attr: Attribute<'c>) -> Vec<NamedAttribute<'c>> {
+pub fn dictionary_attr_entries<'c>(attr: Attribute<'c>) -> Vec<NamedAttribute<'c>> {
     (0..unsafe { mlirDictionaryAttrGetNumElements(attr.to_raw()) })
         .map(|idx| unsafe { mlirDictionaryAttrGetElement(attr.to_raw(), idx) })
         .map(|attr| unsafe {
@@ -77,7 +77,7 @@ pub(crate) fn dictionary_attr_entries<'c>(attr: Attribute<'c>) -> Vec<NamedAttri
 }
 
 /// Returns the named attribute with `name` from `dict`, if present.
-pub(crate) fn dictionary_attr_get_named<'c>(
+pub fn dictionary_attr_get_named<'c>(
     dict: Attribute<'c>,
     name: &str,
 ) -> Option<Attribute<'c>> {
@@ -87,7 +87,7 @@ pub(crate) fn dictionary_attr_get_named<'c>(
 }
 
 /// Replaces or inserts one named attribute inside a dictionary attribute.
-pub(crate) fn dictionary_attr_set_named<'c>(
+pub fn dictionary_attr_set_named<'c>(
     context: &'c Context,
     dict: Attribute<'c>,
     name: Identifier<'c>,
@@ -107,7 +107,7 @@ pub(crate) fn dictionary_attr_set_named<'c>(
 
 /// Extends or rewrites the dictionary attribute element at `idx` inside an array
 /// of dictionary attributes.
-pub(crate) fn set_named_attr_in_dict_array<'c>(
+pub fn set_named_attr_in_dict_array<'c>(
     context: &'c Context,
     count: usize,
     current_attrs: Option<array::ArrayAttribute<'c>>,
