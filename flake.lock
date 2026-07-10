@@ -35,11 +35,11 @@
         "release-helpers": "release-helpers"
       },
       "locked": {
-        "lastModified": 1783608674,
-        "narHash": "sha256-aw1pRqG9KZgb/97LXYD8VQ0zRL10ALfpsMr8PewLD28=",
+        "lastModified": 1783695858,
+        "narHash": "sha256-LOQdKSZH2cDZF3twnwGsXiCJ3sSKQBoq9CnsFa+y50g=",
         "owner": "project-llzk",
         "repo": "llzk-lib",
-        "rev": "f072f29413b6802f11a081bf2e8f316b9e7c4339",
+        "rev": "1a1d5bf85fb04a4be48d15364fb53adf96df6eee",
         "type": "github"
       },
       "original": {
@@ -101,15 +101,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1762544039,
-        "narHash": "sha256-Esd4SAzUt5G3esTa6fTmivKpRScEROwSME4nN/SAU4w=",
+        "lastModified": 1783529664,
+        "narHash": "sha256-iZ8W2H+1Ed2hnmue1NcyPIvYvQ9w3lv3uEUIcMcdKYk=",
         "owner": "Veridise",
         "repo": "pcl-mlir",
-        "rev": "55cf619b032314198aacafc305871fb66b12b70e",
+        "rev": "d19e84e4578a2c2be3dd6fd8d1539984ef355ce8",
         "type": "github"
       },
       "original": {
         "owner": "Veridise",
+        "ref": "dani/as-felt-op",
         "repo": "pcl-mlir",
         "type": "github"
       }

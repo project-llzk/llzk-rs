@@ -20,7 +20,7 @@
     };
     release-helpers.follows = "llzk-lib/release-helpers";
     pcl-mlir-pkg = {
-      url = "github:Veridise/pcl-mlir";
+      url = "github:Veridise/pcl-mlir?ref=dani/as-felt-op";
       inputs = {
         shared-pkgs.follows = "llzk-pkgs";
         nixpkgs.follows = "llzk-pkgs/nixpkgs";
