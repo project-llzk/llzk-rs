@@ -29,17 +29,14 @@
           "llzk-pkgs",
           "nixpkgs"
         ],
-        "pcl-mlir-pkg": [
-          "pcl-mlir-pkg"
-        ],
         "release-helpers": "release-helpers"
       },
       "locked": {
-        "lastModified": 1783951809,
-        "narHash": "sha256-PoUmewQTCUWBnX6pXICf1jYn12xhEGvpUb3QkW9Grag=",
+        "lastModified": 1783952382,
+        "narHash": "sha256-4aZ2r2N/JRVsixe3bArqSJHZSu/r9bOBpl7Iuw8z9w0=",
         "owner": "project-llzk",
         "repo": "llzk-lib",
-        "rev": "50bab4f773fbb97d0b7803c427afed5b2271bdf0",
+        "rev": "08360a94a849813827e4adb34e08e28299048032",
         "type": "github"
       },
       "original": {
