@@ -24,11 +24,6 @@ impl<W: Write> CargoCommands<W> {
         Self(out)
     }
 
-    /// Emits `cargo:rerun-if-changed`.
-    pub fn rerun_if_changed(&mut self, path: impl AsRef<Path>) -> IOResult<()> {
-        writeln!(self.0, "cargo:rerun-if-changed={}", path.as_ref().display())
-    }
-
     /// Emits `cargo:rustc-link-search`
     pub fn rustc_link_search(
         &mut self,
@@ -83,15 +78,6 @@ mod tests {
             }
         };
     }
-
-    cargo_command_test!(
-        test_rerun_if_changed,
-        cargo,
-        {
-            cargo.rerun_if_changed(Path::new("example/path")).unwrap();
-        },
-        "cargo:rerun-if-changed=example/path"
-    );
 
     cargo_command_test!(
         test_rustc_link_search_no_mod,

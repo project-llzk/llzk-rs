@@ -1,13 +1,10 @@
 //! Implementation of the fundamenal configuration.
 
-use std::io::stdout;
-
 use anyhow::Result;
 use bindgen::Builder;
 use cc::Build;
 
 use crate::{
-    cargo_commands::whole_archive_config,
     config_traits::{bindgen::BindgenConfig, cc::CCConfig},
     mlir::MlirConfig,
     pcl::PclConfig,

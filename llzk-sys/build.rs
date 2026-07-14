@@ -68,7 +68,6 @@ fn run() -> Result<()> {
     let llzk_prefix = format!("LLZK_SYS_{LLZK_MAJOR_VERSION}0_PREFIX");
     let llzk_dir = env::var(&llzk_prefix).context(format!("{llzk_prefix} environment variable"))?;
     let default_cfg = create_default_cfg();
-    default_cfg.emit_cargo_commands()?;
     let cfg = (
         &default_cfg,
         WrapStaticFns::new(Path::new(&out_dir)),

@@ -8,7 +8,6 @@ use anyhow::{Context as _, Result};
 use bindgen::Builder;
 use cc::Build;
 use std::{
-    borrow::Cow,
     io::Write,
     path::{Path, PathBuf},
 };
@@ -36,11 +35,6 @@ impl LlzkBuild {
     /// Returns the library installation path of the build.
     fn lib_path(&self) -> PathBuf {
         self.dst_path.join(LIBDIR)
-    }
-
-    /// Returns the path where CMake stored intermediate build files.
-    fn build_path(&self) -> PathBuf {
-        self.dst_path.join("build")
     }
 
     /// Emits cargo commands required for linking LLZK against a cargo project.

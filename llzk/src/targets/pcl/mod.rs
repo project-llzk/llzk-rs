@@ -32,12 +32,10 @@ pub fn translate_module(module: &Module) -> Result<String, Error> {
         )
     };
     let (dst, result) = data;
-    // Emit errors created by the callback, if any.
     let _: () = result?;
     if logical_result.value == 0 {
         return Err(Error::PclTranslationError);
     }
-
     Ok(dst)
 }
 
