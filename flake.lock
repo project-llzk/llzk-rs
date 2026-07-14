@@ -32,15 +32,16 @@
         "release-helpers": "release-helpers"
       },
       "locked": {
-        "lastModified": 1784059312,
-        "narHash": "sha256-cvXNoLnpfsV/IJW8Xh0EPmCjAYkoFG23FCjuAQxiCB0=",
+        "lastModified": 1784061167,
+        "narHash": "sha256-lb+di/QyBvwyL08oYSejtaHz6pgUl1Ywgqp9AhYPLlc=",
         "owner": "project-llzk",
         "repo": "llzk-lib",
-        "rev": "c4a670e92a22b616d77acad53e5ef74a8764018d",
+        "rev": "ef0329d81d8be7f7a1c58880e8740e3e181ad59b",
         "type": "github"
       },
       "original": {
         "owner": "project-llzk",
+        "ref": "iangneal/signal-capi",
         "repo": "llzk-lib",
         "type": "github"
       }
