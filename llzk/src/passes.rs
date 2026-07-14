@@ -12,10 +12,7 @@ passes!(
 );
 
 #[cfg(feature = "pcl-backend")]
-passes!(
-    "PCLTransformation",
-    [mlirCreatePCLTransformationPCLLoweringPass,]
-);
+passes!("PCLConversion", [mlirCreatePCLConversionPCLLoweringPass,]);
 
 passes!(
     "LLZKArrayTransformation",
@@ -41,7 +38,7 @@ passes!(
 pub fn register_all_llzk_passes() {
     register_llzk_transformation_passes();
     #[cfg(feature = "pcl-backend")]
-    register_pcl_transformation_passes();
+    register_pcl_conversion_passes();
     register_llzk_array_transformation_passes();
     register_llzk_include_transformation_passes();
     register_llzk_polymorphic_transformation_passes();
@@ -59,7 +56,7 @@ mod tests {
     fn generated_pcl_pass_functions() {
         let ctx = Context::new();
         let pm = PassManager::new(&ctx);
-        super::register_pcl_transformation_passes();
+        super::register_pcl_conversion_passes();
         super::register_pcl_lowering_pass();
         pm.add_pass(super::create_pcl_lowering_pass());
     }

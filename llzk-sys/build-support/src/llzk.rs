@@ -97,42 +97,21 @@ impl LlzkBuild {
             })
             .collect()
     }
-
-    fn pcl_include_path(&self) -> Option<PathBuf> {
-        // The PCL backend include path is in:
-        // $build/backends/pcl-conv/include (the include part is added by the helper later.)
-        let path = self.build_path().join("backends/pcl-conv");
-        path.is_dir().then_some(path)
-    }
-
-    fn include_paths(&self) -> Vec<Cow<'_, Path>> {
-        // We always include the destination path.
-        std::iter::once(Cow::Borrowed(self.dst_path()))
-            // Optionally, add the PCL include path in the dst directory, if present.
-            .chain(self.pcl_include_path().map(Cow::Owned))
-        .collect()
-    }
 }
 
 impl BindgenConfig for LlzkBuild {
     fn apply(&self, bindgen: Builder) -> Result<Builder> {
-        let paths = self.include_paths();
         Ok(BindgenConfig::include_paths(
             self,
             bindgen,
-            &paths.iter().map(AsRef::as_ref).collect::<Vec<_>>(),
+            &[self.dst_path()],
         ))
     }
 }
 
 impl CCConfig for LlzkBuild {
     fn apply(&self, cc: &mut Build) -> Result<()> {
-        let paths = self.include_paths();
-        CCConfig::include_paths(
-            self,
-            cc,
-            &paths.iter().map(AsRef::as_ref).collect::<Vec<_>>(),
-        );
+        CCConfig::include_paths(self, cc, &[self.dst_path()]);
         Ok(())
     }
 }

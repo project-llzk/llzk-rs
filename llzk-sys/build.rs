@@ -43,7 +43,6 @@ fn create_default_cfg() -> DefaultConfig<'static> {
     if pcl_enabled {
         passes.push("PCLLowering");
     }
-
     DefaultConfig::new(
         pcl_enabled,
         passes,

@@ -38,12 +38,6 @@ impl<'a> DefaultConfig<'a> {
     pub fn wrapper(&self) -> &'static str {
         "wrapper.h"
     }
-
-    /// Emits cargo commands.
-    pub fn emit_cargo_commands(&self) -> Result<()> {
-        self.pcl
-            .emit_cargo_commands(stdout(), whole_archive_config())
-    }
 }
 
 impl BindgenConfig for DefaultConfig<'_> {

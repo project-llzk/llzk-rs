@@ -15,14 +15,11 @@ pub fn translate_module(module: &Module) -> Result<String, Error> {
 
     unsafe extern "C" fn callback(string: MlirStringRef, data: *mut c_void) {
         let (writer, result) = unsafe { &mut *(data as *mut (String, Result<(), Error>)) };
-
         if result.is_err() {
             return;
         }
-
         *result = (|| {
             writer.push_str(unsafe { StringRef::from_raw(string) }.as_str()?);
-
             Ok(())
         })();
     }
@@ -52,12 +49,9 @@ mod tests {
     #[test]
     fn test_translation_to_pcl() {
         let _ = simplelog::TestLogger::init(log::LevelFilter::Debug, simplelog::Config::default());
-
         let ctx = LlzkContext::new();
-
         let module_ir = include_str!("test_files/translation_to_pcl.mlir");
-        let expected_lisp = include_str!("test_files/translation_to_pcl.pcl");
-
+        let expected_lisp = format!("{}\n", include_str!("test_files/translation_to_pcl.pcl"));
         let mut module = Module::parse(&ctx, module_ir).unwrap();
         let pm = melior::pass::PassManager::new(&ctx);
         pm.add_pass(crate::passes::create_pcl_lowering_pass());

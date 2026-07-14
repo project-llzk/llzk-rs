@@ -3,4 +3,3 @@
 (input in0)
 (assert (= in0 out))
 (end-module)
-
