@@ -11,9 +11,7 @@ use crate::{
     sanity_tests::{TestContext, context},
 };
 #[cfg(feature = "pcl-backend")]
-use crate::{
-    mlirCreatePCLTransformationPCLLoweringPass, mlirRegisterPCLTransformationPCLLoweringPass,
-};
+use crate::{mlirCreatePCLConversionPCLLoweringPass, mlirRegisterPCLConversionPCLLoweringPass};
 
 #[cfg(test)]
 #[allow(unused_variables)]
@@ -29,7 +27,7 @@ mod tests {
             mlirRegisterLLZKTransformationRedundantReadAndWriteEliminationPass();
             mlirRegisterLLZKTransformationUnusedDeclarationEliminationPass();
             #[cfg(feature = "pcl-backend")]
-            mlirRegisterPCLTransformationPCLLoweringPass();
+            mlirRegisterPCLConversionPCLLoweringPass();
         });
     }
 
@@ -45,7 +43,7 @@ mod tests {
             let pass2 = mlirCreateLLZKTransformationRedundantReadAndWriteEliminationPass();
             let pass3 = mlirCreateLLZKTransformationUnusedDeclarationEliminationPass();
             #[cfg(feature = "pcl-backend")]
-            let pass4 = mlirCreatePCLTransformationPCLLoweringPass();
+            let pass4 = mlirCreatePCLConversionPCLLoweringPass();
             mlirPassManagerAddOwnedPass(manager, pass1);
             mlirPassManagerAddOwnedPass(manager, pass2);
             mlirPassManagerAddOwnedPass(manager, pass3);
@@ -104,10 +102,8 @@ mod tests {
     fn test_mlir_register_pcl_lowering_pass_and_create(register_passes: (), context: TestContext) {
         unsafe {
             let manager = mlirPassManagerCreate(context.ctx);
-
-            let pass = mlirCreatePCLTransformationPCLLoweringPass();
+            let pass = mlirCreatePCLConversionPCLLoweringPass();
             mlirPassManagerAddOwnedPass(manager, pass);
-
             mlirPassManagerDestroy(manager);
         }
     }

@@ -49,7 +49,7 @@ pub enum Error {
     ExpectedFunctionName(&'static str),
     /// General error containing only a message.
     GeneralError(&'static str),
-    /// Error emitted by the translation function.
+    /// Error emitted by the PCL translation function.
     #[cfg(feature = "pcl-backend")]
     PclTranslationError,
 }

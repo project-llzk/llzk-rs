@@ -36,34 +36,6 @@ export MLIR_SYS_200_PREFIX=/path/to/llvm/20/
 export TABLEGEN_200_PREFIX=/path/to/llvm/20/
 ```
 
-### Building PCL
-
-Clone and build the `pcl-mlir` component at a known-good commit:
-
-```sh
-git clone https://github.com/Veridise/pcl-mlir.git
-cd pcl-mlir && git checkout 55cf619b032314198aacafc305871fb66b12b70e && cd ..
-```
-
-Build with CMake:
-
-```sh
-cmake -S pcl-mlir -B pcl-mlir/build \
-  -DCMAKE_BUILD_TYPE=Debug \
-  -DBUILD_TESTING=OFF \
-  -DCMAKE_PREFIX_PATH=$MLIR_SYS_200_PREFIX \
-  -DCMAKE_INSTALL_PREFIX=$(pwd)/pcl-mlir/build
-cmake --build pcl-mlir/build
-cmake --install pcl-mlir/build
-```
-
-Then set the following environment variables to point to the source and build directories:
-
-```text
-export LLZK_PCL_ROOT=/path/to/pcl-mlir
-export LLZK_PCL_PREFIX=/path/to/pcl-mlir/build
-```
-
 ### Building LLZK
 
 Clone the [LLZK library](https://github.com/project-llzk/llzk-lib) and build it:
@@ -78,7 +50,7 @@ pip install lit
 git clone https://github.com/project-llzk/llzk-lib.git
 cmake -B llzk-lib/out/build -S llzk-lib \
   -DCMAKE_INSTALL_PREFIX=$(pwd)/llzk-lib/out \
-  -DCMAKE_PREFIX_PATH="$MLIR_SYS_200_PREFIX;$LLZK_PCL_PREFIX" 
+  -DCMAKE_PREFIX_PATH="$MLIR_SYS_200_PREFIX"
 cmake --build llzk-lib/out/build
 cmake --install llzk-lib/out/build
 ```
@@ -110,8 +82,6 @@ export TABLEGEN_200_PREFIX=$(brew --prefix llvm@20)
 export LIBCLANG_PATH=$(brew --prefix llvm@20)/lib
 export CXX=clang++
 export CC=clang
-export LLZK_PCL_ROOT=/path/to/pcl-mlir
-export LLZK_PCL_PREFIX=/path/to/pcl-mlir/build
 export RUSTFLAGS='-L /opt/homebrew/lib/'
 ```
 
@@ -120,8 +90,8 @@ See [`llzk-sys`'s README](llzk-sys/README.md) for more details on setting up the
 
 ## Nix installation
 
-We also include a nix flake that creates an environment with the right versions of LLVM, MLIR, and PCL.
-All dependencies, including the correct `pcl-mlir` commit, are pinned in `flake.lock` and set up automatically.
+We also include a nix flake that creates an environment with the right versions of LLVM, MLIR, and LLZK.
+All dependencies are pinned in `flake.lock` and set up automatically.
 If you are already using nix, this may be your preferred method.
 
 You can use this flake for configuring your development environment.
