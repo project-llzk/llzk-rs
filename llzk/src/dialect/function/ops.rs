@@ -1,7 +1,7 @@
 use crate::{
     attributes::{
-        NamedAttribute, array::ArrayAttribute, dictionary_attr_get_named, empty_dictionary_attr,
-        named_attributes_to_dictionary_attr, set_named_attr_in_dict_array, tuple_to_raw_named_attr,
+        NamedAttribute, array::ArrayAttribute, empty_dictionary_attr,
+        named_attributes_to_dictionary_attr, tuple_to_raw_named_attr,
     },
     builder::OpBuilderLike,
     dialect::r#struct::StructType,
@@ -12,39 +12,43 @@ use crate::{
 };
 
 use llzk_sys::{
-    FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME, llzkFunction_CallOpBuild,
-    llzkFunction_CallOpBuildWithMapOperands, llzkFunction_CallOpBuildWithTemplateParams,
-    llzkFunction_CallOpCalleeIsCompute, llzkFunction_CallOpCalleeIsConstrain,
-    llzkFunction_CallOpCalleeIsProduct, llzkFunction_CallOpCalleeIsStructCompute,
-    llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpCalleeIsStructProduct,
-    llzkFunction_CallOpGetArgOperandsAt, llzkFunction_CallOpGetArgOperandsCount,
-    llzkFunction_CallOpGetCallee, llzkFunction_CallOpGetMapOperandsAt,
-    llzkFunction_CallOpGetMapOperandsCount, llzkFunction_CallOpGetSelfValueFromCompute,
-    llzkFunction_CallOpGetSelfValueFromConstrain, llzkFunction_CallOpGetTemplateParams,
-    llzkFunction_CallOpSetArgOperands, llzkFunction_CallOpSetCallee,
-    llzkFunction_CallOpSetMapOperands, llzkFunction_CallOpSetTemplateParams,
-    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetArgAttrs,
+    llzkFunction_CallOpBuild, llzkFunction_CallOpBuildWithMapOperands,
+    llzkFunction_CallOpBuildWithTemplateParams, llzkFunction_CallOpCalleeIsCompute,
+    llzkFunction_CallOpCalleeIsConstrain, llzkFunction_CallOpCalleeIsProduct,
+    llzkFunction_CallOpCalleeIsStructCompute, llzkFunction_CallOpCalleeIsStructConstrain,
+    llzkFunction_CallOpCalleeIsStructProduct, llzkFunction_CallOpGetArgOperandsAt,
+    llzkFunction_CallOpGetArgOperandsCount, llzkFunction_CallOpGetCallee,
+    llzkFunction_CallOpGetMapOperandsAt, llzkFunction_CallOpGetMapOperandsCount,
+    llzkFunction_CallOpGetSelfValueFromCompute, llzkFunction_CallOpGetSelfValueFromConstrain,
+    llzkFunction_CallOpGetTemplateParams, llzkFunction_CallOpSetArgOperands,
+    llzkFunction_CallOpSetCallee, llzkFunction_CallOpSetMapOperands,
+    llzkFunction_CallOpSetTemplateParams, llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs,
+    llzkFunction_FuncDefOpGetArgAttrs, llzkFunction_FuncDefOpGetArgNameAttr,
     llzkFunction_FuncDefOpGetBody, llzkFunction_FuncDefOpGetFullyQualifiedName,
     llzkFunction_FuncDefOpGetFunctionType, llzkFunction_FuncDefOpGetResAttrs,
-    llzkFunction_FuncDefOpGetSelfValueFromCompute, llzkFunction_FuncDefOpGetSelfValueFromConstrain,
+    llzkFunction_FuncDefOpGetResNameAttr, llzkFunction_FuncDefOpGetSelfValueFromCompute,
+    llzkFunction_FuncDefOpGetSelfValueFromConstrain,
     llzkFunction_FuncDefOpGetSingleResultTypeOfCompute, llzkFunction_FuncDefOpGetSymName,
     llzkFunction_FuncDefOpHasAllowConstraintAttr,
     llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
-    llzkFunction_FuncDefOpHasArgPublicAttr, llzkFunction_FuncDefOpIsDeclaration,
+    llzkFunction_FuncDefOpHasArgName, llzkFunction_FuncDefOpHasArgPublicAttr,
+    llzkFunction_FuncDefOpHasResName, llzkFunction_FuncDefOpIsDeclaration,
     llzkFunction_FuncDefOpIsInStruct, llzkFunction_FuncDefOpIsStructCompute,
     llzkFunction_FuncDefOpIsStructConstrain, llzkFunction_FuncDefOpIsStructProduct,
     llzkFunction_FuncDefOpNameIsCompute, llzkFunction_FuncDefOpNameIsConstrain,
     llzkFunction_FuncDefOpNameIsProduct, llzkFunction_FuncDefOpSetAllowConstraintAttr,
     llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
-    llzkFunction_FuncDefOpSetArgAttrs, llzkFunction_FuncDefOpSetFunctionType,
-    llzkFunction_FuncDefOpSetResAttrs, llzkFunction_FuncDefOpSetSymName,
+    llzkFunction_FuncDefOpSetArgAttrs, llzkFunction_FuncDefOpSetArgName,
+    llzkFunction_FuncDefOpSetArgNameAttr, llzkFunction_FuncDefOpSetFunctionType,
+    llzkFunction_FuncDefOpSetResAttrs, llzkFunction_FuncDefOpSetResName,
+    llzkFunction_FuncDefOpSetResNameAttr, llzkFunction_FuncDefOpSetSymName,
     llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
 };
 use melior::{
     Context, StringRef,
     ir::{
-        Attribute, AttributeLike, BlockLike as _, Identifier, Location, Operation, RegionLike as _,
-        RegionRef, Type, TypeLike, Value,
+        Attribute, AttributeLike, BlockLike as _, Location, Operation, RegionLike as _, RegionRef,
+        Type, TypeLike, Value,
         attribute::{StringAttribute, TypeAttribute},
         block::BlockArgument,
         operation::{OperationBuilder, OperationLike, OperationMutLike},
@@ -108,94 +112,6 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_FuncDefOpSetResAttrs(self.to_raw(), attr.to_raw()) }
     }
 
-    /// Looks up a named attribute on the `idx`-th argument.
-    fn arg_named_attr(&self, idx: usize, name: &str) -> Result<Option<Attribute<'c>>, Error> {
-        let count = self.arg_count()?;
-        if idx >= count {
-            return Err(create_out_of_bounds_error(self, idx));
-        }
-
-        let attrs = match self.arg_attrs() {
-            Ok(attrs) => attrs,
-            Err(Error::AttributeNotFound(_)) => return Ok(None),
-            Err(err) => return Err(err),
-        };
-        let dict = attrs
-            .get(idx)
-            .expect("argument attrs length should match arity");
-        Ok(dictionary_attr_get_named(dict, name))
-    }
-
-    /// Sets a named attribute on the `idx`-th argument.
-    fn set_arg_named_attr(
-        &self,
-        idx: usize,
-        name: Identifier<'c>,
-        attr: Attribute<'c>,
-    ) -> Result<(), Error> {
-        let count = self.arg_count()?;
-        if idx >= count {
-            return Err(create_out_of_bounds_error(self, idx));
-        }
-
-        let context_ref = self.context();
-        let context = unsafe { context_ref.to_ref() };
-        let current_attrs = self.arg_attrs().ok();
-        self.set_arg_attrs(set_named_attr_in_dict_array(
-            context,
-            count,
-            current_attrs,
-            idx,
-            name,
-            attr,
-        ));
-        Ok(())
-    }
-
-    /// Looks up a named attribute on the `idx`-th result.
-    fn res_named_attr(&self, idx: usize, name: &str) -> Result<Option<Attribute<'c>>, Error> {
-        let count = self.res_count()?;
-        if idx >= count {
-            return Err(create_out_of_bounds_error(self, idx));
-        }
-
-        let attrs = match self.res_attrs() {
-            Ok(attrs) => attrs,
-            Err(Error::AttributeNotFound(_)) => return Ok(None),
-            Err(err) => return Err(err),
-        };
-        let dict = attrs
-            .get(idx)
-            .expect("result attrs length should match arity");
-        Ok(dictionary_attr_get_named(dict, name))
-    }
-
-    /// Sets a named attribute on the `idx`-th result.
-    fn set_res_named_attr(
-        &self,
-        idx: usize,
-        name: Identifier<'c>,
-        attr: Attribute<'c>,
-    ) -> Result<(), Error> {
-        let count = self.res_count()?;
-        if idx >= count {
-            return Err(create_out_of_bounds_error(self, idx));
-        }
-
-        let context_ref = self.context();
-        let context = unsafe { context_ref.to_ref() };
-        let current_attrs = self.res_attrs().ok();
-        self.set_res_attrs(set_named_attr_in_dict_array(
-            context,
-            count,
-            current_attrs,
-            idx,
-            name,
-            attr,
-        ));
-        Ok(())
-    }
-
     /// Returns true if the FuncDefOp has the allow_constraint attribute.
     fn has_allow_constraint_attr(&self) -> bool {
         unsafe { llzkFunction_FuncDefOpHasAllowConstraintAttr(self.to_raw()) }
@@ -233,12 +149,32 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Returns true if the `idx`-th argument has a `FUNCTION_ARG_NAME_ATTR_NAME` attribute.
     fn has_arg_name(&self, idx: usize) -> bool {
-        matches!(self.arg_name_attr(idx), Ok(Some(_)))
+        if idx >= self.arg_count().unwrap_or(0) {
+            return false;
+        }
+
+        unsafe {
+            llzkFunction_FuncDefOpHasArgName(
+                self.to_raw(),
+                u32::try_from(idx).expect("argument index too large"),
+            )
+        }
     }
 
     /// Returns the `FUNCTION_ARG_NAME_ATTR_NAME` attribute for the `idx`-th argument.
     fn arg_name_attr(&self, idx: usize) -> Result<Option<StringAttribute<'c>>, Error> {
-        self.arg_named_attr(idx, FUNCTION_ARG_NAME_ATTR_NAME.as_ref())?
+        let count = self.arg_count()?;
+        if idx >= count {
+            return Err(create_out_of_bounds_error(self, idx));
+        }
+
+        let raw = unsafe {
+            llzkFunction_FuncDefOpGetArgNameAttr(
+                self.to_raw(),
+                u32::try_from(idx).expect("argument index too large"),
+            )
+        };
+        unsafe { Attribute::from_option_raw(raw) }
             .map(StringAttribute::try_from)
             .transpose()
             .map_err(Error::Melior)
@@ -252,30 +188,66 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Sets the `FUNCTION_ARG_NAME_ATTR_NAME` attribute for the `idx`-th argument.
     fn set_arg_name_attr(&self, idx: usize, attr: StringAttribute<'c>) -> Result<(), Error> {
-        let context_ref = self.context();
-        let context = unsafe { context_ref.to_ref() };
-        self.set_arg_named_attr(
-            idx,
-            Identifier::new(context, FUNCTION_ARG_NAME_ATTR_NAME.as_ref()),
-            attr.into(),
-        )
+        let count = self.arg_count()?;
+        if idx >= count {
+            return Err(create_out_of_bounds_error(self, idx));
+        }
+
+        unsafe {
+            llzkFunction_FuncDefOpSetArgNameAttr(
+                self.to_raw(),
+                u32::try_from(idx).expect("argument index too large"),
+                attr.to_raw(),
+            )
+        }
+        Ok(())
     }
 
     /// Sets the `FUNCTION_ARG_NAME_ATTR_NAME` attribute for the `idx`-th argument from a string.
     fn set_arg_name(&self, idx: usize, name: &str) -> Result<(), Error> {
-        let context_ref = self.context();
-        let context = unsafe { context_ref.to_ref() };
-        self.set_arg_name_attr(idx, StringAttribute::new(context, name))
+        let count = self.arg_count()?;
+        if idx >= count {
+            return Err(create_out_of_bounds_error(self, idx));
+        }
+
+        unsafe {
+            llzkFunction_FuncDefOpSetArgName(
+                self.to_raw(),
+                u32::try_from(idx).expect("argument index too large"),
+                StringRef::new(name).to_raw(),
+            )
+        }
+        Ok(())
     }
 
     /// Returns true if the `idx`-th result has a `FUNCTION_RES_NAME_ATTR_NAME` attribute.
     fn has_res_name(&self, idx: usize) -> bool {
-        matches!(self.res_name_attr(idx), Ok(Some(_)))
+        if idx >= self.res_count().unwrap_or(0) {
+            return false;
+        }
+
+        unsafe {
+            llzkFunction_FuncDefOpHasResName(
+                self.to_raw(),
+                u32::try_from(idx).expect("result index too large"),
+            )
+        }
     }
 
     /// Returns the `FUNCTION_RES_NAME_ATTR_NAME` attribute for the `idx`-th result.
     fn res_name_attr(&self, idx: usize) -> Result<Option<StringAttribute<'c>>, Error> {
-        self.res_named_attr(idx, FUNCTION_RES_NAME_ATTR_NAME.as_ref())?
+        let count = self.res_count()?;
+        if idx >= count {
+            return Err(create_out_of_bounds_error(self, idx));
+        }
+
+        let raw = unsafe {
+            llzkFunction_FuncDefOpGetResNameAttr(
+                self.to_raw(),
+                u32::try_from(idx).expect("result index too large"),
+            )
+        };
+        unsafe { Attribute::from_option_raw(raw) }
             .map(StringAttribute::try_from)
             .transpose()
             .map_err(Error::Melior)
@@ -289,20 +261,36 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 
     /// Sets the `FUNCTION_RES_NAME_ATTR_NAME` attribute for the `idx`-th result.
     fn set_res_name_attr(&self, idx: usize, attr: StringAttribute<'c>) -> Result<(), Error> {
-        let context_ref = self.context();
-        let context = unsafe { context_ref.to_ref() };
-        self.set_res_named_attr(
-            idx,
-            Identifier::new(context, FUNCTION_RES_NAME_ATTR_NAME.as_ref()),
-            attr.into(),
-        )
+        let count = self.res_count()?;
+        if idx >= count {
+            return Err(create_out_of_bounds_error(self, idx));
+        }
+
+        unsafe {
+            llzkFunction_FuncDefOpSetResNameAttr(
+                self.to_raw(),
+                u32::try_from(idx).expect("result index too large"),
+                attr.to_raw(),
+            )
+        }
+        Ok(())
     }
 
     /// Sets the `FUNCTION_RES_NAME_ATTR_NAME` attribute for the `idx`-th result from a string.
     fn set_res_name(&self, idx: usize, name: &str) -> Result<(), Error> {
-        let context_ref = self.context();
-        let context = unsafe { context_ref.to_ref() };
-        self.set_res_name_attr(idx, StringAttribute::new(context, name))
+        let count = self.res_count()?;
+        if idx >= count {
+            return Err(create_out_of_bounds_error(self, idx));
+        }
+
+        unsafe {
+            llzkFunction_FuncDefOpSetResName(
+                self.to_raw(),
+                u32::try_from(idx).expect("result index too large"),
+                StringRef::new(name).to_raw(),
+            )
+        }
+        Ok(())
     }
 
     /// Returns the fully qualified name of the function.
