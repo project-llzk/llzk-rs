@@ -10,7 +10,6 @@ pub mod config_traits;
 pub mod default;
 pub mod llzk;
 pub mod mlir;
-mod pcl;
 pub mod wrap_static_fns;
 
 /// Links an existing installation of LLZK.
