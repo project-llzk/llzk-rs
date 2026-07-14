@@ -44,7 +44,6 @@ fn create_default_cfg() -> DefaultConfig<'static> {
         passes.push("PCLLowering");
     }
     DefaultConfig::new(
-        pcl_enabled,
         passes,
         &[
             "GetDialectHandle__llzk__.*",

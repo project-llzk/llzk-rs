@@ -7,26 +7,22 @@ use cc::Build;
 use crate::{
     config_traits::{bindgen::BindgenConfig, cc::CCConfig},
     mlir::MlirConfig,
-    pcl::PclConfig,
 };
 
 /// Fundamental configuration for the different build tasks.
 #[derive(Debug, Clone)]
 pub struct DefaultConfig<'a> {
-    pcl: PclConfig,
     mlir: MlirConfig<'a>,
 }
 
 impl<'a> DefaultConfig<'a> {
     /// Creates a new configuration.
     pub const fn new(
-        pcl_enabled: bool,
         passes: Vec<&'a str>,
         mlir_functions: &'a [&'a str],
         mlir_types: &'a [&'a str],
     ) -> Self {
         Self {
-            pcl: PclConfig::new(pcl_enabled),
             mlir: MlirConfig::new(passes, mlir_functions, mlir_types),
         }
     }
@@ -49,8 +45,7 @@ impl BindgenConfig for DefaultConfig<'_> {
             .impl_debug(true)
             .header(self.wrapper())
             .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
-        let bindgen = BindgenConfig::apply(&self.mlir, bindgen)?;
-        BindgenConfig::apply(&self.pcl, bindgen)
+        BindgenConfig::apply(&self.mlir, bindgen)
     }
 }
 
