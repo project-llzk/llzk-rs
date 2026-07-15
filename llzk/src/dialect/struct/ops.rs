@@ -1,6 +1,8 @@
 use llzk_sys::{
     llzkOperationIsA_Struct_MemberDefOp, llzkOperationIsA_Struct_StructDefOp,
-    llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetPublicAttr,
+    llzkStruct_MemberDefOpGetColumnValue, llzkStruct_MemberDefOpGetSignalValue,
+    llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetColumnValue,
+    llzkStruct_MemberDefOpSetPublicAttr, llzkStruct_MemberDefOpSetSignalValue,
     llzkStruct_MemberReadOpBuild, llzkStruct_StructDefOpGetBody,
     llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
     llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetFullyQualifiedName,
@@ -302,6 +304,30 @@ impl<'a, 'c: 'a> StructDefOpMutLike<'c, 'a> for StructDefOpRefMut<'c, 'a> {}
 
 /// Defines the public API of the 'struct.member' op.
 pub trait MemberDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
+    /// Returns true if the member is stored as a witness signal.
+    fn signal(&self) -> bool {
+        unsafe { llzkStruct_MemberDefOpGetSignalValue(self.to_raw()) }
+    }
+
+    /// Sets or unsets the `signal` attribute.
+    fn set_signal(&self, value: bool) {
+        unsafe {
+            llzkStruct_MemberDefOpSetSignalValue(self.to_raw(), value);
+        }
+    }
+
+    /// Returns true if the member supports offset table accesses.
+    fn column(&self) -> bool {
+        unsafe { llzkStruct_MemberDefOpGetColumnValue(self.to_raw()) }
+    }
+
+    /// Sets or unsets the `column` attribute.
+    fn set_column(&self, value: bool) {
+        unsafe {
+            llzkStruct_MemberDefOpSetColumnValue(self.to_raw(), value);
+        }
+    }
+
     /// Returns true if the member op has a `llzk.pub` attribute.
     fn has_public_attr(&self) -> bool {
         unsafe { llzkStruct_MemberDefOpHasPublicAttr(self.to_raw()) }
@@ -400,6 +426,7 @@ pub fn member<'c, T>(
     location: Location<'c>,
     name: &str,
     r#type: T,
+    is_signal: bool,
     is_column: bool,
     is_public: bool,
 ) -> Result<MemberDefOp<'c>, Error>
@@ -408,28 +435,22 @@ where
 {
     let ctx = location.context();
     let r#type = TypeAttribute::new(r#type.into());
-    let mut builder = OperationBuilder::new("struct.member", location).add_attributes(&[
-        (
-            ident!(ctx, "sym_name"),
-            StringAttribute::new(unsafe { ctx.to_ref() }, name).into(),
-        ),
-        (ident!(ctx, "type"), r#type.into()),
-    ]);
-
-    builder = if is_column {
-        builder.add_attributes(&[(
-            ident!(ctx, "column"),
-            Attribute::unit(unsafe { ctx.to_ref() }),
-        )])
-    } else {
-        builder
-    };
-
-    builder
+    OperationBuilder::new("struct.member", location)
+        .add_attributes(&[
+            (
+                ident!(ctx, "sym_name"),
+                StringAttribute::new(unsafe { ctx.to_ref() }, name).into(),
+            ),
+            (ident!(ctx, "type"), r#type.into()),
+        ])
         .build()
         .map_err(Into::into)
         .and_then(TryInto::try_into)
-        .inspect(|op: &MemberDefOp<'c>| op.set_public_attr(is_public))
+        .inspect(|op: &MemberDefOp<'c>| {
+            op.set_signal(is_signal);
+            op.set_column(is_column);
+            op.set_public_attr(is_public);
+        })
 }
 
 /// Return `true` iff the given op is `struct.member`.

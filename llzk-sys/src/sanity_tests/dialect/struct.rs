@@ -16,8 +16,10 @@ use std::alloc::{Layout, alloc, dealloc};
 
 use crate::{
     MlirValueRange, llzkFunction_FuncDefOpNameIsProduct, llzkOperationIsA_Struct_MemberDefOp,
-    llzkOperationIsA_Struct_StructDefOp, llzkStruct_MemberDefOpHasPublicAttr,
-    llzkStruct_MemberDefOpSetPublicAttr, llzkStruct_MemberReadOpBuild,
+    llzkOperationIsA_Struct_StructDefOp, llzkStruct_MemberDefOpGetColumnValue,
+    llzkStruct_MemberDefOpGetSignalValue, llzkStruct_MemberDefOpHasPublicAttr,
+    llzkStruct_MemberDefOpSetColumnValue, llzkStruct_MemberDefOpSetPublicAttr,
+    llzkStruct_MemberDefOpSetSignalValue, llzkStruct_MemberReadOpBuild,
     llzkStruct_MemberReadOpBuildWithAffineMapDistance,
     llzkStruct_MemberReadOpBuildWithLiteralDistance,
     llzkStruct_MemberReadOpBuildWithTemplateSymbolDistance, llzkStruct_StructDefOpGetBody,
@@ -325,6 +327,42 @@ fn test_llzk_field_def_op_set_public_attr(test_op: TestOp) {
         if llzkOperationIsA_Struct_MemberDefOp(test_op.op) {
             llzkStruct_MemberDefOpSetPublicAttr(test_op.op, true);
         }
+    }
+}
+
+#[rstest]
+fn test_llzk_member_def_op_signal_and_column(context: TestContext) {
+    let module = parse_module(
+        context.ctx,
+        r#"
+module attributes {llzk.lang} {
+  struct.def @S {
+    struct.member @f : !felt.type
+    function.def @product() -> !struct.type<@S<[]>> attributes {function.allow_constraint, function.allow_non_native_field_ops, function.allow_witness} {
+      %self = struct.new : <@S<[]>>
+      function.return %self : !struct.type<@S<[]>>
+    }
+  }
+}
+"#,
+    );
+
+    unsafe {
+        let struct_def = first_op(mlirModuleGetBody(module.module));
+        let member = first_op(llzkStruct_StructDefOpGetBody(struct_def));
+        assert!(llzkOperationIsA_Struct_MemberDefOp(member));
+
+        assert!(!llzkStruct_MemberDefOpGetSignalValue(member));
+        llzkStruct_MemberDefOpSetSignalValue(member, true);
+        assert!(llzkStruct_MemberDefOpGetSignalValue(member));
+        llzkStruct_MemberDefOpSetSignalValue(member, false);
+        assert!(!llzkStruct_MemberDefOpGetSignalValue(member));
+
+        assert!(!llzkStruct_MemberDefOpGetColumnValue(member));
+        llzkStruct_MemberDefOpSetColumnValue(member, true);
+        assert!(llzkStruct_MemberDefOpGetColumnValue(member));
+        llzkStruct_MemberDefOpSetColumnValue(member, false);
+        assert!(!llzkStruct_MemberDefOpGetColumnValue(member));
     }
 }
 

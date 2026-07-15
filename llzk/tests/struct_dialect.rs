@@ -67,7 +67,8 @@ fn struct_with_one_member() {
     assert_eq!(typ.name().to_string(), format!("@{}", name));
 
     let mut region_ops = vec![
-        dialect::r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into),
+        dialect::r#struct::member(loc, "foo", Type::index(&context), false, false, false)
+            .map(Into::into),
     ];
     region_ops.extend(default_funcs(loc, typ));
 
@@ -77,6 +78,32 @@ fn struct_with_one_member() {
     let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/struct_with_one_member.mlir");
+}
+
+#[test]
+fn signal_column_and_public_member() {
+    common::setup();
+    let context = LlzkContext::new();
+    let loc = Location::unknown(&context);
+    let member =
+        dialect::r#struct::member(loc, "foo", FeltType::new(&context), true, true, true).unwrap();
+
+    assert!(member.signal());
+    assert!(member.column());
+    assert!(member.has_public_attr());
+    assert!(member.to_string().contains("column"));
+    assert!(member.to_string().contains("signal"));
+    assert!(member.to_string().contains("llzk.pub"));
+
+    member.set_signal(false);
+    member.set_column(false);
+    assert!(!member.signal());
+    assert!(!member.column());
+
+    member.set_signal(true);
+    member.set_column(true);
+    assert!(member.signal());
+    assert!(member.column());
 }
 
 #[test]
@@ -125,7 +152,8 @@ fn struct_readm() {
     let typ = StructType::from_str_params(&context, name, &[]);
 
     let mut region_ops = vec![
-        dialect::r#struct::member(loc, "foo", Type::index(&context), false, false).map(Into::into),
+        dialect::r#struct::member(loc, "foo", Type::index(&context), false, false, false)
+            .map(Into::into),
     ];
     region_ops.extend(default_funcs(loc, typ));
 

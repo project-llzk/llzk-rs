@@ -138,7 +138,7 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
     let reg = "reg";
     super::def(loc, "Signal", {
         [
-            super::member(loc, reg, FeltType::new(context), false, true).map(Into::into),
+            super::member(loc, reg, FeltType::new(context), true, false, true).map(Into::into),
             compute_fn(loc, typ, &[(FeltType::new(context).into(), loc)], None)
                 .and_then(|compute| {
                     let block = compute

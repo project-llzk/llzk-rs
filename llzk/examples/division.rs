@@ -42,12 +42,14 @@ fn main() -> Result<()> {
     let felt_type = FeltType::new(&context);
 
     // We store the output of the division in a data field.
-    // Members can have two extra annotations; column and public.
+    // Members can have three extra annotations: signal, column, and public.
+    // The signal annotation makes the field a witness-stored constraint variable.
     // The public annotation makes the field an output of the circuit.
     let out_field = {
+        let is_signal = true;
         let is_column = false;
         let is_public = true;
-        dialect::r#struct::member(location, "c", felt_type, is_column, is_public)?
+        dialect::r#struct::member(location, "c", felt_type, is_signal, is_column, is_public)?
     };
     let compute_fn = witness(&context, location, felt_type.into(), &out_field)?;
     let constrain_fn = constraints(&context, location, felt_type.into(), &out_field)?;
