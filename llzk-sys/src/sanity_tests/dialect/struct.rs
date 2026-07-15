@@ -16,10 +16,10 @@ use std::alloc::{Layout, alloc, dealloc};
 
 use crate::{
     MlirValueRange, llzkFunction_FuncDefOpNameIsProduct, llzkOperationIsA_Struct_MemberDefOp,
-    llzkOperationIsA_Struct_StructDefOp, llzkStruct_MemberDefOpHasPublicAttr,
-    llzkStruct_MemberDefOpIsColumn, llzkStruct_MemberDefOpIsSignal,
-    llzkStruct_MemberDefOpSetIsColumn, llzkStruct_MemberDefOpSetIsSignal,
-    llzkStruct_MemberDefOpSetPublicAttr, llzkStruct_MemberReadOpBuild,
+    llzkOperationIsA_Struct_StructDefOp, llzkStruct_MemberDefOpGetColumnValue,
+    llzkStruct_MemberDefOpGetSignalValue, llzkStruct_MemberDefOpHasPublicAttr,
+    llzkStruct_MemberDefOpSetColumnValue, llzkStruct_MemberDefOpSetPublicAttr,
+    llzkStruct_MemberDefOpSetSignalValue, llzkStruct_MemberReadOpBuild,
     llzkStruct_MemberReadOpBuildWithAffineMapDistance,
     llzkStruct_MemberReadOpBuildWithLiteralDistance,
     llzkStruct_MemberReadOpBuildWithTemplateSymbolDistance, llzkStruct_StructDefOpGetBody,
@@ -352,17 +352,17 @@ module attributes {llzk.lang} {
         let member = first_op(llzkStruct_StructDefOpGetBody(struct_def));
         assert!(llzkOperationIsA_Struct_MemberDefOp(member));
 
-        assert!(!llzkStruct_MemberDefOpIsSignal(member));
-        llzkStruct_MemberDefOpSetIsSignal(member, true);
-        assert!(llzkStruct_MemberDefOpIsSignal(member));
-        llzkStruct_MemberDefOpSetIsSignal(member, false);
-        assert!(!llzkStruct_MemberDefOpIsSignal(member));
+        assert!(!llzkStruct_MemberDefOpGetSignalValue(member));
+        llzkStruct_MemberDefOpSetSignalValue(member, true);
+        assert!(llzkStruct_MemberDefOpGetSignalValue(member));
+        llzkStruct_MemberDefOpSetSignalValue(member, false);
+        assert!(!llzkStruct_MemberDefOpGetSignalValue(member));
 
-        assert!(!llzkStruct_MemberDefOpIsColumn(member));
-        llzkStruct_MemberDefOpSetIsColumn(member, true);
-        assert!(llzkStruct_MemberDefOpIsColumn(member));
-        llzkStruct_MemberDefOpSetIsColumn(member, false);
-        assert!(!llzkStruct_MemberDefOpIsColumn(member));
+        assert!(!llzkStruct_MemberDefOpGetColumnValue(member));
+        llzkStruct_MemberDefOpSetColumnValue(member, true);
+        assert!(llzkStruct_MemberDefOpGetColumnValue(member));
+        llzkStruct_MemberDefOpSetColumnValue(member, false);
+        assert!(!llzkStruct_MemberDefOpGetColumnValue(member));
     }
 }
 

@@ -10,7 +10,7 @@
       };
     };
     llzk-lib = {
-      url = "github:project-llzk/llzk-lib/iangneal/signal-capi";
+      url = "github:project-llzk/llzk-lib";
       inputs = {
         nixpkgs.follows = "llzk-pkgs/nixpkgs";
         flake-utils.follows = "llzk-pkgs/flake-utils";

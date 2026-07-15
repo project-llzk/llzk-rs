@@ -1,8 +1,8 @@
 use llzk_sys::{
     llzkOperationIsA_Struct_MemberDefOp, llzkOperationIsA_Struct_StructDefOp,
-    llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpIsColumn,
-    llzkStruct_MemberDefOpIsSignal, llzkStruct_MemberDefOpSetIsColumn,
-    llzkStruct_MemberDefOpSetIsSignal, llzkStruct_MemberDefOpSetPublicAttr,
+    llzkStruct_MemberDefOpGetColumnValue, llzkStruct_MemberDefOpGetSignalValue,
+    llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetColumnValue,
+    llzkStruct_MemberDefOpSetPublicAttr, llzkStruct_MemberDefOpSetSignalValue,
     llzkStruct_MemberReadOpBuild, llzkStruct_StructDefOpGetBody,
     llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
     llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetFullyQualifiedName,
@@ -305,26 +305,26 @@ impl<'a, 'c: 'a> StructDefOpMutLike<'c, 'a> for StructDefOpRefMut<'c, 'a> {}
 /// Defines the public API of the 'struct.member' op.
 pub trait MemberDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns true if the member is stored as a witness signal.
-    fn is_signal(&self) -> bool {
-        unsafe { llzkStruct_MemberDefOpIsSignal(self.to_raw()) }
+    fn signal(&self) -> bool {
+        unsafe { llzkStruct_MemberDefOpGetSignalValue(self.to_raw()) }
     }
 
     /// Sets or unsets the `signal` attribute.
-    fn set_is_signal(&self, value: bool) {
+    fn set_signal(&self, value: bool) {
         unsafe {
-            llzkStruct_MemberDefOpSetIsSignal(self.to_raw(), value);
+            llzkStruct_MemberDefOpSetSignalValue(self.to_raw(), value);
         }
     }
 
     /// Returns true if the member supports offset table accesses.
-    fn is_column(&self) -> bool {
-        unsafe { llzkStruct_MemberDefOpIsColumn(self.to_raw()) }
+    fn column(&self) -> bool {
+        unsafe { llzkStruct_MemberDefOpGetColumnValue(self.to_raw()) }
     }
 
     /// Sets or unsets the `column` attribute.
-    fn set_is_column(&self, value: bool) {
+    fn set_column(&self, value: bool) {
         unsafe {
-            llzkStruct_MemberDefOpSetIsColumn(self.to_raw(), value);
+            llzkStruct_MemberDefOpSetColumnValue(self.to_raw(), value);
         }
     }
 
@@ -447,8 +447,8 @@ where
         .map_err(Into::into)
         .and_then(TryInto::try_into)
         .inspect(|op: &MemberDefOp<'c>| {
-            op.set_is_signal(is_signal);
-            op.set_is_column(is_column);
+            op.set_signal(is_signal);
+            op.set_column(is_column);
             op.set_public_attr(is_public);
         })
 }

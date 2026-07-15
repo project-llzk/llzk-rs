@@ -88,22 +88,22 @@ fn signal_column_and_public_member() {
     let member =
         dialect::r#struct::member(loc, "foo", FeltType::new(&context), true, true, true).unwrap();
 
-    assert!(member.is_signal());
-    assert!(member.is_column());
+    assert!(member.signal());
+    assert!(member.column());
     assert!(member.has_public_attr());
     assert!(member.to_string().contains("column"));
     assert!(member.to_string().contains("signal"));
     assert!(member.to_string().contains("llzk.pub"));
 
-    member.set_is_signal(false);
-    member.set_is_column(false);
-    assert!(!member.is_signal());
-    assert!(!member.is_column());
+    member.set_signal(false);
+    member.set_column(false);
+    assert!(!member.signal());
+    assert!(!member.column());
 
-    member.set_is_signal(true);
-    member.set_is_column(true);
-    assert!(member.is_signal());
-    assert!(member.is_column());
+    member.set_signal(true);
+    member.set_column(true);
+    assert!(member.signal());
+    assert!(member.column());
 }
 
 #[test]
