@@ -77,10 +77,7 @@ pub fn dictionary_attr_entries<'c>(attr: Attribute<'c>) -> Vec<NamedAttribute<'c
 }
 
 /// Returns the named attribute with `name` from `dict`, if present.
-pub fn dictionary_attr_get_named<'c>(
-    dict: Attribute<'c>,
-    name: &str,
-) -> Option<Attribute<'c>> {
+pub fn dictionary_attr_get_named<'c>(dict: Attribute<'c>, name: &str) -> Option<Attribute<'c>> {
     let raw =
         unsafe { mlirDictionaryAttrGetElementByName(dict.to_raw(), StringRef::new(name).to_raw()) };
     unsafe { Attribute::from_option_raw(raw) }

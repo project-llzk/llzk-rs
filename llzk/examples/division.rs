@@ -11,7 +11,10 @@
 use std::{error::Error as StdError, result::Result as StdResult};
 
 // Commonly used types are re-exported in the prelude.
-use llzk::{builder::OpBuilder, prelude::*};
+use llzk::{
+    builder::{OpBuilder, OpBuilderLike},
+    prelude::*,
+};
 
 type Result<T> = StdResult<T, Box<dyn StdError>>;
 
@@ -174,18 +177,15 @@ fn constraints<'c>(
     // The instance that we are constraining is passed as the first argument.
     let self_value = block.argument(0)?;
     // And then read the witness output from the instance.
-    let c = block
-        .insert_operation_before(
-            ret_op,
-            dialect::r#struct::readm(
-                &builder,
-                location,
-                FeltType::new(context).into(),
-                self_value.into(),
-                out_field.member_name(),
-            )?,
-        )
-        .result(0)?;
+    builder.set_insertion_point(ret_op);
+    let c = dialect::r#struct::readm(
+        &builder,
+        location,
+        FeltType::new(context).into(),
+        self_value.into(),
+        out_field.member_name(),
+    )?
+    .result(0)?;
 
     // The constraint is  c * b = a
     // We can use the `constrain.eq` operation for emitting equality constraints.

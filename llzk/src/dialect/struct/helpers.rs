@@ -10,7 +10,7 @@ use melior::{
 
 use crate::{
     attributes::NamedAttribute,
-    builder::{EntryPoint, OpBuilder},
+    builder::{EntryPoint, OpBuilder, OpBuilderLike},
     dialect,
     error::Error,
     prelude::{
@@ -172,16 +172,15 @@ pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>,
                             fst.name().as_string_ref().as_str()?.to_owned(),
                         ));
                     }
-                    let reg = block.insert_operation_before(
-                        fst,
-                        super::readm(
-                            &OpBuilder::new(context, EntryPoint::Before(fst)),
-                            loc,
-                            FeltType::new(context).into(),
-                            block.argument(0)?.into(),
-                            "reg",
-                        )?,
-                    );
+                    let builder = OpBuilder::new(context, EntryPoint::Before(fst));
+                    let reg = super::readm(
+                        &builder,
+                        loc,
+                        FeltType::new(context).into(),
+                        block.argument(0)?.into(),
+                        "reg",
+                    )?;
+                    builder.set_insertion_point_after(reg);
                     block.insert_operation_after(
                         reg,
                         dialect::constrain::eq(

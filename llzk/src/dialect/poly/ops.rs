@@ -617,22 +617,21 @@ pub fn is_unifiable_cast_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool
 
 /// Constructs a 'poly.applymap' operation.
 pub fn applymap<'c, 'a>(
-    builder: &'c impl OpBuilderLike<'c>,
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     map: Attribute<'c>,
     map_operands: &[Value<'c, '_>],
 ) -> OperationRef<'c, 'a> {
     let value_range = OwningValueRange::from(map_operands);
     assert!(unsafe { mlir_sys::mlirAttributeIsAAffineMap(map.to_raw()) });
-    let op = unsafe {
-        Operation::from_raw(llzkPoly_ApplyMapOpBuildWithAffineMap(
+    unsafe {
+        OperationRef::from_raw(llzkPoly_ApplyMapOpBuildWithAffineMap(
             builder.to_raw(),
             location.to_raw(),
             mlir_sys::mlirAffineMapAttrGetValue(map.to_raw()),
             ValueRange::try_from(&value_range).unwrap().to_raw(),
         ))
-    };
-    builder.insert(location, move |_, _| op)
+    }
 }
 
 /// Return `true` iff the given op is `poly.applymap`.

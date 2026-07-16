@@ -9,7 +9,7 @@ use llzk_sys::{
 use melior::StringRef;
 use melior::ir::attribute::StringAttribute;
 use melior::ir::{
-    Location, Operation, Type, TypeLike, Value, ValueLike,
+    Location, Operation, OperationRef, Type, TypeLike, Value, ValueLike,
     operation::{OperationBuilder, OperationLike},
 };
 use std::marker::PhantomData;
@@ -49,16 +49,16 @@ impl<'c, 'a> RecordValue<'c, 'a> {
 
 /// Creates a 'pod.new' operation from a list of initialization values. If the optional type
 /// of the result pod is not given, it will be inferred from the provided initialization values.
-pub fn new<'c, 'a>(
+pub fn new<'c, 'a, 'b>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
-    values: &[RecordValue<'c, 'a>],
+    values: &[RecordValue<'c, 'b>],
     r#type: Option<PodType<'c>>,
-) -> Operation<'c> {
+) -> OperationRef<'c, 'a> {
     let raw_values: Vec<_> = values.iter().map(RecordValue::to_raw).collect();
     if let Some(r#type) = r#type {
         unsafe {
-            Operation::from_raw(llzkPod_NewPodOpBuild(
+            OperationRef::from_raw(llzkPod_NewPodOpBuild(
                 builder.to_raw(),
                 location.to_raw(),
                 r#type.to_raw(),
@@ -68,7 +68,7 @@ pub fn new<'c, 'a>(
         }
     } else {
         unsafe {
-            Operation::from_raw(llzkPod_NewPodOpBuildInferredFromInitialValues(
+            OperationRef::from_raw(llzkPod_NewPodOpBuildInferredFromInitialValues(
                 builder.to_raw(),
                 location.to_raw(),
                 isize::try_from(raw_values.len()).expect("raw_values too large"),
@@ -80,16 +80,16 @@ pub fn new<'c, 'a>(
 
 /// Creates a 'pod.new' operation from a list of initialization values and a`MapOperandsBuilder`
 /// to instantiate top-level `affine_map` attributes appearing in the pod type.
-pub fn new_with_affine_init<'c, 'a>(
+pub fn new_with_affine_init<'c, 'a, 'b>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
-    values: &[RecordValue<'c, 'a>],
+    values: &[RecordValue<'c, 'b>],
     r#type: PodType<'c>,
     affine_init: MapOperandsBuilder,
-) -> Operation<'c> {
+) -> OperationRef<'c, 'a> {
     let raw_values: Vec<_> = values.iter().map(RecordValue::to_raw).collect();
     unsafe {
-        Operation::from_raw(llzkPod_NewPodOpBuildWithMapOperands(
+        OperationRef::from_raw(llzkPod_NewPodOpBuildWithMapOperands(
             builder.to_raw(),
             location.to_raw(),
             r#type.to_raw(),

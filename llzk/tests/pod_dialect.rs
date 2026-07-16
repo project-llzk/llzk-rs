@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 //! Integration tests for the pod dialect.
 
-use llzk::builder::OpBuilder;
+use llzk::builder::{OpBuilder, OpBuilderLike};
 use llzk::map_operands::MapOperandsBuilder;
 use llzk::prelude::melior_dialects::arith;
 use llzk::prelude::*;
@@ -138,7 +138,7 @@ fn pod_new_empty_and_inferred() {
     let op = dialect::pod::new(&builder, location, &[], None);
 
     let ir = format!("{op}");
-    let expected = "%pod = pod.new : <[]>\n";
+    let expected = "%pod = pod.new : <[]>";
     assert_eq!(ir, expected);
 }
 
@@ -150,12 +150,13 @@ fn pod_new_nonempty_and_inferred() {
     let module = Module::new(location);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
-    // Note: must keep hard ref to this op to prevent it being dropped.
-    let arith_op = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 42).into(),
-        location,
-    );
+    let arith_op = builder.insert(location, |context, location| {
+        arith::constant(
+            context,
+            IntegerAttribute::new(Type::index(context), 42).into(),
+            location,
+        )
+    });
     let values = vec![RecordValue::new(
         StringRef::new("field1"),
         arith_op.result(0).unwrap().into(),
@@ -163,7 +164,7 @@ fn pod_new_nonempty_and_inferred() {
     let op = dialect::pod::new(&builder, location, &values, None);
 
     let ir = format!("{op}");
-    let expected = "%pod = pod.new { @field1 = <<UNKNOWN SSA VALUE>> }  : <[@field1: index]>\n";
+    let expected = "%pod = pod.new { @field1 = %c42 }  : <[@field1: index]>";
     assert_eq!(ir, expected);
 }
 
@@ -180,7 +181,7 @@ fn pod_new_empty_with_empty_affine() {
     let op = dialect::pod::new_with_affine_init(&builder, location, &[], ty, map_operands);
 
     let ir = format!("{op}");
-    let expected = "%pod = pod.new : <[]>\n";
+    let expected = "%pod = pod.new : <[]>";
     assert_eq!(ir, expected);
 }
 
@@ -192,12 +193,13 @@ fn pod_new_empty_with_nonempty_affine() {
     let module = Module::new(location);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
-    // Note: must keep hard ref to this op to prevent it being dropped.
-    let arith_op = arith::constant(
-        &context,
-        IntegerAttribute::new(Type::index(&context), 42).into(),
-        location,
-    );
+    let arith_op = builder.insert(location, |context, location| {
+        arith::constant(
+            context,
+            IntegerAttribute::new(Type::index(context), 42).into(),
+            location,
+        )
+    });
 
     let affine_map = Attribute::parse(&context, "affine_map<()[s0, s1] -> (s0 + s1)>")
         .expect("failed to parse affine_map");
@@ -228,8 +230,6 @@ fn pod_new_empty_with_nonempty_affine() {
     let op = dialect::pod::new_with_affine_init(&builder, location, &[], ty, map_operands);
 
     let ir = format!("{op}");
-    let expected = r"#map = affine_map<()[s0, s1] -> (s0 + s1)>
-%pod = pod.new()[<<UNKNOWN SSA VALUE>>, <<UNKNOWN SSA VALUE>>], ()[<<UNKNOWN SSA VALUE>>, <<UNKNOWN SSA VALUE>>] : <[@a: !felt.type, @b: !array.type<#map x !felt.type>, @c: !struct.type<@S<[#map]>>]>
-";
+    let expected = "%pod = pod.new()[%c42, %c42], ()[%c42, %c42] : <[@a: !felt.type, @b: !array.type<affine_map<()[s0, s1] -> (s0 + s1)> x !felt.type>, @c: !struct.type<@S<[affine_map<()[s0, s1] -> (s0 + s1)>]>>]>";
     assert_eq!(ir, expected);
 }
