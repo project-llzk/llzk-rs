@@ -32,11 +32,11 @@
         "release-helpers": "release-helpers"
       },
       "locked": {
-        "lastModified": 1784177907,
-        "narHash": "sha256-70Y3oc6QUvdkOBHOUcMpAEq3Y0VelWgVUX9cLAmYFQA=",
+        "lastModified": 1784220881,
+        "narHash": "sha256-krceA7+dR3M4jr5X+dDsz8duZaqxELuf1VOC5hr4LDY=",
         "owner": "project-llzk",
         "repo": "llzk-lib",
-        "rev": "4cd8e40387495b6f94281def0f8210387332899a",
+        "rev": "84d262832dfdb6a847f9eaa78951ada9d4b6fc1e",
         "type": "github"
       },
       "original": {
