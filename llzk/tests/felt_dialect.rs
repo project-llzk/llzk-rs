@@ -1,6 +1,7 @@
 #![allow(unused_crate_dependencies)]
 //! Integration tests for the felt dialect.
 
+use llzk::builder::{OpBuilder, OpBuilderLike as _};
 use llzk::prelude::*;
 
 mod common;
@@ -11,7 +12,9 @@ fn f_constant() {
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_constant",
         FunctionType::new(&context, &[], &[FeltType::new(&context).into()]),
@@ -20,21 +23,18 @@ fn f_constant() {
     )
     .unwrap();
     {
-        let block = Block::new(&[]);
-        let felt = block.append_operation(
-            dialect::felt::constant(loc, FeltConstAttribute::new(&context, 42, None)).unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
-            loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[]));
+        builder.set_insertion_point_at_start(block);
+        let felt =
+            dialect::felt::constant(&builder, loc, FeltConstAttribute::new(&context, 42, None))
+                .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -52,7 +52,9 @@ fn f_add() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_add",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -61,26 +63,22 @@ fn f_add() {
     )
     .unwrap();
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::add(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::add(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -98,7 +96,9 @@ fn f_sub() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_sub",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -107,26 +107,22 @@ fn f_sub() {
     )
     .unwrap();
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::sub(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::sub(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -144,7 +140,9 @@ fn f_mul() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_mul",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -153,26 +151,22 @@ fn f_mul() {
     )
     .unwrap();
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::mul(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::mul(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -190,7 +184,9 @@ fn f_div() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_div",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -199,26 +195,22 @@ fn f_div() {
     )
     .unwrap();
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::div(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::div(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -236,7 +228,9 @@ fn f_uintdiv() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_uintdiv",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -246,26 +240,22 @@ fn f_uintdiv() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::uintdiv(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::uintdiv(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -283,7 +273,9 @@ fn f_sintdiv() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_sintdiv",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -293,26 +285,22 @@ fn f_sintdiv() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::sintdiv(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::sintdiv(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -330,7 +318,9 @@ fn f_umod() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_umod",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -340,26 +330,22 @@ fn f_umod() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::umod(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::umod(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -377,7 +363,9 @@ fn f_smod() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_smod",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -387,26 +375,22 @@ fn f_smod() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::smod(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::smod(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -424,7 +408,9 @@ fn f_neg() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_neg",
         FunctionType::new(&context, &[felt_type], &[felt_type]),
@@ -433,20 +419,16 @@ fn f_neg() {
     )
     .unwrap();
     {
-        let block = Block::new(&[(felt_type, loc)]);
-        let felt = block
-            .append_operation(dialect::felt::neg(loc, block.argument(0).unwrap().into()).unwrap());
-        block.append_operation(dialect::function::r#return(
-            loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::neg(&builder, loc, block.argument(0).unwrap().into()).unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -464,7 +446,9 @@ fn f_inv() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_inv",
         FunctionType::new(&context, &[felt_type], &[felt_type]),
@@ -474,20 +458,16 @@ fn f_inv() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc)]);
-        let felt = block
-            .append_operation(dialect::felt::inv(loc, block.argument(0).unwrap().into()).unwrap());
-        block.append_operation(dialect::function::r#return(
-            loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::inv(&builder, loc, block.argument(0).unwrap().into()).unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -505,7 +485,9 @@ fn f_bit_not() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_bit_not",
         FunctionType::new(&context, &[felt_type], &[felt_type]),
@@ -515,21 +497,17 @@ fn f_bit_not() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::bit_not(loc, block.argument(0).unwrap().into()).unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
-            loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt =
+            dialect::felt::bit_not(&builder, loc, block.argument(0).unwrap().into()).unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -547,7 +525,9 @@ fn f_shl() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_shl",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -557,26 +537,22 @@ fn f_shl() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::shl(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::shl(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -594,7 +570,9 @@ fn f_shr() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_shr",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -604,26 +582,22 @@ fn f_shr() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::shr(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::shr(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -641,7 +615,9 @@ fn f_bit_and() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_bit_and",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -651,26 +627,22 @@ fn f_bit_and() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::bit_and(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::bit_and(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -688,7 +660,9 @@ fn f_bit_or() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_bit_or",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -698,26 +672,22 @@ fn f_bit_or() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::bit_or(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::bit_or(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -735,7 +705,9 @@ fn f_bit_xor() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "f_bit_xor",
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
@@ -745,26 +717,22 @@ fn f_bit_xor() {
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
     {
-        let block = Block::new(&[(felt_type, loc), (felt_type, loc)]);
-        let felt = block.append_operation(
-            dialect::felt::bit_xor(
-                loc,
-                block.argument(0).unwrap().into(),
-                block.argument(1).unwrap().into(),
-            )
-            .unwrap(),
-        );
-        block.append_operation(dialect::function::r#return(
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+        builder.set_insertion_point_at_start(block);
+        let felt = dialect::felt::bit_xor(
+            &builder,
             loc,
-            &[felt.result(0).unwrap().into()],
-        ));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+            block.argument(0).unwrap().into(),
+            block.argument(1).unwrap().into(),
+        )
+        .unwrap();
+        dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");

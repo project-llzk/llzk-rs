@@ -95,7 +95,7 @@ pub trait OpBuilderLike<'c> {
 
     /// Inserts the operation produced by the closure and returns a reference to it.
     fn insert<'a, F: FnOnce(&'c Context, Location<'c>) -> Operation<'c>>(
-        &'c self,
+        &self,
         loc: Location<'c>,
         f: F,
     ) -> OperationRef<'c, 'a> {

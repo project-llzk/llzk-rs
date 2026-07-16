@@ -1,5 +1,7 @@
 //! APIs for the different dialects available in LLZK.
 
+use crate::{builder::OpBuilderLike, error::Error};
+
 pub mod array;
 pub mod bool;
 pub mod cast;
@@ -13,6 +15,14 @@ pub mod poly;
 pub mod ram;
 pub mod r#struct;
 pub mod verif;
+
+/// A no-op callback for region-building functions.
+///
+/// Use this as the `fill` callback when creating an operation with an empty
+/// region so body contents can be added later.
+pub fn empty_region<'c>(_: &impl OpBuilderLike<'c>) -> Result<(), Error> {
+    Ok(())
+}
 
 /// Functions for working with `builtin.module` in LLZK.
 pub mod module {

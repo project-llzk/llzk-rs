@@ -1,9 +1,19 @@
+use super::StructType;
+use crate::{
+    builder::{OpBuilder, OpBuilderLike},
+    dialect::function::FuncDefOpRef,
+    error::Error,
+    macros::llzk_op_type,
+    prelude::SymbolRefAttribute,
+};
 use llzk_sys::{
     llzkOperationIsA_Struct_MemberDefOp, llzkOperationIsA_Struct_StructDefOp,
+    llzkStruct_CreateStructOpBuild, llzkStruct_MemberDefOpBuild,
     llzkStruct_MemberDefOpGetColumnValue, llzkStruct_MemberDefOpGetSignalValue,
     llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetColumnValue,
     llzkStruct_MemberDefOpSetPublicAttr, llzkStruct_MemberDefOpSetSignalValue,
-    llzkStruct_MemberReadOpBuild, llzkStruct_StructDefOpGetBody,
+    llzkStruct_MemberReadOpBuild, llzkStruct_MemberReadOpBuildWithLiteralDistance,
+    llzkStruct_MemberWriteOpBuild, llzkStruct_StructDefOpBuild, llzkStruct_StructDefOpGetBody,
     llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
     llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetFullyQualifiedName,
     llzkStruct_StructDefOpGetMemberDef, llzkStruct_StructDefOpGetMemberDefs,
@@ -13,20 +23,16 @@ use llzk_sys::{
     llzkStruct_StructDefOpGetType, llzkStruct_StructDefOpGetTypeWithParams,
     llzkStruct_StructDefOpHasColumns, llzkStruct_StructDefOpIsMainComponent,
 };
-use melior::ir::{
-    Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
-    OperationRef, Region, RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
-    attribute::{ArrayAttribute, FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
-    operation::{OperationBuilder, OperationLike, OperationMutLike},
+use melior::{
+    StringRef,
+    ir::{
+        Attribute, AttributeLike as _, Block, BlockRef, Identifier, Location, OperationRef,
+        RegionLike as _, RegionRef, Type, TypeLike as _, Value, ValueLike as _,
+        attribute::{ArrayAttribute, FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
+        operation::{OperationLike, OperationMutLike},
+    },
 };
 use mlir_sys::{MlirAttribute, MlirOperation};
-
-use crate::{
-    builder::OpBuilderLike, dialect::function::FuncDefOpRef, error::Error, ident,
-    macros::llzk_op_type, prelude::SymbolRefAttribute,
-};
-
-use super::StructType;
 
 //===----------------------------------------------------------------------===//
 // StructDefOpLike
@@ -111,28 +117,25 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     fn find_or_create_member_def<F>(
         &self,
         name: &str,
-        f: F,
+        build_member_def: F,
     ) -> Result<MemberDefOpRef<'c, 'a>, Error>
     where
-        F: FnOnce() -> Result<MemberDefOp<'c>, Error>,
+        F: FnOnce(&OpBuilder<'c, '_>) -> Result<MemberDefOpRef<'c, 'a>, Error>,
     {
         match self.find_member_def(name) {
             Some(f) => Ok(f),
             None => {
-                let op = f()?;
-                let region = self.region(0)?;
+                let region = self.body_region();
                 let block = region
                     .first_block()
                     .unwrap_or_else(|| region.append_block(Block::new(&[])));
-
-                let member_ref = block.append_operation(op.into());
-
-                Ok(member_ref.try_into()?)
+                let builder = OpBuilder::at_block_end(unsafe { self.context().to_ref() }, block);
+                build_member_def(&builder)
             }
         }
     }
 
-    /// Returns a vector of MemberDefOp operations inside this struct.
+    /// Returns a vector of the member definitions inside this struct.
     ///
     /// # Panics
     ///
@@ -385,34 +388,38 @@ impl<'a, 'c: 'a> MemberDefOpLike<'c, 'a> for MemberDefOpRefMut<'c, 'a> {}
 // Operation factories
 //===----------------------------------------------------------------------===//
 
-/// Creates a 'struct.def' op
-pub fn def<'c, I>(
+/// Creates a 'struct.def' op and fills its body with operations produced by the callback.
+///
+/// Use [`crate::dialect::empty_region`] as the `fill` callback to leave the body empty so contents
+/// can be added later.
+pub fn def<'c, 'a, B>(
+    builder: &B,
     location: Location<'c>,
     name: &str,
-    region_ops: I,
-) -> Result<StructDefOp<'c>, Error>
+    fill: impl FnOnce(&B) -> Result<(), Error>,
+) -> Result<StructDefOpRef<'c, 'a>, Error>
 where
-    I: IntoIterator<Item = Result<Operation<'c>, Error>>,
+    B: OpBuilderLike<'c>,
 {
     let ctx = location.context();
-    let region = Region::new();
-    let block = Block::new(&[]);
-    region_ops
-        .into_iter()
-        .try_for_each(|op| -> Result<(), Error> {
-            block.append_operation(op?);
-            Ok(())
-        })?;
-    region.append_block(block);
-    let name: Attribute = StringAttribute::new(unsafe { ctx.to_ref() }, name).into();
-    let attrs = [(ident!(ctx, "sym_name"), name)];
-
-    OperationBuilder::new("struct.def", location)
-        .add_attributes(&attrs)
-        .add_regions([region])
-        .build()
-        .map_err(Into::into)
-        .and_then(TryInto::try_into)
+    let op = unsafe {
+        OperationRef::from_raw(llzkStruct_StructDefOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            Identifier::new(ctx.to_ref(), name).to_raw(),
+        ))
+    };
+    let op: StructDefOpRef<'c, 'a> = op.try_into()?;
+    let region = op.body_region();
+    let block = match region.first_block() {
+        Some(block) => block,
+        None => region.append_block(Block::new(&[])),
+    };
+    let saved = builder.save_insertion_point();
+    builder.set_insertion_point_at_start(block);
+    let res = fill(builder);
+    builder.restore_insertion_point(saved);
+    res.map(|_| op)
 }
 
 /// Return `true` iff the given op is `struct.def`.
@@ -422,35 +429,33 @@ pub fn is_struct_def<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates a 'struct.member' op
-pub fn member<'c, T>(
+pub fn member<'c, 'a, T>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     name: &str,
     r#type: T,
     is_signal: bool,
     is_column: bool,
     is_public: bool,
-) -> Result<MemberDefOp<'c>, Error>
+) -> Result<MemberDefOpRef<'c, 'a>, Error>
 where
     T: Into<Type<'c>>,
 {
-    let ctx = location.context();
-    let r#type = TypeAttribute::new(r#type.into());
-    OperationBuilder::new("struct.member", location)
-        .add_attributes(&[
-            (
-                ident!(ctx, "sym_name"),
-                StringAttribute::new(unsafe { ctx.to_ref() }, name).into(),
-            ),
-            (ident!(ctx, "type"), r#type.into()),
-        ])
-        .build()
-        .map_err(Into::into)
-        .and_then(TryInto::try_into)
-        .inspect(|op: &MemberDefOp<'c>| {
-            op.set_signal(is_signal);
-            op.set_column(is_column);
-            op.set_public_attr(is_public);
-        })
+    let r#type = r#type.into();
+    unsafe {
+        OperationRef::from_raw(llzkStruct_MemberDefOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            StringRef::new(name).to_raw(),
+            r#type.to_raw(),
+            is_signal,
+            is_column,
+        ))
+    }
+    .try_into()
+    .inspect(|op: &MemberDefOpRef<'c, 'a>| {
+        op.set_public_attr(is_public);
+    })
 }
 
 /// Return `true` iff the given op is `struct.member`.
@@ -483,11 +488,30 @@ pub fn readm<'c, 'a>(
     }
 }
 
-/// Creates a 'struct.readm' op.
-///
-/// This factory method is not implemented yet.
-pub fn readm_with_offset<'c>() -> Operation<'c> {
-    todo!()
+/// Creates a 'struct.readm' op with an offset table access. This is only valid if the member is marked as a column.
+pub fn readm_with_offset<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    result_type: Type<'c>,
+    component: Value<'c, '_>,
+    member_name: &str,
+    distance: i64,
+) -> Result<OperationRef<'c, 'a>, Error> {
+    unsafe {
+        let raw = llzkStruct_MemberReadOpBuildWithLiteralDistance(
+            builder.to_raw(),
+            location.to_raw(),
+            result_type.to_raw(),
+            component.to_raw(),
+            Identifier::new(result_type.context().to_ref(), member_name).to_raw(),
+            distance,
+        );
+        if raw.ptr.is_null() {
+            Err(Error::BuildMethodFailed("readm_with_offset"))
+        } else {
+            Ok(OperationRef::from_raw(raw))
+        }
+    }
 }
 
 /// Return `true` iff the given op is `struct.readm`.
@@ -497,20 +521,24 @@ pub fn is_struct_readm<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates a 'struct.writem' op.
-pub fn writem<'c>(
+pub fn writem<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     component: Value<'c, '_>,
     member_name: &str,
     value: Value<'c, '_>,
-) -> Result<Operation<'c>, Error> {
+) -> Result<OperationRef<'c, 'a>, Error> {
     let context = location.context();
     let member_name = FlatSymbolRefAttribute::new(unsafe { context.to_ref() }, member_name);
-    let attrs = [(ident!(context, "member_name"), member_name.into())];
-    OperationBuilder::new("struct.writem", location)
-        .add_operands(&[component, value])
-        .add_attributes(&attrs)
-        .build()
-        .map_err(Into::into)
+    Ok(unsafe {
+        OperationRef::from_raw(llzkStruct_MemberWriteOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            component.to_raw(),
+            value.to_raw(),
+            member_name.to_raw(),
+        ))
+    })
 }
 
 /// Return `true` iff the given op is `struct.writem`.
@@ -520,11 +548,18 @@ pub fn is_struct_writem<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates a 'struct.new' op
-pub fn new<'c>(location: Location<'c>, r#type: StructType<'c>) -> Operation<'c> {
-    OperationBuilder::new("struct.new", location)
-        .add_results(&[r#type.into()])
-        .build()
-        .expect("valid operation")
+pub fn new<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    r#type: StructType<'c>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkStruct_CreateStructOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            r#type.to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `struct.new`.

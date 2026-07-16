@@ -5,7 +5,6 @@ use crate::{
 };
 use mlir_sys::mlirUnitAttrGet;
 use rstest::rstest;
-use std::ptr::null;
 
 #[test]
 fn test_mlir_get_dialect_handle_llzk_boolean() {
@@ -29,7 +28,7 @@ fn test_llzk_felt_cmp_predicate_attr_get(
 ) {
     unsafe {
         let attr = llzkBool_FeltCmpPredicateAttrGet(context.ctx, cmp);
-        assert_ne!(attr.ptr, null());
+        assert_ne!(attr.ptr, std::ptr::null());
     }
 }
 

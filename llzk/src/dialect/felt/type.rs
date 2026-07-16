@@ -76,8 +76,9 @@ pub fn is_felt_type(t: Type) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::builder::OpBuilder;
     use crate::context::LlzkContext;
-    use melior::ir::{Location, operation::OperationLike};
+    use melior::ir::{Location, Module, operation::OperationLike};
     use rstest::rstest;
 
     #[rstest]
@@ -88,7 +89,9 @@ mod tests {
         // Test by printing.
         assert_eq!(t.to_string(), format!("!felt.type<\"{field}\">"));
         // And by using some op that we validate.
-        let op = crate::dialect::llzk::nondet(Location::unknown(&ctx), t.into());
+        let module = Module::new(Location::unknown(&ctx));
+        let builder = OpBuilder::at_block_begin(&ctx, module.body());
+        let op = crate::dialect::llzk::nondet(&builder, Location::unknown(&ctx), t.into());
         assert!(op.verify());
     }
 }

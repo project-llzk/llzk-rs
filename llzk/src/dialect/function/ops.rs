@@ -10,7 +10,6 @@ use crate::{
     map_operands::MapOperandsBuilder,
     symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
 };
-
 use llzk_sys::{
     llzkFunction_CallOpBuild, llzkFunction_CallOpBuildWithMapOperands,
     llzkFunction_CallOpBuildWithTemplateParams, llzkFunction_CallOpCalleeIsCompute,
@@ -42,16 +41,17 @@ use llzk_sys::{
     llzkFunction_FuncDefOpSetArgNameAttr, llzkFunction_FuncDefOpSetFunctionType,
     llzkFunction_FuncDefOpSetResAttrs, llzkFunction_FuncDefOpSetResName,
     llzkFunction_FuncDefOpSetResNameAttr, llzkFunction_FuncDefOpSetSymName,
-    llzkOperationIsA_Function_CallOp, llzkOperationIsA_Function_FuncDefOp,
+    llzkFunction_ReturnOpBuild, llzkOperationIsA_Function_CallOp,
+    llzkOperationIsA_Function_FuncDefOp,
 };
 use melior::{
     Context, StringRef,
     ir::{
         Attribute, AttributeLike, BlockLike as _, Location, Operation, OperationRef,
-        RegionLike as _, RegionRef, Type, TypeLike, Value,
+        RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
         attribute::{StringAttribute, TypeAttribute},
         block::BlockArgument,
-        operation::{OperationBuilder, OperationLike, OperationMutLike},
+        operation::{OperationLike, OperationMutLike},
         r#type::FunctionType,
     },
 };
@@ -638,18 +638,19 @@ fn prepare_arg_attrs<'c>(
 /// Creates a 'function.def' operation. If the arg_attrs parameter is None creates as many empty
 /// argument attributes as input arguments there are to satisfy the requirement of one
 /// DictionaryAttr per argument.
-pub fn def<'c>(
+pub fn def<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     name: &str,
     r#type: FunctionType<'c>,
     attrs: &[NamedAttribute<'c>],
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
-) -> Result<FuncDefOp<'c>, Error> {
+) -> Result<FuncDefOpRef<'c, 'a>, Error> {
     let ctx = location.context();
     let name = StringRef::new(name);
     let attrs: Vec<_> = attrs.iter().map(tuple_to_raw_named_attr).collect();
     let arg_attrs = prepare_arg_attrs(arg_attrs, r#type.input_count(), unsafe { ctx.to_ref() });
-    unsafe {
+    let op = unsafe {
         Operation::from_raw(llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs(
             location.to_raw(),
             name.to_raw(),
@@ -659,22 +660,24 @@ pub fn def<'c>(
             isize::try_from(arg_attrs.len()).expect("arg_attrs too large"),
             arg_attrs.as_ptr(),
         ))
-    }
-    .try_into()
+    };
+    // TODO: insertion is temporary until the CAPI is updated to do the insertion
+    builder.insert(location, |_, _| op).try_into()
 }
 
 /// Creates a `function.def` operation and optionally sets both argument and result attributes.
-pub fn def_with_signature_attrs<'c>(
+pub fn def_with_signature_attrs<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     name: &str,
     r#type: FunctionType<'c>,
     attrs: &[NamedAttribute<'c>],
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
     res_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
-) -> Result<FuncDefOp<'c>, Error> {
+) -> Result<FuncDefOpRef<'c, 'a>, Error> {
     let context_ref = location.context();
     let context = unsafe { context_ref.to_ref() };
-    let op = def(location, name, r#type, attrs, arg_attrs)?;
+    let op = def(builder, location, name, r#type, attrs, arg_attrs)?;
     if let Some(arg_attrs) = arg_attrs {
         let attr = ArrayAttribute::new(
             context,
@@ -788,11 +791,20 @@ pub fn is_func_call<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 /// This operation is the terminator op for `function.def` and must be the last operation of the
 /// last block in it. The values array must match the number of outputs, and their types, of the
 /// parent function.
-pub fn r#return<'c>(location: Location<'c>, values: &[Value<'c, '_>]) -> Operation<'c> {
-    OperationBuilder::new("function.return", location)
-        .add_operands(values)
-        .build()
-        .unwrap()
+pub fn r#return<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    values: &[Value<'c, '_>],
+) -> OperationRef<'c, 'a> {
+    let raw_values = values.iter().map(|v| v.to_raw()).collect::<Vec<_>>();
+    unsafe {
+        OperationRef::from_raw(llzkFunction_ReturnOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            isize::try_from(raw_values.len()).expect("values too large"),
+            raw_values.as_ptr(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `function.return`.

@@ -1,17 +1,16 @@
 //! `array` dialect operations and helper functions.
+use super::ArrayType;
+use crate::{builder::OpBuilderLike, map_operands::MapOperandsBuilder, value_ext::ValueRange};
 use llzk_sys::{
-    llzkArray_CreateArrayOpBuildWithMapOperands, llzkArray_CreateArrayOpBuildWithValues,
+    llzkArray_ArrayLengthOpBuild, llzkArray_CreateArrayOpBuildWithMapOperands,
+    llzkArray_CreateArrayOpBuildWithValues, llzkArray_ExtractArrayOpBuild,
+    llzkArray_InsertArrayOpBuild, llzkArray_ReadArrayOpBuild, llzkArray_WriteArrayOpBuild,
 };
 use melior::ir::{
-    Location, Operation, OperationRef, Type, TypeLike, Value, ValueLike,
-    attribute::DenseI32ArrayAttribute,
-    operation::{OperationBuilder, OperationLike},
+    Location, OperationRef, Type, TypeLike, Value, ValueLike, attribute::DenseI32ArrayAttribute,
+    operation::OperationLike,
 };
 use mlir_sys::MlirOperation;
-
-use crate::{builder::OpBuilderLike, map_operands::MapOperandsBuilder, value_ext::ValueRange};
-
-use super::ArrayType;
 
 /// Possible constructors for creating `array.new` operations.
 #[derive(Debug)]
@@ -108,29 +107,50 @@ pub fn is_array_new<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
     crate::operation::isa(op, "array.new")
 }
 
-fn read_like_op<'c>(
-    name: &str,
+fn read_like_op<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     result: Type<'c>,
     arr_ref: Value<'c, '_>,
     indices: &[Value<'c, '_>],
-) -> Operation<'c> {
-    OperationBuilder::new(name, location)
-        .add_results(&[result])
-        .add_operands(&[arr_ref])
-        .add_operands(indices)
-        .build()
-        .expect("valid operation")
+    build: unsafe extern "C" fn(
+        llzk_sys::MlirOpBuilder,
+        mlir_sys::MlirLocation,
+        mlir_sys::MlirType,
+        mlir_sys::MlirValue,
+        isize,
+        *const mlir_sys::MlirValue,
+    ) -> mlir_sys::MlirOperation,
+) -> OperationRef<'c, 'a> {
+    let raw_indices = indices.iter().map(|v| v.to_raw()).collect::<Vec<_>>();
+    unsafe {
+        OperationRef::from_raw(build(
+            builder.to_raw(),
+            location.to_raw(),
+            result.to_raw(),
+            arr_ref.to_raw(),
+            isize::try_from(raw_indices.len()).expect("indices too large"),
+            raw_indices.as_ptr(),
+        ))
+    }
 }
 
 /// Creates an 'array.read' operation.
-pub fn read<'c>(
+pub fn read<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     result: Type<'c>,
     arr_ref: Value<'c, '_>,
     indices: &[Value<'c, '_>],
-) -> Operation<'c> {
-    read_like_op("array.read", location, result, arr_ref, indices)
+) -> OperationRef<'c, 'a> {
+    read_like_op(
+        builder,
+        location,
+        result,
+        arr_ref,
+        indices,
+        llzkArray_ReadArrayOpBuild,
+    )
 }
 
 /// Return `true` iff the given op is `array.read`.
@@ -140,13 +160,21 @@ pub fn is_array_read<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates an 'array.extract' operation.
-pub fn extract<'c>(
+pub fn extract<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     result: Type<'c>,
     arr_ref: Value<'c, '_>,
     indices: &[Value<'c, '_>],
-) -> Operation<'c> {
-    read_like_op("array.extract", location, result, arr_ref, indices)
+) -> OperationRef<'c, 'a> {
+    read_like_op(
+        builder,
+        location,
+        result,
+        arr_ref,
+        indices,
+        llzkArray_ExtractArrayOpBuild,
+    )
 }
 
 /// Return `true` iff the given op is `array.extract`.
@@ -155,29 +183,50 @@ pub fn is_array_extract<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
     crate::operation::isa(op, "array.extract")
 }
 
-fn write_like_op<'c>(
-    name: &str,
+fn write_like_op<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     arr_ref: Value<'c, '_>,
     indices: &[Value<'c, '_>],
     rvalue: Value<'c, '_>,
-) -> Operation<'c> {
-    OperationBuilder::new(name, location)
-        .add_operands(&[arr_ref])
-        .add_operands(indices)
-        .add_operands(&[rvalue])
-        .build()
-        .expect("valid operation")
+    build: unsafe extern "C" fn(
+        llzk_sys::MlirOpBuilder,
+        mlir_sys::MlirLocation,
+        mlir_sys::MlirValue,
+        isize,
+        *const mlir_sys::MlirValue,
+        mlir_sys::MlirValue,
+    ) -> mlir_sys::MlirOperation,
+) -> OperationRef<'c, 'a> {
+    let raw_indices = indices.iter().map(|v| v.to_raw()).collect::<Vec<_>>();
+    unsafe {
+        OperationRef::from_raw(build(
+            builder.to_raw(),
+            location.to_raw(),
+            arr_ref.to_raw(),
+            isize::try_from(raw_indices.len()).expect("indices too large"),
+            raw_indices.as_ptr(),
+            rvalue.to_raw(),
+        ))
+    }
 }
 
 /// Creates an 'array.write' operation.
-pub fn write<'c>(
+pub fn write<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     arr_ref: Value<'c, '_>,
     indices: &[Value<'c, '_>],
     rvalue: Value<'c, '_>,
-) -> Operation<'c> {
-    write_like_op("array.write", location, arr_ref, indices, rvalue)
+) -> OperationRef<'c, 'a> {
+    write_like_op(
+        builder,
+        location,
+        arr_ref,
+        indices,
+        rvalue,
+        llzkArray_WriteArrayOpBuild,
+    )
 }
 
 /// Return `true` iff the given op is `array.write`.
@@ -187,13 +236,21 @@ pub fn is_array_write<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates an 'array.insert' operation.
-pub fn insert<'c>(
+pub fn insert<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     arr_ref: Value<'c, '_>,
     indices: &[Value<'c, '_>],
     rvalue: Value<'c, '_>,
-) -> Operation<'c> {
-    write_like_op("array.insert", location, arr_ref, indices, rvalue)
+) -> OperationRef<'c, 'a> {
+    write_like_op(
+        builder,
+        location,
+        arr_ref,
+        indices,
+        rvalue,
+        llzkArray_InsertArrayOpBuild,
+    )
 }
 
 /// Return `true` iff the given op is `array.insert`.
@@ -203,17 +260,20 @@ pub fn is_array_insert<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates an 'array.len' operation.
-pub fn len<'c>(
+pub fn len<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     arr_ref: Value<'c, '_>,
     dim: Value<'c, '_>,
-) -> Operation<'c> {
-    let ctx = location.context();
-    OperationBuilder::new("array.len", location)
-        .add_operands(&[arr_ref, dim])
-        .add_results(&[Type::index(unsafe { ctx.to_ref() })])
-        .build()
-        .expect("valid operation")
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkArray_ArrayLengthOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            arr_ref.to_raw(),
+            dim.to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `array.len`.

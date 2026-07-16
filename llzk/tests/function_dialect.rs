@@ -2,7 +2,9 @@
 //! Integration tests for the function dialect.
 
 use llzk::{
-    attributes::array::ArrayAttribute, builder::OpBuilder, map_operands::MapOperandsBuilder,
+    attributes::array::ArrayAttribute,
+    builder::{OpBuilder, OpBuilderLike},
+    map_operands::MapOperandsBuilder,
     prelude::*,
 };
 use llzk_sys::{FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME};
@@ -16,7 +18,9 @@ fn empty_function() {
     let context = LlzkContext::new();
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "empty",
         FunctionType::new(&context, &[], &[]),
@@ -25,15 +29,15 @@ fn empty_function() {
     )
     .unwrap();
     {
-        let block = Block::new(&[]);
-        block.append_operation(dialect::function::r#return(loc, &[]));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[]));
+        builder.set_insertion_point_at_start(block);
+        dialect::function::r#return(&builder, loc, &[]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -50,7 +54,9 @@ fn function_call() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "recursive",
         FunctionType::new(&context, &[], &[felt_type]),
@@ -59,8 +65,11 @@ fn function_call() {
     )
     .unwrap();
     {
-        let block = Block::new(&[]);
-        let builder = OpBuilder::at_block_begin(&context, &block);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[]));
+        builder.set_insertion_point_at_start(block);
         // Build call to itself
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
         let v = dialect::function::call(&builder, loc, name, &[], &[felt_type])
@@ -69,15 +78,10 @@ fn function_call() {
             .map(Value::from)
             .unwrap();
         // Build return operation
-        block.append_operation(dialect::function::r#return(loc, &[v]));
-        // Add Block to function
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        dialect::function::r#return(&builder, loc, &[v]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert_test!(f, module, @file "expected/function_call.mlir");
 }
 
@@ -88,7 +92,9 @@ fn function_call_with_map_operands() {
     let module = llzk_module(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         loc,
         "recursive",
         FunctionType::new(&context, &[], &[felt_type]),
@@ -97,8 +103,11 @@ fn function_call_with_map_operands() {
     )
     .unwrap();
     {
-        let block = Block::new(&[]);
-        let builder = OpBuilder::at_block_begin(&context, &block);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .append_block(Block::new(&[]));
+        builder.set_insertion_point_at_start(block);
         // Build call to itself
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
         let map_operands = MapOperandsBuilder::new();
@@ -115,35 +124,38 @@ fn function_call_with_map_operands() {
         .map(Value::from)
         .unwrap();
         // Build return operation
-        block.append_operation(dialect::function::r#return(loc, &[v]));
-        // Add Block to function
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        dialect::function::r#return(&builder, loc, &[v]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert_test!(f, module, @file "expected/function_call.mlir");
 }
 
-fn make_empty_struct<'c>(context: &'c LlzkContext, name: &str) -> StructDefOp<'c> {
+fn make_empty_struct<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    context: &'c LlzkContext,
+    name: &str,
+) -> StructDefOpRef<'c, 'a> {
     let loc = Location::unknown(context);
     let typ = StructType::from_str(context, name);
-    dialect::r#struct::def(loc, name, {
-        [
-            dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
-            dialect::r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
-        ]
+    dialect::r#struct::def(builder, loc, name, |builder| {
+        dialect::r#struct::helpers::compute_fn(builder, loc, typ, &[], None)?;
+        dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &[], None)?;
+        Ok(())
     })
     .unwrap()
 }
 
-fn make_product_struct<'c>(context: &'c LlzkContext, name: &str) -> StructDefOp<'c> {
+fn make_product_struct<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    context: &'c LlzkContext,
+    name: &str,
+) -> StructDefOpRef<'c, 'a> {
     let loc = Location::unknown(context);
     let typ = StructType::from_str(context, name);
-    dialect::r#struct::def(loc, name, {
-        [dialect::r#struct::helpers::product_fn(loc, typ, &[], None).map(Into::into)]
+    dialect::r#struct::def(builder, loc, name, |builder| {
+        dialect::r#struct::helpers::product_fn(builder, loc, typ, &[], None)?;
+        Ok(())
     })
     .unwrap()
 }
@@ -155,8 +167,8 @@ fn func_def_op_self_value_of_compute() {
     let module = llzk_module(Location::unknown(&context), None);
     let module_body = module.body();
 
-    let s = make_empty_struct(&context, "StructA");
-    let s = StructDefOpRef::try_from(module_body.append_operation(s.into())).unwrap();
+    let builder = OpBuilder::at_block_begin(&context, module_body);
+    let s = make_empty_struct(&builder, &context, "StructA");
     llzk::operation::verify_operation_with_diags(&s).expect("verification failed");
     log::info!("Struct passed verification");
 
@@ -165,8 +177,8 @@ fn func_def_op_self_value_of_compute() {
     // Get the expected value. The first operation in the compute function is
     // the CreateStructOp, whose first result is the self value.
     let expected = compute_fn
-        .region(0)
-        .expect("failed to get first region")
+        .body()
+        .expect("failed to get body region")
         .first_block()
         .expect("failed to get first block")
         .first_operation()
@@ -184,8 +196,8 @@ fn func_def_op_self_value_of_constrain() {
     let module = llzk_module(Location::unknown(&context), None);
     let module_body = module.body();
 
-    let s = make_empty_struct(&context, "StructA");
-    let s = StructDefOpRef::try_from(module_body.append_operation(s.into())).unwrap();
+    let builder = OpBuilder::at_block_begin(&context, module_body);
+    let s = make_empty_struct(&builder, &context, "StructA");
     llzk::operation::verify_operation_with_diags(&s).expect("verification failed");
     log::info!("Struct passed verification");
 
@@ -208,25 +220,25 @@ fn call_op_self_value_of_compute() {
     let module = llzk_module(Location::unknown(&context), None);
     let module_body = module.body();
 
-    let s1 = make_empty_struct(&context, "StructA");
-    let s1 = StructDefOpRef::try_from(module_body.append_operation(s1.into())).unwrap();
+    let builder = OpBuilder::at_block_begin(&context, module_body);
+    let s1 = make_empty_struct(&builder, &context, "StructA");
     assert!(s1.verify());
     log::info!("Struct 1 passed verification");
 
-    let s2 = make_empty_struct(&context, "StructB");
-    let s2 = StructDefOpRef::try_from(module_body.append_operation(s2.into())).unwrap();
+    builder.set_insertion_point_at_end(module_body);
+    let s2 = make_empty_struct(&builder, &context, "StructB");
     assert!(s2.verify());
     log::info!("Struct 2 passed verification");
 
     let s2_compute_body = s2
         .compute_func()
         .expect("failed to get compute function")
-        .region(0)
-        .expect("failed to get first region")
+        .body()
+        .expect("failed to get body region")
         .first_block()
         .expect("failed to get first block");
-    let builder = OpBuilder::at_block_end(&context, s2_compute_body);
     let loc = Location::unknown(&context);
+    builder.set_insertion_point(s2_compute_body.terminator().unwrap());
     let name = SymbolRefAttribute::new_from_str(&context, "StructA", &["compute"]);
     let call = dialect::function::call(&builder, loc, name, &[], &[s1.r#type()]).unwrap();
 
@@ -248,23 +260,23 @@ fn call_op_product_classifiers() {
     let module = llzk_module(Location::unknown(&context), None);
     let module_body = module.body();
 
-    let s1 = make_product_struct(&context, "StructProdA");
-    let s1 = StructDefOpRef::try_from(module_body.append_operation(s1.into())).unwrap();
+    let builder = OpBuilder::at_block_begin(&context, module_body);
+    let s1 = make_product_struct(&builder, &context, "StructProdA");
     assert!(s1.verify());
 
-    let s2 = make_product_struct(&context, "StructProdB");
-    let s2 = StructDefOpRef::try_from(module_body.append_operation(s2.into())).unwrap();
+    builder.set_insertion_point_at_end(module_body);
+    let s2 = make_product_struct(&builder, &context, "StructProdB");
     assert!(s2.verify());
 
     let product_body = s2
         .product_func()
         .expect("failed to get product function")
-        .region(0)
-        .expect("failed to get first region")
+        .body()
+        .expect("failed to get body region")
         .first_block()
         .expect("failed to get first block");
-    let builder = OpBuilder::at_block_end(&context, product_body);
     let loc = Location::unknown(&context);
+    builder.set_insertion_point(product_body.terminator().unwrap());
     let name = SymbolRefAttribute::new_from_str(&context, "StructProdA", &["product"]);
     let call = dialect::function::call(&builder, loc, name, &[], &[s1.r#type()]).unwrap();
 
@@ -272,53 +284,6 @@ fn call_op_product_classifiers() {
     assert!(call.callee_is_struct_product());
     assert!(!call.callee_is_compute());
     assert!(!call.callee_is_constrain());
-}
-
-#[test]
-fn func_def_op_ref_from_borrow_equals_original() {
-    common::setup();
-    let context = LlzkContext::new();
-    let loc = Location::unknown(&context);
-
-    let op = dialect::function::def(
-        loc,
-        "my_func",
-        FunctionType::new(&context, &[], &[]),
-        &[],
-        None,
-    )
-    .unwrap();
-
-    // Convert a shared borrow into a FuncDefOpRef
-    let op_ref = FuncDefOpRef::from(&op);
-
-    // The ref must point to the same underlying operation.
-    assert_eq!(op_ref, op);
-}
-
-#[test]
-fn func_def_op_ref_from_borrow_does_not_drop_original() {
-    common::setup();
-    let context = LlzkContext::new();
-    let loc = Location::unknown(&context);
-
-    let op = dialect::function::def(
-        loc,
-        "my_func",
-        FunctionType::new(&context, &[], &[]),
-        &[],
-        None,
-    )
-    .unwrap();
-
-    {
-        let op_ref = FuncDefOpRef::from(&op);
-        // Use the ref so it isn't optimized away.
-        assert_eq!(op_ref.region_count(), 1);
-    } // `op_ref` drops here — `op` must still be alive.
-
-    // `op` is still valid: its Drop will run mlirOperationDestroy exactly once.
-    assert_eq!(op.region_count(), 1);
 }
 
 // Tests for FuncDefOpLike methods added in e2157c6
@@ -329,7 +294,10 @@ fn func_def_op_get_function_type() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "my_func",
         FunctionType::new(&context, &[felt_type], &[]),
@@ -348,7 +316,10 @@ fn func_def_op_set_function_type() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "my_func",
         FunctionType::new(&context, &[], &[]),
@@ -366,7 +337,10 @@ fn func_def_op_get_sym_name() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "my_func",
         FunctionType::new(&context, &[], &[]),
@@ -382,7 +356,10 @@ fn func_def_op_set_sym_name() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "my_func",
         FunctionType::new(&context, &[], &[]),
@@ -400,7 +377,10 @@ fn func_def_op_is_declaration() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "my_func",
         FunctionType::new(&context, &[], &[]),
@@ -412,11 +392,12 @@ fn func_def_op_is_declaration() {
     assert!(op.is_declaration());
 
     // After appending a block, it is no longer a declaration.
-    let block = Block::new(&[]);
-    block.append_operation(dialect::function::r#return(loc, &[]));
-    op.region(0)
-        .expect("function.def must have at least 1 region")
-        .append_block(block);
+    let block = op
+        .body()
+        .expect("function.def must have body region")
+        .append_block(Block::new(&[]));
+    builder.set_insertion_point_at_start(block);
+    dialect::function::r#return(&builder, loc, &[]);
     assert!(!op.is_declaration());
 }
 
@@ -425,7 +406,10 @@ fn func_def_op_get_body() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "my_func",
         FunctionType::new(&context, &[], &[]),
@@ -437,11 +421,12 @@ fn func_def_op_get_body() {
     assert!(op.body().is_ok());
 
     // After appending a block, get_body still succeeds.
-    let block = Block::new(&[]);
-    block.append_operation(dialect::function::r#return(loc, &[]));
-    op.region(0)
-        .expect("function.def must have at least 1 region")
-        .append_block(block);
+    let block = op
+        .body()
+        .expect("function.def must have body region")
+        .append_block(Block::new(&[]));
+    builder.set_insertion_point_at_start(block);
+    dialect::function::r#return(&builder, loc, &[]);
     assert!(op.body().is_ok());
 }
 
@@ -451,7 +436,10 @@ fn func_def_op_arg_name_round_trip() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "named_arg",
         FunctionType::new(&context, &[felt_type], &[]),
@@ -474,7 +462,10 @@ fn func_def_op_res_name_round_trip() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "named_res",
         FunctionType::new(&context, &[], &[felt_type]),
@@ -497,7 +488,10 @@ fn func_def_op_def_with_signature_attrs_prints_named_arg_and_result() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def_with_signature_attrs(
+        &builder,
         loc,
         "named_signature",
         FunctionType::new(&context, &[felt_type], &[felt_type]),
@@ -507,10 +501,13 @@ fn func_def_op_def_with_signature_attrs_prints_named_arg_and_result() {
     )
     .unwrap();
 
-    let block = Block::new(&[(felt_type, loc)]);
+    let block = op
+        .body()
+        .unwrap()
+        .append_block(Block::new(&[(felt_type, loc)]));
     let arg: Value = block.argument(0).unwrap().into();
-    block.append_operation(dialect::function::r#return(loc, &[arg]));
-    op.region(0).unwrap().append_block(block);
+    builder.set_insertion_point_at_start(block);
+    dialect::function::r#return(&builder, loc, &[arg]);
 
     let ir = format!("{op}");
     assert!(ir.contains("{function.arg_name = \"input\"}"));
@@ -523,7 +520,10 @@ fn func_def_op_signature_name_accessors_return_out_of_bounds() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "bounds",
         FunctionType::new(&context, &[felt_type], &[felt_type]),
@@ -556,7 +556,10 @@ fn func_def_op_arg_and_res_attrs_round_trip() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
+        &builder,
         loc,
         "attrs_round_trip",
         FunctionType::new(&context, &[felt_type], &[felt_type]),

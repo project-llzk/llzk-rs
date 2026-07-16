@@ -1,12 +1,10 @@
-use std::ptr::null_mut;
-
-use mlir_sys::{mlirLocationUnknownGet, mlirOperationDestroy};
-use rstest::rstest;
-
 use crate::{
     llzkInclude_IncludeOpCreateInferredContext, mlirGetDialectHandle__llzk__include__,
     sanity_tests::{TestContext, context, str_ref},
 };
+use mlir_sys::{mlirLocationUnknownGet, mlirOperationDestroy};
+use rstest::rstest;
+use std::ptr::null_mut;
 
 #[test]
 fn test_mlir_get_dialect_handle_llzk_include() {

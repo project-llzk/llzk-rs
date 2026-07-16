@@ -1,7 +1,6 @@
-use std::ptr::null;
-
 use mlir_sys::{mlirIndexTypeGet, mlirIntegerAttrGet};
 use rstest::rstest;
+use std::ptr::null;
 
 use crate::{
     llzkAttributeIsA_Felt_FeltConstAttr, llzkFelt_FeltConstAttrGetFromPartsUnspecified,

@@ -3,6 +3,7 @@
 
 use llzk::{
     attributes::array::AffineMapAttribute,
+    builder::{OpBuilder, OpBuilderLike as _},
     prelude::*,
     value_ext::{has_uses, replace_all_uses_in_block_with, users_of},
 };
@@ -20,13 +21,12 @@ fn replace_all_uses_in_block_with_handles_repeated_operands() {
     let orig = block.argument(0).unwrap();
     let replacement = block.argument(1).unwrap();
     let replacement_value: Value = replacement.into();
+    let builder = OpBuilder::at_block_begin(&context, &block);
 
-    let use_before = block
-        .append_operation(dialect::felt::mul(location, orig.into(), replacement_value).unwrap());
-    let repeated_use =
-        block.append_operation(dialect::felt::add(location, orig.into(), orig.into()).unwrap());
-    let use_after = block
-        .append_operation(dialect::felt::sub(location, orig.into(), replacement_value).unwrap());
+    let use_before =
+        dialect::felt::mul(&builder, location, orig.into(), replacement_value).unwrap();
+    let repeated_use = dialect::felt::add(&builder, location, orig.into(), orig.into()).unwrap();
+    let use_after = dialect::felt::sub(&builder, location, orig.into(), replacement_value).unwrap();
 
     replace_all_uses_in_block_with(orig.owner(), orig, replacement);
 
@@ -51,12 +51,11 @@ fn replace_all_uses_in_block_with_only_replaces_orig() {
     let untouched = block.argument(2).unwrap();
     let replacement_value: Value = replacement.into();
     let untouched_value: Value = untouched.into();
+    let builder = OpBuilder::at_block_begin(&context, &block);
 
-    let mixed_use = block
-        .append_operation(dialect::felt::add(location, orig.into(), untouched.into()).unwrap());
-    let non_orig_use = block.append_operation(
-        dialect::felt::mul(location, untouched.into(), replacement.into()).unwrap(),
-    );
+    let mixed_use = dialect::felt::add(&builder, location, orig.into(), untouched.into()).unwrap();
+    let non_orig_use =
+        dialect::felt::mul(&builder, location, untouched.into(), replacement.into()).unwrap();
 
     replace_all_uses_in_block_with(orig.owner(), orig, replacement);
 
@@ -95,7 +94,8 @@ fn users_of_returns_single_user() {
     let felt_type: Type = FeltType::new(&context).into();
     let block = Block::new(&[(felt_type, location)]);
     let arg = block.argument(0).unwrap();
-    block.append_operation(dialect::felt::neg(location, arg.into()).unwrap());
+    let builder = OpBuilder::at_block_begin(&context, &block);
+    dialect::felt::neg(&builder, location, arg.into()).unwrap();
     let users = users_of(arg);
     assert_eq!(users.len(), 1);
 }
@@ -108,8 +108,9 @@ fn users_of_returns_multiple_users() {
     let felt_type: Type = FeltType::new(&context).into();
     let block = Block::new(&[(felt_type, location)]);
     let arg: Value = block.argument(0).unwrap().into();
-    block.append_operation(dialect::felt::neg(location, arg).unwrap());
-    block.append_operation(dialect::felt::inv(location, arg).unwrap());
+    let builder = OpBuilder::at_block_begin(&context, &block);
+    dialect::felt::neg(&builder, location, arg).unwrap();
+    dialect::felt::inv(&builder, location, arg).unwrap();
     let users = users_of(arg);
     assert_eq!(users.len(), 2);
 }
@@ -124,7 +125,8 @@ fn print_operation_does_not_panic() {
     let felt_type: Type = FeltType::new(&context).into();
     let block = Block::new(&[(felt_type, location)]);
     let arg: Value = block.argument(0).unwrap().into();
-    let op = block.append_operation(dialect::felt::neg(location, arg).unwrap());
+    let builder = OpBuilder::at_block_begin(&context, &block);
+    let op = dialect::felt::neg(&builder, location, arg).unwrap();
     print_operation(&op);
 }
 
@@ -136,7 +138,8 @@ fn print_block_does_not_panic() {
     let felt_type: Type = FeltType::new(&context).into();
     let block = Block::new(&[(felt_type, location)]);
     let arg: Value = block.argument(0).unwrap().into();
-    block.append_operation(dialect::felt::neg(location, arg).unwrap());
+    let builder = OpBuilder::at_block_begin(&context, &block);
+    dialect::felt::neg(&builder, location, arg).unwrap();
     print_block(&block);
 }
 
@@ -147,13 +150,15 @@ fn print_region_does_not_panic() {
     let location = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let func_type = melior::ir::r#type::FunctionType::new(&context, &[felt_type], &[]);
-    let func = dialect::function::def(location, "test_fn", func_type, &[], None).unwrap();
-    let block = Block::new(&[(felt_type, location)]);
+    let module = Module::new(location);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let func = dialect::function::def(&builder, location, "test_fn", func_type, &[], None).unwrap();
+    let region = func.body().expect("function must have a body");
+    let block = region.append_block(Block::new(&[(felt_type, location)]));
     let arg: Value = block.argument(0).unwrap().into();
-    block.append_operation(dialect::felt::neg(location, arg).unwrap());
-    block.append_operation(dialect::function::r#return(location, &[]));
-    let region = func.region(0).expect("function must have a region");
-    region.append_block(block);
+    builder.set_insertion_point_at_start(block);
+    dialect::felt::neg(&builder, location, arg).unwrap();
+    dialect::function::r#return(&builder, location, &[]);
     print_region(&region);
 }
 

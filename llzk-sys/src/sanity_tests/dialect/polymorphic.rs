@@ -1,12 +1,3 @@
-use std::ptr::{null, null_mut};
-
-use mlir_sys::{
-    MlirValue, mlirAffineConstantExprGet, mlirAffineMapAttrGet, mlirAffineMapEqual,
-    mlirAffineMapGet, mlirAttributeEqual, mlirFlatSymbolRefAttrGet, mlirLocationUnknownGet,
-    mlirOperationDestroy, mlirOperationVerify, mlirStringAttrGet, mlirStringRefEqual,
-};
-use rstest::rstest;
-
 use crate::{
     MlirValueRange, llzkOperationIsA_Poly_ApplyMapOp, llzkOperationIsA_Poly_TemplateOp,
     llzkPoly_ApplyMapOpBuild, llzkPoly_ApplyMapOpBuildWithAffineExpr,
@@ -23,6 +14,13 @@ use crate::{
         str_ref,
     },
 };
+use mlir_sys::{
+    MlirValue, mlirAffineConstantExprGet, mlirAffineMapAttrGet, mlirAffineMapEqual,
+    mlirAffineMapGet, mlirAttributeEqual, mlirFlatSymbolRefAttrGet, mlirLocationUnknownGet,
+    mlirOperationDestroy, mlirOperationVerify, mlirStringAttrGet, mlirStringRefEqual,
+};
+use rstest::rstest;
+use std::ptr::{null, null_mut};
 
 #[test]
 fn test_mlir_get_dialect_handle_llzk_polymorphic() {

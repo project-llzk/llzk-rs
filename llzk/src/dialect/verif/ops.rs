@@ -837,15 +837,12 @@ impl<'a, 'c: 'a> InvariantOpLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
 impl<'a, 'c: 'a> InvariantOpMutLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
 
 /// Creates a new invariant operation.
-pub fn invariant<'c, 'o, B>(
-    builder: &B,
+pub fn invariant<'c, 'o>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     loop_label: &str,
     args: &[(Type<'c>, Location<'c>)],
-) -> InvariantOpRef<'c, 'o>
-where
-    B: OpBuilderLike<'c>,
-{
+) -> InvariantOpRef<'c, 'o> {
     let (types, locations): (Vec<_>, Vec<_>) =
         args.iter().map(|(t, l)| (t.to_raw(), l.to_raw())).unzip();
     unsafe {
@@ -924,10 +921,10 @@ isa_fn!(verif, decreases);
 ///
 /// The operation is constructed as is and the caller is
 /// responsible of manually adding the body.
-pub fn step<'c, 'a, B>(builder: &B, location: Location<'c>) -> OperationRef<'c, 'a>
-where
-    B: OpBuilderLike<'c>,
-{
+pub fn step<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+) -> OperationRef<'c, 'a> {
     unsafe { OperationRef::from_raw(llzkVerif_StepOpBuild(builder.to_raw(), location.to_raw())) }
 }
 

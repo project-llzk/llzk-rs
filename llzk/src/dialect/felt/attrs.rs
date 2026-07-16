@@ -1,3 +1,4 @@
+use super::FeltType;
 use llzk_sys::{
     llzkAttributeIsA_Felt_FeltConstAttr, llzkAttributeIsA_Felt_FieldSpecAttr,
     llzkFelt_FeltConstAttrGet, llzkFelt_FeltConstAttrGetFromParts,
@@ -12,8 +13,6 @@ use melior::{
     ir::{Attribute, AttributeLike, Identifier, TypeLike},
 };
 use mlir_sys::MlirAttribute;
-
-use super::FeltType;
 
 /// A constant finite field element.
 #[derive(Clone, Copy)]
@@ -317,14 +316,13 @@ impl<'c> From<FieldSpecAttribute<'c>> for Attribute<'c> {
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Deref, ptr::null};
-
     use super::*;
     use crate::prelude::*;
     use log::LevelFilter;
     use quickcheck::{Arbitrary, Gen};
     use quickcheck_macros::quickcheck;
     use simplelog::{Config, TestLogger};
+    use std::{ops::Deref, ptr::null};
 
     #[derive(Clone, Debug)]
     struct FieldArg(Option<String>);
@@ -394,23 +392,20 @@ mod tests {
 
     #[cfg(feature = "bigint")]
     mod bigint {
-        use std::str::FromStr as _;
-
+        use crate::{context::LlzkContext, prelude::FeltConstAttribute};
         use num_bigint::BigUint;
         use rstest::rstest;
-
-        use crate::{context::LlzkContext, prelude::FeltConstAttribute};
+        use std::str::FromStr as _;
 
         #[rstest]
         fn felt_const_attr_new_from_bigint(
             #[values(BigUint::from(0u8), BigUint::from(1u8), BigUint::from_str("21888242871839275222246405745257275088548364400416034343698204186575808495616").unwrap())]
             value: BigUint,
         ) {
-            use std::ptr::null;
-
             use log::LevelFilter;
             use melior::ir::AttributeLike as _;
             use simplelog::{Config, TestLogger};
+            use std::ptr::null;
 
             let _ = TestLogger::init(LevelFilter::Debug, Config::default());
             let ctx = LlzkContext::new();

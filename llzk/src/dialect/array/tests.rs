@@ -6,7 +6,7 @@ use melior::{
 use rstest::rstest;
 
 use crate::{
-    builder::{OpBuilder, OpBuilderLike},
+    builder::{OpBuilder, OpBuilderLike as _},
     dialect::array::{ArrayCtor, new},
     test::ctx,
 };

@@ -3,14 +3,13 @@
 use crate::{
     builder::OpBuilderLike,
     error::Error,
-    ident,
     macros::llzk_op_type,
     value_ext::{OwningValueRange, ValueRange},
 };
 use llzk_sys::{
     llzkOperationIsA_Poly_TemplateExprOp, llzkOperationIsA_Poly_TemplateOp,
     llzkOperationIsA_Poly_TemplateParamOp, llzkOperationIsA_Poly_YieldOp,
-    llzkPoly_ApplyMapOpBuildWithAffineMap, llzkPoly_TemplateExprOpBuild,
+    llzkPoly_ApplyMapOpBuildWithAffineMap, llzkPoly_ConstReadOpBuild, llzkPoly_TemplateExprOpBuild,
     llzkPoly_TemplateExprOpGetInitializerRegion, llzkPoly_TemplateExprOpGetType,
     llzkPoly_TemplateOpBuild, llzkPoly_TemplateOpGetBody, llzkPoly_TemplateOpGetBodyRegion,
     llzkPoly_TemplateOpGetConstExprNames, llzkPoly_TemplateOpGetConstParamNames,
@@ -18,13 +17,13 @@ use llzk_sys::{
     llzkPoly_TemplateOpHasConstParamNamed, llzkPoly_TemplateOpHasConstParamOps,
     llzkPoly_TemplateOpNumConstExprOps, llzkPoly_TemplateOpNumConstParamOps,
     llzkPoly_TemplateParamOpBuild, llzkPoly_TemplateParamOpGetTypeOpt,
-    llzkPoly_TemplateParamOpSetTypeOpt, llzkPoly_YieldOpBuild,
+    llzkPoly_TemplateParamOpSetTypeOpt, llzkPoly_UnifiableCastOpBuild, llzkPoly_YieldOpBuild,
 };
 use melior::ir::{
     Attribute, AttributeLike, Block, BlockLike as _, BlockRef, Identifier, Location, Operation,
-    OperationRef, RegionLike as _, RegionRef, Type, Value, ValueLike as _,
+    OperationRef, RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike as _,
     attribute::{FlatSymbolRefAttribute, StringAttribute, TypeAttribute},
-    operation::{OperationBuilder, OperationLike},
+    operation::OperationLike,
 };
 use mlir_sys::MlirAttribute;
 
@@ -142,9 +141,10 @@ impl<'c: 'a, 'a> TemplateOpLike<'c, 'a> for TemplateOp<'c> {}
 impl<'c: 'a, 'a> TemplateOpLike<'c, 'a> for TemplateOpRef<'c, 'a> {}
 impl<'c: 'a, 'a> TemplateOpLike<'c, 'a> for TemplateOpRefMut<'c, 'a> {}
 
-/// Creates a `poly.template` op and fills its body with the given operations.
+/// Creates a `poly.template` op and fills its body with operations produced by the callback.
 ///
-/// The operation is inserted in the point set by the builder.
+/// Use [`crate::dialect::empty_region`] as the `fill` callback to leave the body empty so contents
+/// can be added later.
 pub fn template<'c, 'a, B>(
     builder: &B,
     location: Location<'c>,
@@ -497,14 +497,15 @@ pub fn is_param_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
     crate::operation::isa(op, "poly.param")
 }
 
-/// Creates a `poly.expr` op and fills its initializer region with the given operations.
+/// Creates a `poly.expr` op and fills its initializer region with operations produced by the callback.
 ///
-/// The operation is inserted in the point set by the builder.
+/// Use [`crate::dialect::empty_region`] as the `fill` callback to leave the initializer empty so
+/// contents can be added later.
 pub fn expr<'c, 'a, B>(
     builder: &B,
     location: Location<'c>,
     name: &str,
-    fill_cb: impl FnOnce(&B) -> Result<(), Error>,
+    fill: impl FnOnce(&B) -> Result<(), Error>,
 ) -> Result<TemplateExprOpRef<'c, 'a>, Error>
 where
     B: OpBuilderLike<'c>,
@@ -524,7 +525,7 @@ where
         .unwrap_or_else(|| region.append_block(Block::new(&[])));
     let prev = builder.save_insertion_point();
     builder.set_insertion_point_at_start(block);
-    let res = fill_cb(builder);
+    let res = fill(builder);
     builder.restore_insertion_point(prev);
     res.map(|_| op)
 }
@@ -542,8 +543,6 @@ pub fn is_expr_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 llzk_op_type!(YieldOp, llzkOperationIsA_Poly_YieldOp, "poly.yield");
 
 /// Creates a `poly.yield` op.
-///
-/// The operation is inserted in the point set by the builder.
 pub fn r#yield<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
@@ -570,16 +569,21 @@ pub fn is_yield_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 //===----------------------------------------------------------------------===//
 
 /// Constructs a 'poly.read_const' operation.
-pub fn read_const<'c>(location: Location<'c>, symbol: &str, result: Type<'c>) -> Operation<'c> {
+pub fn read_const<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    symbol: &str,
+    result: Type<'c>,
+) -> OperationRef<'c, 'a> {
     let ctx = location.context();
-    OperationBuilder::new("poly.read_const", location)
-        .add_attributes(&[(
-            ident!(ctx, "const_name"),
-            FlatSymbolRefAttribute::new(unsafe { ctx.to_ref() }, symbol).into(),
-        )])
-        .add_results(&[result])
-        .build()
-        .expect("valid operation")
+    unsafe {
+        OperationRef::from_raw(llzkPoly_ConstReadOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            result.to_raw(),
+            FlatSymbolRefAttribute::new(ctx.to_ref(), symbol).to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `poly.read_const`.
@@ -593,16 +597,20 @@ pub fn is_read_const_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 //===----------------------------------------------------------------------===//
 
 /// Constructs a 'poly.unifiable_cast' operation.
-pub fn unifiable_cast<'c>(
+pub fn unifiable_cast<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     input: Value<'c, '_>,
     result: Type<'c>,
-) -> Operation<'c> {
-    OperationBuilder::new("poly.unifiable_cast", location)
-        .add_operands(&[input])
-        .add_results(&[result])
-        .build()
-        .expect("valid operation")
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkPoly_UnifiableCastOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            result.to_raw(),
+            input.to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `poly.unifiable_cast`.
