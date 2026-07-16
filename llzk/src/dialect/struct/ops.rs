@@ -460,13 +460,13 @@ pub fn is_struct_member<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates a 'struct.readm' op
-pub fn readm<'c>(
+pub fn readm<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     result_type: Type<'c>,
     component: Value<'c, '_>,
     member_name: &str,
-) -> Result<Operation<'c>, Error> {
+) -> Result<OperationRef<'c, 'a>, Error> {
     unsafe {
         let raw = llzkStruct_MemberReadOpBuild(
             builder.to_raw(),
@@ -478,7 +478,7 @@ pub fn readm<'c>(
         if raw.ptr.is_null() {
             Err(Error::BuildMethodFailed("readm"))
         } else {
-            Ok(Operation::from_raw(raw))
+            Ok(OperationRef::from_raw(raw))
         }
     }
 }

@@ -2,9 +2,7 @@
 //! Integration tests for the function dialect.
 
 use llzk::{
-    attributes::array::ArrayAttribute,
-    builder::{OpBuilder, OpBuilderLike},
-    map_operands::MapOperandsBuilder,
+    attributes::array::ArrayAttribute, builder::OpBuilder, map_operands::MapOperandsBuilder,
     prelude::*,
 };
 use llzk_sys::{FUNCTION_ARG_NAME_ATTR_NAME, FUNCTION_RES_NAME_ATTR_NAME};
@@ -65,12 +63,8 @@ fn function_call() {
         let builder = OpBuilder::at_block_begin(&context, &block);
         // Build call to itself
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
-        let v = block
-            .append_operation(
-                dialect::function::call(&builder, loc, name, &[], &[felt_type])
-                    .unwrap()
-                    .into(),
-            )
+        let v = dialect::function::call(&builder, loc, name, &[], &[felt_type])
+            .unwrap()
             .result(0)
             .map(Value::from)
             .unwrap();
@@ -108,22 +102,18 @@ fn function_call_with_map_operands() {
         // Build call to itself
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
         let map_operands = MapOperandsBuilder::new();
-        let v = block
-            .append_operation(
-                dialect::function::call_with_map_operands(
-                    &builder,
-                    loc,
-                    name,
-                    &[],
-                    &[felt_type],
-                    map_operands,
-                )
-                .unwrap()
-                .into(),
-            )
-            .result(0)
-            .map(Value::from)
-            .unwrap();
+        let v = dialect::function::call_with_map_operands(
+            &builder,
+            loc,
+            name,
+            &[],
+            &[felt_type],
+            map_operands,
+        )
+        .unwrap()
+        .result(0)
+        .map(Value::from)
+        .unwrap();
         // Build return operation
         block.append_operation(dialect::function::r#return(loc, &[v]));
         // Add Block to function
@@ -237,17 +227,12 @@ fn call_op_self_value_of_compute() {
         .expect("failed to get first block");
     let builder = OpBuilder::at_block_end(&context, s2_compute_body);
     let loc = Location::unknown(&context);
-    let call = builder.insert(loc, |_, loc| {
-        let name = SymbolRefAttribute::new_from_str(&context, "StructA", &["compute"]);
-        dialect::function::call(&builder, loc, name, &[], &[s1.r#type()])
-            .unwrap()
-            .into()
-    });
+    let name = SymbolRefAttribute::new_from_str(&context, "StructA", &["compute"]);
+    let call = dialect::function::call(&builder, loc, name, &[], &[s1.r#type()]).unwrap();
 
     assert_test!(module.as_operation(), module, @file "expected/call_op_self_value_of_compute.mlir" );
 
     // Now actually test the `self_value_of_compute` function
-    let call = CallOpRef::try_from(call).unwrap();
     let self_val = call.self_value_of_compute();
     similar_asserts::assert_eq!(
         format!("{}", self_val.unwrap()),
@@ -280,14 +265,9 @@ fn call_op_product_classifiers() {
         .expect("failed to get first block");
     let builder = OpBuilder::at_block_end(&context, product_body);
     let loc = Location::unknown(&context);
-    let call = builder.insert(loc, |_, loc| {
-        let name = SymbolRefAttribute::new_from_str(&context, "StructProdA", &["product"]);
-        dialect::function::call(&builder, loc, name, &[], &[s1.r#type()])
-            .unwrap()
-            .into()
-    });
+    let name = SymbolRefAttribute::new_from_str(&context, "StructProdA", &["product"]);
+    let call = dialect::function::call(&builder, loc, name, &[], &[s1.r#type()]).unwrap();
 
-    let call = CallOpRef::try_from(call).unwrap();
     assert!(call.callee_is_product());
     assert!(call.callee_is_struct_product());
     assert!(!call.callee_is_compute());
@@ -637,12 +617,7 @@ fn make_call_op_in_block<'c, 'a>(
 ) -> CallOpRef<'c, 'a> {
     let builder = OpBuilder::at_block_begin(context, block);
     let name = FlatSymbolRefAttribute::new(context, "callee");
-    let call = block.append_operation(
-        dialect::function::call(&builder, loc, name, args, &[] as &[Type])
-            .unwrap()
-            .into(),
-    );
-    CallOpRef::try_from(call).unwrap()
+    dialect::function::call(&builder, loc, name, args, &[] as &[Type]).unwrap()
 }
 
 #[test]
@@ -702,19 +677,15 @@ fn call_op_map_operand_count_zero() {
     let block = Block::new(&[]);
     let builder = OpBuilder::at_block_begin(&context, &block);
     let name = FlatSymbolRefAttribute::new(&context, "callee");
-    let call = block.append_operation(
-        dialect::function::call_with_map_operands(
-            &builder,
-            loc,
-            name,
-            &[],
-            &[] as &[Type],
-            MapOperandsBuilder::new(),
-        )
-        .unwrap()
-        .into(),
-    );
-    let call = CallOpRef::try_from(call).unwrap();
+    let call = dialect::function::call_with_map_operands(
+        &builder,
+        loc,
+        name,
+        &[],
+        &[] as &[Type],
+        MapOperandsBuilder::new(),
+    )
+    .unwrap();
     assert_eq!(call.map_operand_count(), 0);
 }
 
@@ -818,19 +789,15 @@ fn call_with_template_params_only_args() {
     let arg: Value = block.argument(0).unwrap().into();
     let builder = OpBuilder::at_block_begin(&context, &block);
     let name = FlatSymbolRefAttribute::new(&context, "callee");
-    let call = block.append_operation(
-        dialect::function::call_with_template_params(
-            &builder,
-            loc,
-            name,
-            &[arg],
-            &[] as &[Type],
-            &[] as &[Attribute],
-        )
-        .unwrap()
-        .into(),
-    );
-    let call = CallOpRef::try_from(call).unwrap();
+    let call = dialect::function::call_with_template_params(
+        &builder,
+        loc,
+        name,
+        &[arg],
+        &[] as &[Type],
+        &[] as &[Attribute],
+    )
+    .unwrap();
     assert_eq!(call.arg_operand_count(), 1);
     assert!(call.template_params().unwrap().is_none());
 }
@@ -845,19 +812,15 @@ fn call_with_template_params_no_empties() {
     let arg: Value = block.argument(0).unwrap().into();
     let builder = OpBuilder::at_block_begin(&context, &block);
     let name = FlatSymbolRefAttribute::new(&context, "callee");
-    let call = block.append_operation(
-        dialect::function::call_with_template_params(
-            &builder,
-            loc,
-            name,
-            &[arg],
-            &[felt_type],
-            &[TypeAttribute::new(felt_type)],
-        )
-        .unwrap()
-        .into(),
-    );
-    let call = CallOpRef::try_from(call).unwrap();
+    let call = dialect::function::call_with_template_params(
+        &builder,
+        loc,
+        name,
+        &[arg],
+        &[felt_type],
+        &[TypeAttribute::new(felt_type)],
+    )
+    .unwrap();
     assert_eq!(call.arg_operand_count(), 1);
     assert!(call.template_params().unwrap().is_some());
 }

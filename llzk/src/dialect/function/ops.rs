@@ -47,8 +47,8 @@ use llzk_sys::{
 use melior::{
     Context, StringRef,
     ir::{
-        Attribute, AttributeLike, BlockLike as _, Location, Operation, RegionLike as _, RegionRef,
-        Type, TypeLike, Value,
+        Attribute, AttributeLike, BlockLike as _, Location, Operation, OperationRef,
+        RegionLike as _, RegionRef, Type, TypeLike, Value,
         attribute::{StringAttribute, TypeAttribute},
         block::BlockArgument,
         operation::{OperationBuilder, OperationLike, OperationMutLike},
@@ -705,15 +705,15 @@ pub fn is_func_def<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates a new `function.call` operation.
-pub fn call<'c>(
+pub fn call<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],
     return_types: &[impl TypeLike<'c>],
-) -> Result<CallOp<'c>, Error> {
+) -> Result<CallOpRef<'c, 'a>, Error> {
     unsafe {
-        Operation::from_raw(llzkFunction_CallOpBuild(
+        OperationRef::from_raw(llzkFunction_CallOpBuild(
             builder.to_raw(),
             location.to_raw(),
             isize::try_from(return_types.len()).expect("return_types too large"),
@@ -727,16 +727,16 @@ pub fn call<'c>(
 }
 
 /// Creates a new `function.call` operation with map operands.
-pub fn call_with_map_operands<'c>(
+pub fn call_with_map_operands<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],
     return_types: &[impl TypeLike<'c>],
     map_operands: MapOperandsBuilder,
-) -> Result<CallOp<'c>, Error> {
+) -> Result<CallOpRef<'c, 'a>, Error> {
     unsafe {
-        Operation::from_raw(llzkFunction_CallOpBuildWithMapOperands(
+        OperationRef::from_raw(llzkFunction_CallOpBuildWithMapOperands(
             builder.to_raw(),
             location.to_raw(),
             isize::try_from(return_types.len()).expect("return_types too large"),
@@ -753,16 +753,16 @@ pub fn call_with_map_operands<'c>(
 /// Creates a new `function.call` operation with the optional `templateParams` attribute for
 /// calling functions inside `poly.template` regions when template parameters are not bound
 /// by the call's argument or result types.
-pub fn call_with_template_params<'c>(
+pub fn call_with_template_params<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     callee: impl SymbolRefAttrLike<'c>,
     args: &[Value<'c, '_>],
     return_types: &[impl TypeLike<'c>],
     template_params: &[impl AttributeLike<'c>],
-) -> Result<CallOp<'c>, Error> {
+) -> Result<CallOpRef<'c, 'a>, Error> {
     unsafe {
-        Operation::from_raw(llzkFunction_CallOpBuildWithTemplateParams(
+        OperationRef::from_raw(llzkFunction_CallOpBuildWithTemplateParams(
             builder.to_raw(),
             location.to_raw(),
             isize::try_from(return_types.len()).expect("return_types too large"),

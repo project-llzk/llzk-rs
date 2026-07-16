@@ -3,7 +3,7 @@ use llzk_sys::{
     llzkArray_CreateArrayOpBuildWithMapOperands, llzkArray_CreateArrayOpBuildWithValues,
 };
 use melior::ir::{
-    Location, Operation, Type, TypeLike, Value, ValueLike,
+    Location, Operation, OperationRef, Type, TypeLike, Value, ValueLike,
     attribute::DenseI32ArrayAttribute,
     operation::{OperationBuilder, OperationLike},
 };
@@ -93,13 +93,13 @@ impl<'c, 'a, 'b, 'd> ArrayCtor<'c, 'a, 'b, 'd> {
 }
 
 /// Creates an 'array.new' operation.
-pub fn new<'c>(
+pub fn new<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     r#type: ArrayType<'c>,
     ctor: ArrayCtor<'c, '_, '_, '_>,
-) -> Operation<'c> {
-    unsafe { Operation::from_raw(ctor.build(builder, location, r#type)) }
+) -> OperationRef<'c, 'a> {
+    unsafe { OperationRef::from_raw(ctor.build(builder, location, r#type)) }
 }
 
 /// Return `true` iff the given op is `array.new`.

@@ -32,17 +32,16 @@ fn op_new_with_values(ctx: Context) {
     let module = Module::new(Location::unknown(&ctx));
     let op_builder = OpBuilder::at_block_begin(&ctx, module.body());
     assert_eq!(ctx, module.context());
-    let op = op_builder.insert(Location::unknown(&ctx), |_, loc| {
-        let op1 = op_builder.insert(loc, |ctx, loc| {
-            arith::constant(ctx, IntegerAttribute::new(Type::index(ctx), 1).into(), loc)
-        });
-
-        let op2 = op_builder.insert(loc, |ctx, loc| {
-            arith::constant(ctx, IntegerAttribute::new(Type::index(ctx), 1).into(), loc)
-        });
-
-        let vals: [Value; 2] = [op1.result(0).unwrap().into(), op2.result(0).unwrap().into()];
-        new(&op_builder, loc, arr_typ, ArrayCtor::Values(&vals))
+    let loc = Location::unknown(&ctx);
+    let op1 = op_builder.insert(loc, |ctx, loc| {
+        arith::constant(ctx, IntegerAttribute::new(Type::index(ctx), 1).into(), loc)
     });
+
+    let op2 = op_builder.insert(loc, |ctx, loc| {
+        arith::constant(ctx, IntegerAttribute::new(Type::index(ctx), 1).into(), loc)
+    });
+
+    let vals: [Value; 2] = [op1.result(0).unwrap().into(), op2.result(0).unwrap().into()];
+    let op = new(&op_builder, loc, arr_typ, ArrayCtor::Values(&vals));
     assert!(op.verify());
 }

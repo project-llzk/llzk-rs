@@ -408,8 +408,6 @@ fn create_unifiable_cast() {
         array_ty,
         llzk::dialect::array::ArrayCtor::Values(&[]),
     );
-    let array_op = block.append_operation(array_op);
-
     let new_array_ty = ArrayType::new(FeltType::new(&context).into(), &[affine_map]);
     let cast = unifiable_cast(
         location,

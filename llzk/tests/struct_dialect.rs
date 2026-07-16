@@ -169,11 +169,12 @@ fn struct_readm() {
         .expect("failed to get first block");
 
     let self_value: Value = constrain_body.argument(0).unwrap().into();
-    let builder = OpBuilder::at_block_end(&context, constrain_body);
-    let readm_op = constrain_body.insert_operation_before(
-        constrain_body.terminator().unwrap(),
-        dialect::r#struct::readm(&builder, loc, Type::index(&context), self_value, "foo").unwrap(),
+    let builder = OpBuilder::new(
+        &context,
+        llzk::builder::EntryPoint::Before(constrain_body.terminator().unwrap()),
     );
+    let readm_op =
+        dialect::r#struct::readm(&builder, loc, Type::index(&context), self_value, "foo").unwrap();
 
     assert_test!(readm_op, module, @file "expected/read_member.mlir");
 }

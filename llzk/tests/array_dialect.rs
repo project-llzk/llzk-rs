@@ -30,12 +30,7 @@ fn array_new_empty() {
         let block = Block::new(&[]);
         let builder = OpBuilder::at_block_begin(&context, &block);
         let array_type = ArrayType::new(index_type, &[IntegerAttribute::new(index_type, 2).into()]);
-        let _array = block.append_operation(dialect::array::new(
-            &builder,
-            location,
-            array_type,
-            ArrayCtor::Empty,
-        ));
+        let _array = dialect::array::new(&builder, location, array_type, ArrayCtor::Empty);
         block.append_operation(dialect::function::r#return(location, &[]));
         f.region(0)
             .expect("function.def must have at least 1 region")
@@ -82,12 +77,12 @@ fn array_new_affine_map() {
         let array_type = ArrayType::new(index_type, &[affine_map]);
         let owning_value_range = OwningValueRange::from([arg0, arg1].as_slice());
         let value_range = ValueRange::try_from(&owning_value_range).unwrap();
-        let _array = block.append_operation(dialect::array::new(
+        let _array = dialect::array::new(
             &builder,
             location,
             array_type,
             ArrayCtor::MapDimSlice(&[value_range], &[0]),
-        ));
+        );
         block.append_operation(dialect::function::r#return(location, &[]));
         f.region(0)
             .expect("function.def must have at least 1 region")
@@ -118,12 +113,8 @@ fn array_len() {
     let module = Module::new(unknown);
     let index_ty = Type::index(&ctx);
     let ty = ArrayType::new_with_dims(index_ty, &[dim]);
-    let op = dialect::array::new(
-        &OpBuilder::at_block_begin(&ctx, module.body()),
-        unknown,
-        ty,
-        ArrayCtor::Values(&[]),
-    );
+    let builder = OpBuilder::at_block_begin(&ctx, module.body());
+    let op = dialect::array::new(&builder, unknown, ty, ArrayCtor::Values(&[]));
     assert_eq!(1, op.result_count(), "op {op} must only have one result");
     let arr_ref = op.result(0).unwrap();
     let arr_dim_op = arith::constant(&ctx, IntegerAttribute::new(index_ty, 0).into(), unknown);
