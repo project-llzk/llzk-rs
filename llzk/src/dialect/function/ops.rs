@@ -650,6 +650,16 @@ pub fn def<'c, 'a>(
     let name = StringRef::new(name);
     let attrs: Vec<_> = attrs.iter().map(tuple_to_raw_named_attr).collect();
     let arg_attrs = prepare_arg_attrs(arg_attrs, r#type.input_count(), unsafe { ctx.to_ref() });
+    let attrs_ptr = if attrs.is_empty() {
+        std::ptr::null()
+    } else {
+        attrs.as_ptr()
+    };
+    let arg_attrs_ptr = if arg_attrs.is_empty() {
+        std::ptr::null()
+    } else {
+        arg_attrs.as_ptr()
+    };
     unsafe {
         OperationRef::from_raw(llzkFunction_FuncDefOpBuildWithAttrsAndArgAttrs(
             builder.to_raw(),
@@ -657,9 +667,9 @@ pub fn def<'c, 'a>(
             name.to_raw(),
             r#type.to_raw(),
             isize::try_from(attrs.len()).expect("attrs too large"),
-            attrs.as_ptr(),
+            attrs_ptr,
             isize::try_from(arg_attrs.len()).expect("arg_attrs too large"),
-            arg_attrs.as_ptr(),
+            arg_attrs_ptr,
         ))
     }
     .try_into()
