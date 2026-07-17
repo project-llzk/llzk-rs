@@ -119,7 +119,9 @@ fn array_len() {
     let op = dialect::array::new(&builder, unknown, ty, ArrayCtor::Values(&[]));
     assert_eq!(1, op.result_count(), "op {op} must only have one result");
     let arr_ref = op.result(0).unwrap();
-    let arr_dim_op = arith::constant(&ctx, IntegerAttribute::new(index_ty, 0).into(), unknown);
+    let arr_dim_op = builder.insert(unknown, |ctx, loc| {
+        arith::constant(ctx, IntegerAttribute::new(index_ty, 0).into(), loc)
+    });
     assert_eq!(
         1,
         arr_dim_op.result_count(),
