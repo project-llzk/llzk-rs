@@ -2,8 +2,11 @@
 
 use crate::builder::OpBuilderLike;
 use crate::dialect::felt::FeltType;
-use llzk_sys::{llzkRam_LoadOpBuild, llzkRam_StoreOpBuild};
-use melior::ir::{Location, OperationRef, TypeLike, Value, ValueLike, operation::OperationLike};
+use llzk_sys::{
+    llzkOperationIsA_Ram_LoadOp, llzkOperationIsA_Ram_StoreOp, llzkRam_LoadOpBuild,
+    llzkRam_StoreOpBuild,
+};
+use melior::ir::{Location, OperationRef, TypeLike, Value, ValueLike};
 
 /// Creates a `ram.load` operation with the given target `FeltType` or the
 /// default "unspecified prime" `FeltType` if `None` is provided.
@@ -25,11 +28,7 @@ pub fn load<'c, 'a>(
     }
 }
 
-/// Returns `true` iff the given op is `ram.load`.
-#[inline]
-pub fn is_ram_load<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "ram.load")
-}
+crate::macros::isa_fn!(ram, load, llzkOperationIsA_Ram_LoadOp);
 
 /// Creates a `ram.store` operation.
 ///
@@ -50,8 +49,4 @@ pub fn store<'c, 'a>(
     }
 }
 
-/// Returns `true` iff the given op is `ram.store`.
-#[inline]
-pub fn is_ram_store<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "ram.store")
-}
+crate::macros::isa_fn!(ram, store, llzkOperationIsA_Ram_StoreOp);

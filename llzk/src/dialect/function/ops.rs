@@ -43,7 +43,7 @@ use llzk_sys::{
     llzkFunction_FuncDefOpSetResAttrs, llzkFunction_FuncDefOpSetResName,
     llzkFunction_FuncDefOpSetResNameAttr, llzkFunction_FuncDefOpSetSymName,
     llzkFunction_ReturnOpBuild, llzkOperationIsA_Function_CallOp,
-    llzkOperationIsA_Function_FuncDefOp,
+    llzkOperationIsA_Function_FuncDefOp, llzkOperationIsA_Function_ReturnOp,
 };
 use melior::{
     Context, StringRef,
@@ -749,11 +749,7 @@ pub fn def_with_signature_attrs<'c, 'a>(
     Ok(op)
 }
 
-/// Return `true` iff the given op is `function.def`.
-#[inline]
-pub fn is_func_def<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "function.def")
-}
+crate::macros::isa_fn!(function, def, llzkOperationIsA_Function_FuncDefOp);
 
 /// Creates a new `function.call` operation.
 pub fn call<'c, 'a>(
@@ -828,11 +824,7 @@ pub fn call_with_template_params<'c, 'a>(
     .try_into()
 }
 
-/// Return `true` iff the given op is `function.call`.
-#[inline]
-pub fn is_func_call<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "function.call")
-}
+crate::macros::isa_fn!(function, call, llzkOperationIsA_Function_CallOp);
 
 /// Creates a new `function.return` operation.
 ///
@@ -855,8 +847,4 @@ pub fn r#return<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `function.return`.
-#[inline]
-pub fn is_func_return<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "function.return")
-}
+crate::macros::isa_fn!(function, return, llzkOperationIsA_Function_ReturnOp);

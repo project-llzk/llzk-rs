@@ -156,7 +156,7 @@ fn contract_from_function_target() {
         "@target_contract"
     );
     assert!(format!("{contract}").contains("verif.contract @target_contract"));
-    assert!(dialect::verif::is_contract(&contract));
+    assert!(dialect::verif::is_contract_op(&contract));
 }
 
 #[test]
@@ -244,7 +244,7 @@ fn include_flat() {
     .unwrap();
 
     verify_operation_with_diags(&contract_a).unwrap();
-    assert!(dialect::verif::is_include(&include));
+    assert!(dialect::verif::is_include_op(&include));
     assert_eq!(include.arg_operand_count(), 2);
     assert_eq!(include.arg_operand_at(0), arg0);
     assert_eq!(include.arg_operand_at(1), arg1);
@@ -425,7 +425,7 @@ fn require_compute_op() {
         .into();
     let op =
         dialect::verif::require_compute(&builder, Location::unknown(&context), true_val).unwrap();
-    assert!(dialect::verif::is_require_compute(&op));
+    assert!(dialect::verif::is_require_compute_op(&op));
     assert_eq!(op.condition(), true_val);
     op.set_condition(false_val);
     assert_eq!(op.condition(), false_val);
@@ -464,7 +464,7 @@ fn require_constrain_op() {
         .into();
     let op =
         dialect::verif::require_constrain(&builder, Location::unknown(&context), true_val).unwrap();
-    assert!(dialect::verif::is_require_constrain(&op));
+    assert!(dialect::verif::is_require_constrain_op(&op));
     assert_eq!(op.condition(), true_val);
     op.set_condition(false_val);
     assert_eq!(op.condition(), false_val);
@@ -503,7 +503,7 @@ fn ensure_compute_op() {
         .into();
     let op =
         dialect::verif::ensure_compute(&builder, Location::unknown(&context), true_val).unwrap();
-    assert!(dialect::verif::is_ensure_compute(&op));
+    assert!(dialect::verif::is_ensure_compute_op(&op));
     assert_eq!(op.condition(), true_val);
     op.set_condition(false_val);
     assert_eq!(op.condition(), false_val);
@@ -542,7 +542,7 @@ fn ensure_constrain_op() {
         .into();
     let op =
         dialect::verif::ensure_constrain(&builder, Location::unknown(&context), true_val).unwrap();
-    assert!(dialect::verif::is_ensure_constrain(&op));
+    assert!(dialect::verif::is_ensure_constrain_op(&op));
     assert_eq!(op.condition(), true_val);
     op.set_condition(false_val);
     assert_eq!(op.condition(), false_val);

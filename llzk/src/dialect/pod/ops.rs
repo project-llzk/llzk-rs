@@ -3,13 +3,13 @@
 use super::r#type::PodType;
 use crate::{builder::OpBuilderLike, map_operands::MapOperandsBuilder};
 use llzk_sys::{
-    LlzkRecordValue, llzkPod_NewPodOpBuild, llzkPod_NewPodOpBuildInferredFromInitialValues,
-    llzkPod_NewPodOpBuildWithMapOperands, llzkPod_ReadPodOpBuild, llzkPod_WritePodOpBuild,
+    LlzkRecordValue, llzkOperationIsA_Pod_NewPodOp, llzkOperationIsA_Pod_ReadPodOp,
+    llzkOperationIsA_Pod_WritePodOp, llzkPod_NewPodOpBuild,
+    llzkPod_NewPodOpBuildInferredFromInitialValues, llzkPod_NewPodOpBuildWithMapOperands,
+    llzkPod_ReadPodOpBuild, llzkPod_WritePodOpBuild,
 };
 use melior::StringRef;
-use melior::ir::{
-    Identifier, Location, OperationRef, Type, TypeLike, Value, ValueLike, operation::OperationLike,
-};
+use melior::ir::{Identifier, Location, OperationRef, Type, TypeLike, Value, ValueLike};
 use std::marker::PhantomData;
 
 /// Wrapper around a `LlzkRecordValue`, used to initialize fields in a `pod.new` operation.
@@ -98,11 +98,7 @@ pub fn new_with_affine_init<'c, 'a, 'b>(
     }
 }
 
-/// Return `true` iff the given op is `pod.new`.
-#[inline]
-pub fn is_pod_new<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "pod.new")
-}
+crate::macros::isa_fn!(pod, new, llzkOperationIsA_Pod_NewPodOp);
 
 /// Creates a 'pod.read' operation.
 pub fn read<'c, 'a>(
@@ -124,11 +120,7 @@ pub fn read<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `pod.read`.
-#[inline]
-pub fn is_pod_read<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "pod.read")
-}
+crate::macros::isa_fn!(pod, read, llzkOperationIsA_Pod_ReadPodOp);
 
 /// Creates a 'pod.write' operation.
 pub fn write<'c, 'a>(
@@ -150,8 +142,4 @@ pub fn write<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `pod.write`.
-#[inline]
-pub fn is_pod_write<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "pod.write")
-}
+crate::macros::isa_fn!(pod, write, llzkOperationIsA_Pod_WritePodOp);

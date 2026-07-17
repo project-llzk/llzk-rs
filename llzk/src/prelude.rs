@@ -27,8 +27,8 @@ pub mod dialect {
     pub mod array {
         pub use crate::dialect::array::{extract, insert, len, new, read, write};
         pub use crate::dialect::array::{
-            is_array_extract, is_array_insert, is_array_len, is_array_new, is_array_read,
-            is_array_type, is_array_write,
+            is_array_type, is_extract_op, is_insert_op, is_len_op, is_new_op, is_read_op,
+            is_write_op,
         };
     }
 
@@ -36,20 +36,20 @@ pub mod dialect {
     pub mod bool {
         pub use crate::dialect::bool::{and, assert, eq, ge, gt, le, lt, ne, not, or, xor};
         pub use crate::dialect::bool::{
-            is_bool_and, is_bool_assert, is_bool_cmp, is_bool_not, is_bool_or, is_bool_xor,
+            is_and_op, is_assert_op, is_cmp_op, is_not_op, is_or_op, is_xor_op,
         };
     }
 
     /// Exports functions from the 'cast' dialect
     pub mod cast {
-        pub use crate::dialect::cast::{is_cast_tofelt, is_cast_toindex};
+        pub use crate::dialect::cast::{is_tofelt_op, is_toindex_op};
         pub use crate::dialect::cast::{tofelt, toindex};
     }
 
     /// Exports functions from the 'constrain' dialect
     pub mod constrain {
         pub use crate::dialect::constrain::{eq, r#in};
-        pub use crate::dialect::constrain::{is_constrain_eq, is_constrain_in};
+        pub use crate::dialect::constrain::{is_eq_op, is_in_op};
     }
 
     /// Exports functions from the 'felt' dialect
@@ -59,10 +59,9 @@ pub mod dialect {
             sintdiv, smod, sub, uintdiv, umod,
         };
         pub use crate::dialect::felt::{
-            is_felt_add, is_felt_bit_and, is_felt_bit_not, is_felt_bit_or, is_felt_bit_xor,
-            is_felt_const, is_felt_div, is_felt_inv, is_felt_mul, is_felt_neg, is_felt_pow,
-            is_felt_shl, is_felt_shr, is_felt_sintdiv, is_felt_smod, is_felt_sub, is_felt_type,
-            is_felt_uintdiv, is_felt_umod,
+            is_add_op, is_bit_and_op, is_bit_not_op, is_bit_or_op, is_bit_xor_op, is_const_op,
+            is_div_op, is_felt_type, is_inv_op, is_mul_op, is_neg_op, is_pow_op, is_shl_op,
+            is_shr_op, is_sintdiv_op, is_smod_op, is_sub_op, is_uintdiv_op, is_umod_op,
         };
     }
 
@@ -72,23 +71,23 @@ pub mod dialect {
             arg_name_attr, call, call_with_map_operands, call_with_template_params, def,
             def_with_signature_attrs, res_name_attr, r#return,
         };
-        pub use crate::dialect::function::{is_func_call, is_func_def, is_func_return};
+        pub use crate::dialect::function::{is_call_op, is_def_op, is_return_op};
     }
 
     /// Exports functions from the 'global' dialect
     pub mod global {
         pub use crate::dialect::global::{def, read, write};
-        pub use crate::dialect::global::{is_global_def, is_global_read, is_global_write};
+        pub use crate::dialect::global::{is_def_op, is_read_op, is_write_op};
     }
 
     /// Exports functions from the 'llzk' dialect
     pub mod llzk {
-        pub use crate::dialect::llzk::{is_nondet, nondet};
+        pub use crate::dialect::llzk::{is_nondet_op, nondet};
     }
 
     /// Exports functions from the 'pod' dialect
     pub mod pod {
-        pub use crate::dialect::pod::ops::{is_pod_new, is_pod_read, is_pod_write};
+        pub use crate::dialect::pod::ops::{is_new_op, is_read_op, is_write_op};
         pub use crate::dialect::pod::ops::{new, new_with_affine_init, read, write};
     }
 
@@ -102,7 +101,7 @@ pub mod dialect {
 
     /// Exports functions from the 'ram' dialect
     pub mod ram {
-        pub use crate::dialect::ram::{is_ram_load, is_ram_store};
+        pub use crate::dialect::ram::{is_load_op, is_store_op};
         pub use crate::dialect::ram::{load, store};
     }
 
@@ -111,8 +110,7 @@ pub mod dialect {
         pub use crate::dialect::r#struct::helpers;
         pub use crate::dialect::r#struct::{def, member, new, readm, readm_with_offset, writem};
         pub use crate::dialect::r#struct::{
-            is_struct_def, is_struct_member, is_struct_new, is_struct_readm, is_struct_type,
-            is_struct_writem,
+            is_def_op, is_member_op, is_new_op, is_readm_op, is_struct_type, is_writem_op,
         };
     }
 
@@ -120,9 +118,9 @@ pub mod dialect {
     pub mod verif {
         pub use crate::dialect::verif::{
             contract, ensure_compute, ensure_constrain, include, include_with_map_operands,
-            include_with_map_operands_slice, is_contract, is_ensure_compute, is_ensure_constrain,
-            is_include, is_require_compute, is_require_constrain, require_compute,
-            require_constrain,
+            include_with_map_operands_slice, is_contract_op, is_ensure_compute_op,
+            is_ensure_constrain_op, is_include_op, is_require_compute_op, is_require_constrain_op,
+            require_compute, require_constrain,
         };
     }
 }
@@ -167,7 +165,7 @@ pub mod melior_dialects {
     /// Exports functions from the 'scf' dialect and extensions for LLZK.
     pub mod scf {
         pub use crate::dialect::scf_ext::{
-            is_scf_condition, is_scf_for, is_scf_if, is_scf_while, is_scf_yield,
+            is_condition_op, is_for_op, is_if_op, is_while_op, is_yield_op,
         };
         pub use melior::dialect::scf::*;
     }

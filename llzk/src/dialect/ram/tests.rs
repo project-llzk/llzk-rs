@@ -124,7 +124,7 @@ fn op_load(ctx: Context) {
 
     witness_fn_passes(&module, &ctx, location, |builder| {
         let load = build_load(builder, location);
-        assert!(ops::is_ram_load(&load));
+        assert!(ops::is_load_op(&load));
     });
 }
 
@@ -135,7 +135,7 @@ fn op_store(ctx: Context) {
 
     witness_fn_passes(&module, &ctx, location, |builder| {
         let store = build_store(builder, &ctx, location);
-        assert!(ops::is_ram_store(&store));
+        assert!(ops::is_store_op(&store));
     });
 }
 
@@ -148,7 +148,7 @@ fn op_load_with_specified_field(ctx: Context) {
         let addr = build_addr(builder, location, 42);
         let felt_ty = FeltType::with_field(&ctx, "bn254");
         let load = ops::load(builder, location, addr, Some(felt_ty));
-        assert!(ops::is_ram_load(&load));
+        assert!(ops::is_load_op(&load));
     });
 }
 

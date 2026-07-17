@@ -6,7 +6,7 @@ mod tests;
 
 use llzk_sys::mlirGetDialectHandle__llzk__ram__;
 use melior::dialect::DialectHandle;
-pub use ops::{is_ram_load, is_ram_store, load, store};
+pub use ops::{is_load_op, is_store_op, load, store};
 
 /// Returns a handle to the `ram` dialect.
 pub fn handle() -> DialectHandle {

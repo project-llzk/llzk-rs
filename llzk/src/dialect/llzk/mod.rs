@@ -6,7 +6,7 @@ mod ops;
 pub use attrs::LoopBoundsAttribute;
 pub use attrs::PublicAttribute;
 
-pub use ops::{is_nondet, nondet};
+pub use ops::{is_nondet_op, nondet};
 
 /// Exports the common types of the llzk dialect.
 pub mod prelude {

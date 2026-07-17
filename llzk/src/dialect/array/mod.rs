@@ -8,8 +8,8 @@ mod r#type;
 use llzk_sys::mlirGetDialectHandle__llzk__array__;
 use melior::dialect::DialectHandle;
 pub use ops::{
-    ArrayCtor, extract, insert, is_array_extract, is_array_insert, is_array_len, is_array_new,
-    is_array_read, is_array_write, len, new, read, write,
+    ArrayCtor, extract, insert, is_extract_op, is_insert_op, is_len_op, is_new_op, is_read_op,
+    is_write_op, len, new, read, write,
 };
 pub use r#type::{ArrayType, is_array_type};
 

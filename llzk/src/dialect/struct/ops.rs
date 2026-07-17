@@ -8,13 +8,15 @@ use crate::{
     prelude::SymbolRefAttribute,
 };
 use llzk_sys::{
-    llzkOperationIsA_Struct_MemberDefOp, llzkOperationIsA_Struct_StructDefOp,
-    llzkStruct_CreateStructOpBuild, llzkStruct_MemberDefOpBuild,
-    llzkStruct_MemberDefOpGetColumnValue, llzkStruct_MemberDefOpGetSignalValue,
-    llzkStruct_MemberDefOpHasPublicAttr, llzkStruct_MemberDefOpSetColumnValue,
-    llzkStruct_MemberDefOpSetPublicAttr, llzkStruct_MemberDefOpSetSignalValue,
-    llzkStruct_MemberReadOpBuild, llzkStruct_MemberReadOpBuildWithLiteralDistance,
-    llzkStruct_MemberWriteOpBuild, llzkStruct_StructDefOpBuild, llzkStruct_StructDefOpGetBody,
+    llzkOperationIsA_Struct_CreateStructOp, llzkOperationIsA_Struct_MemberDefOp,
+    llzkOperationIsA_Struct_MemberReadOp, llzkOperationIsA_Struct_MemberWriteOp,
+    llzkOperationIsA_Struct_StructDefOp, llzkStruct_CreateStructOpBuild,
+    llzkStruct_MemberDefOpBuild, llzkStruct_MemberDefOpGetColumnValue,
+    llzkStruct_MemberDefOpGetSignalValue, llzkStruct_MemberDefOpHasPublicAttr,
+    llzkStruct_MemberDefOpSetColumnValue, llzkStruct_MemberDefOpSetPublicAttr,
+    llzkStruct_MemberDefOpSetSignalValue, llzkStruct_MemberReadOpBuild,
+    llzkStruct_MemberReadOpBuildWithLiteralDistance, llzkStruct_MemberWriteOpBuild,
+    llzkStruct_StructDefOpBuild, llzkStruct_StructDefOpGetBody,
     llzkStruct_StructDefOpGetBodyRegion, llzkStruct_StructDefOpGetComputeFuncOp,
     llzkStruct_StructDefOpGetConstrainFuncOp, llzkStruct_StructDefOpGetFullyQualifiedName,
     llzkStruct_StructDefOpGetMemberDef, llzkStruct_StructDefOpGetMemberDefs,
@@ -428,11 +430,7 @@ where
     }
 }
 
-/// Return `true` iff the given op is `struct.def`.
-#[inline]
-pub fn is_struct_def<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "struct.def")
-}
+crate::macros::isa_fn!(struct, def, llzkOperationIsA_Struct_StructDefOp);
 
 /// Creates a 'struct.member' op
 pub fn member<'c, 'a, T>(
@@ -464,11 +462,7 @@ where
     })
 }
 
-/// Return `true` iff the given op is `struct.member`.
-#[inline]
-pub fn is_struct_member<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "struct.member")
-}
+crate::macros::isa_fn!(struct, member, llzkOperationIsA_Struct_MemberDefOp);
 
 /// Creates a 'struct.readm' op
 pub fn readm<'c, 'a>(
@@ -520,11 +514,7 @@ pub fn readm_with_offset<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `struct.readm`.
-#[inline]
-pub fn is_struct_readm<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "struct.readm")
-}
+crate::macros::isa_fn!(struct, readm, llzkOperationIsA_Struct_MemberReadOp);
 
 /// Creates a 'struct.writem' op.
 pub fn writem<'c, 'a>(
@@ -547,11 +537,7 @@ pub fn writem<'c, 'a>(
     })
 }
 
-/// Return `true` iff the given op is `struct.writem`.
-#[inline]
-pub fn is_struct_writem<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "struct.writem")
-}
+crate::macros::isa_fn!(struct, writem, llzkOperationIsA_Struct_MemberWriteOp);
 
 /// Creates a 'struct.new' op
 pub fn new<'c, 'a>(
@@ -568,8 +554,4 @@ pub fn new<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `struct.new`.
-#[inline]
-pub fn is_struct_new<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "struct.new")
-}
+crate::macros::isa_fn!(struct, new, llzkOperationIsA_Struct_CreateStructOp);
