@@ -8,7 +8,7 @@ use crate::{
     llzkFunction_CallOpCalleeIsProduct, llzkFunction_CallOpCalleeIsStructCompute,
     llzkFunction_CallOpCalleeIsStructConstrain, llzkFunction_CallOpCalleeIsStructProduct,
     llzkFunction_CallOpGetSingleResultTypeOfCompute, llzkFunction_CallOpGetTypeSignature,
-    llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetArgNameAttr,
+    llzkFunction_FuncDefOpBuildWithAttrsAndArgAttrs, llzkFunction_FuncDefOpGetArgNameAttr,
     llzkFunction_FuncDefOpGetBody, llzkFunction_FuncDefOpGetFullyQualifiedName,
     llzkFunction_FuncDefOpGetResNameAttr, llzkFunction_FuncDefOpGetSingleResultTypeOfCompute,
     llzkFunction_FuncDefOpHasAllowConstraintAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
@@ -62,10 +62,12 @@ fn create_func_def_op(
     arg_attrs: &[MlirAttribute],
 ) -> MlirOperation {
     unsafe {
+        let builder = mlirOpBuilderCreate(ctx);
         let location = mlirLocationUnknownGet(ctx);
         let name = CString::new(name).unwrap();
         let name = mlirStringRefCreateFromCString(name.as_ptr());
-        llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs(
+        let ret = llzkFunction_FuncDefOpBuildWithAttrsAndArgAttrs(
+            builder,
             location,
             name,
             r#type,
@@ -73,7 +75,9 @@ fn create_func_def_op(
             attrs.as_ptr(),
             isize::try_from(arg_attrs.len()).expect("arg_attrs too large"),
             arg_attrs.as_ptr(),
-        )
+        );
+        mlirOpBuilderDestroy(builder);
+        ret
     }
 }
 
