@@ -167,11 +167,10 @@ where
     let block = region
         .first_block()
         .unwrap_or_else(|| region.append_block(Block::new(&[])));
-    let saved = builder.save_insertion_point();
+
+    let _guard = builder.insertion_guard();
     builder.set_insertion_point_at_start(block);
-    let res = fill(builder);
-    builder.restore_insertion_point(saved);
-    res.map(|_| op)
+    fill(builder).map(|_| op)
 }
 
 /// Return `true` iff the given op is `poly.template`.
@@ -523,11 +522,10 @@ where
     let block = region
         .first_block()
         .unwrap_or_else(|| region.append_block(Block::new(&[])));
-    let prev = builder.save_insertion_point();
+
+    let _guard = builder.insertion_guard();
     builder.set_insertion_point_at_start(block);
-    let res = fill(builder);
-    builder.restore_insertion_point(prev);
-    res.map(|_| op)
+    fill(builder).map(|_| op)
 }
 
 /// Return `true` iff the given op is `poly.expr`.

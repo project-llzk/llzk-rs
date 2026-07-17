@@ -101,7 +101,7 @@ fn gen_witness<'c, 'a>(
     input_type: Type<'c>,
     out_field_name: &str,
 ) -> Result<OperationRef<'c, 'a>> {
-    let ip = builder.save_insertion_point();
+    let _guard = builder.insertion_guard();
 
     // The inputs to the functions are public circuit inputs.
     let inputs = vec![(input_type, location); 2];
@@ -149,7 +149,6 @@ fn gen_witness<'c, 'a>(
         c.into(),
     )?;
 
-    builder.restore_insertion_point(ip);
     Ok(compute_fn.into())
 }
 
@@ -160,7 +159,7 @@ fn gen_constrain<'c, 'a>(
     input_type: Type<'c>,
     out_field_name: &str,
 ) -> Result<OperationRef<'c, 'a>> {
-    let ip = builder.save_insertion_point();
+    let _guard = builder.insertion_guard();
 
     // The inputs to the functions are public circuit inputs.
     let inputs = vec![(input_type, location); 2];
@@ -212,6 +211,5 @@ fn gen_constrain<'c, 'a>(
     let t = dialect::felt::mul(builder, location, c.into(), b.into())?.result(0)?;
     dialect::constrain::eq(builder, location, t.into(), a.into());
 
-    builder.restore_insertion_point(ip);
     Ok(constrain_fn.into())
 }
