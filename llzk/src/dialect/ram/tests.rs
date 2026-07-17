@@ -63,6 +63,7 @@ fn build_fn<'c, 'm>(
         FunctionType::new(ctx, &[], &[]),
         &[],
         None,
+        crate::dialect::empty_region,
     )
     .unwrap();
     configure(&f);
@@ -70,7 +71,8 @@ fn build_fn<'c, 'm>(
     let block = f
         .body()
         .expect("function.def must have a body")
-        .append_block(melior::ir::Block::new(&[]));
+        .first_block()
+        .expect("function.def must have an entry block");
     builder.set_insertion_point_at_start(block);
     build(&builder);
     crate::dialect::function::r#return(&builder, location, &[]);

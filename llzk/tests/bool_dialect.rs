@@ -23,6 +23,7 @@ fn f_eq() {
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_witness_attr(true);
@@ -30,7 +31,8 @@ fn f_eq() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::bool::eq(
             &builder,
@@ -69,6 +71,7 @@ fn f_ne() {
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_witness_attr(true);
@@ -76,7 +79,8 @@ fn f_ne() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::bool::ne(
             &builder,
@@ -115,6 +119,7 @@ fn f_lt() {
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_witness_attr(true);
@@ -122,7 +127,8 @@ fn f_lt() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::bool::lt(
             &builder,
@@ -161,6 +167,7 @@ fn f_le() {
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_witness_attr(true);
@@ -168,7 +175,8 @@ fn f_le() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::bool::le(
             &builder,
@@ -207,6 +215,7 @@ fn f_gt() {
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_witness_attr(true);
@@ -214,7 +223,8 @@ fn f_gt() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::bool::gt(
             &builder,
@@ -253,6 +263,7 @@ fn f_ge() {
         FunctionType::new(&context, &[felt_type, felt_type], &[bool_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_witness_attr(true);
@@ -260,7 +271,8 @@ fn f_ge() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::bool::ge(
             &builder,

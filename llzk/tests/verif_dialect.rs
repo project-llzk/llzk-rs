@@ -31,14 +31,14 @@ fn make_function_target<'c>(
         FunctionType::new(context, &[felt_type], &[felt_type]),
         &[],
         arg_attrs,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
-        let block = Block::new(&[(felt_type, loc)]);
+        let block = func.body().unwrap().first_block().unwrap();
         let arg: Value = block.argument(0).unwrap().into();
-        let builder = OpBuilder::at_block_begin(context, &block);
+        let builder = OpBuilder::at_block_begin(context, block);
         dialect::function::r#return(&builder, loc, &[arg]);
-        func.body().unwrap().append_block(block);
     }
     func
 }
@@ -57,13 +57,13 @@ fn make_zero_arg_function_target<'c>(
         FunctionType::new(context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
-        let block = Block::new(&[]);
-        let builder = OpBuilder::at_block_begin(context, &block);
+        let block = func.body().unwrap().first_block().unwrap();
+        let builder = OpBuilder::at_block_begin(context, block);
         dialect::function::r#return(&builder, loc, &[]);
-        func.body().unwrap().append_block(block);
     }
     func
 }

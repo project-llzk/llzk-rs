@@ -152,9 +152,20 @@ fn print_region_does_not_panic() {
     let func_type = melior::ir::r#type::FunctionType::new(&context, &[felt_type], &[]);
     let module = Module::new(location);
     let builder = OpBuilder::at_block_begin(&context, module.body());
-    let func = dialect::function::def(&builder, location, "test_fn", func_type, &[], None).unwrap();
+    let func = dialect::function::def(
+        &builder,
+        location,
+        "test_fn",
+        func_type,
+        &[],
+        None,
+        llzk::dialect::empty_region,
+    )
+    .unwrap();
     let region = func.body().expect("function must have a body");
-    let block = region.append_block(Block::new(&[(felt_type, location)]));
+    let block = region
+        .first_block()
+        .expect("function must have an entry block");
     let arg: Value = block.argument(0).unwrap().into();
     builder.set_insertion_point_at_start(block);
     dialect::felt::neg(&builder, location, arg).unwrap();

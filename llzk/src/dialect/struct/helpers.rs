@@ -40,15 +40,15 @@ pub fn compute_fn<'c, 'a>(
         ),
         &[],
         arg_attrs,
+        dialect::empty_region,
     )
     .and_then(|f| {
-        let block = Block::new(inputs);
-        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, &block);
+        let block = f.body()?.first_block().ok_or(Error::EmptyBlock)?;
+        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, block);
         let new_struct = super::new(&inner_bldr, loc, struct_type);
         dialect::function::r#return(&inner_bldr, loc, &[new_struct.result(0)?.into()]);
         f.set_allow_witness_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
-        f.body()?.append_block(block);
         Ok(f)
     })
 }
@@ -68,8 +68,6 @@ pub fn constrain_fn<'c, 'a>(
     let mut input_types: Vec<Type<'c>> = Vec::with_capacity(inputs.len() + 1);
     input_types.push(struct_type.into());
     input_types.extend(inputs.iter().map(|(t, _)| *t));
-    let mut all_inputs = vec![(struct_type.into(), loc)];
-    all_inputs.extend(inputs);
     let all_arg_attrs = arg_attrs.map(|original| {
         let mut result: Vec<Vec<(Identifier<'_>, Attribute<'_>)>> = vec![vec![]];
         result.extend(original.iter().cloned());
@@ -82,14 +80,14 @@ pub fn constrain_fn<'c, 'a>(
         FunctionType::new(unsafe { context.to_ref() }, &input_types, &[]),
         &[],
         all_arg_attrs.as_deref(),
+        dialect::empty_region,
     )
     .and_then(|f| {
-        let block = Block::new(&all_inputs);
-        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, &block);
+        let block = f.body()?.first_block().ok_or(Error::EmptyBlock)?;
+        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, block);
         dialect::function::r#return(&inner_bldr, loc, &[]);
         f.set_allow_constraint_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
-        f.body()?.append_block(block);
         Ok(f)
     })
 }
@@ -115,16 +113,16 @@ pub fn product_fn<'c, 'a>(
         ),
         &[],
         arg_attrs,
+        dialect::empty_region,
     )
     .and_then(|f| {
-        let block = Block::new(inputs);
-        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, &block);
+        let block = f.body()?.first_block().ok_or(Error::EmptyBlock)?;
+        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, block);
         let new_struct = super::new(&inner_bldr, loc, struct_type);
         dialect::function::r#return(&inner_bldr, loc, &[new_struct.result(0)?.into()]);
         f.set_allow_constraint_attr(true);
         f.set_allow_witness_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
-        f.body()?.append_block(block);
         Ok(f)
     })
 }

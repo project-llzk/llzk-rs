@@ -26,13 +26,15 @@ fn array_new_empty() {
         FunctionType::new(&context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let array_type = ArrayType::new(index_type, &[IntegerAttribute::new(index_type, 2).into()]);
         let _array = dialect::array::new(&builder, location, array_type, ArrayCtor::Empty);
@@ -67,14 +69,15 @@ fn array_new_affine_map() {
         FunctionType::new(&context, &[index_type, index_type], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
-        let block_arg = (index_type, location);
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[block_arg, block_arg]));
+            .first_block()
+            .expect("function.def must have entry block");
         let arg0: Value = block.argument(0).unwrap().into();
         let arg1: Value = block.argument(1).unwrap().into();
         builder.set_insertion_point_at_start(block);

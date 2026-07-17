@@ -26,13 +26,15 @@ fn empty_function() {
         FunctionType::new(&context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         dialect::function::r#return(&builder, loc, &[]);
     }
@@ -62,13 +64,15 @@ fn function_call() {
         FunctionType::new(&context, &[], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         // Build call to itself
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
@@ -100,13 +104,15 @@ fn function_call_with_map_operands() {
         FunctionType::new(&context, &[], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         // Build call to itself
         let name = FlatSymbolRefAttribute::new(&context, "recursive");
@@ -303,6 +309,7 @@ fn func_def_op_get_function_type() {
         FunctionType::new(&context, &[felt_type], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     let result = op.function_type().unwrap();
@@ -325,6 +332,7 @@ fn func_def_op_set_function_type() {
         FunctionType::new(&context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     assert_eq!(op.function_type().unwrap().input_count(), 0);
@@ -346,6 +354,7 @@ fn func_def_op_get_sym_name() {
         FunctionType::new(&context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     assert_eq!(op.sym_name().unwrap().value(), "my_func");
@@ -365,6 +374,7 @@ fn func_def_op_set_sym_name() {
         FunctionType::new(&context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     assert_eq!(op.sym_name().unwrap().value(), "my_func");
@@ -386,16 +396,17 @@ fn func_def_op_is_declaration() {
         FunctionType::new(&context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
-    // A freshly created FuncDefOp has no body blocks — it is a declaration.
-    assert!(op.is_declaration());
+    // `empty_region` creates an entry block, so the op is no longer a declaration.
+    assert!(!op.is_declaration());
 
-    // After appending a block, it is no longer a declaration.
     let block = op
         .body()
         .expect("function.def must have body region")
-        .append_block(Block::new(&[]));
+        .first_block()
+        .expect("function.def must have entry block");
     builder.set_insertion_point_at_start(block);
     dialect::function::r#return(&builder, loc, &[]);
     assert!(!op.is_declaration());
@@ -415,16 +426,17 @@ fn func_def_op_get_body() {
         FunctionType::new(&context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
-    // A freshly created FuncDefOp already has a (empty) region; get_body returns Ok.
+    // A freshly created FuncDefOp already has an empty entry block.
     assert!(op.body().is_ok());
 
-    // After appending a block, get_body still succeeds.
     let block = op
         .body()
         .expect("function.def must have body region")
-        .append_block(Block::new(&[]));
+        .first_block()
+        .expect("function.def must have entry block");
     builder.set_insertion_point_at_start(block);
     dialect::function::r#return(&builder, loc, &[]);
     assert!(op.body().is_ok());
@@ -445,6 +457,7 @@ fn func_def_op_arg_name_round_trip() {
         FunctionType::new(&context, &[felt_type], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
 
@@ -471,6 +484,7 @@ fn func_def_op_res_name_round_trip() {
         FunctionType::new(&context, &[], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
 
@@ -501,10 +515,7 @@ fn func_def_op_def_with_signature_attrs_prints_named_arg_and_result() {
     )
     .unwrap();
 
-    let block = op
-        .body()
-        .unwrap()
-        .append_block(Block::new(&[(felt_type, loc)]));
+    let block = op.body().unwrap().first_block().unwrap();
     let arg: Value = block.argument(0).unwrap().into();
     builder.set_insertion_point_at_start(block);
     dialect::function::r#return(&builder, loc, &[arg]);
@@ -529,6 +540,7 @@ fn func_def_op_signature_name_accessors_return_out_of_bounds() {
         FunctionType::new(&context, &[felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
 
@@ -565,6 +577,7 @@ fn func_def_op_arg_and_res_attrs_round_trip() {
         FunctionType::new(&context, &[felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
 

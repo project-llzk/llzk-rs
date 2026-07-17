@@ -24,6 +24,7 @@ fn make_empty_func<'c, 'a>(
         FunctionType::new(context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap()
 }

@@ -8,6 +8,7 @@ use crate::{
     error::Error,
     macros::llzk_op_type,
     map_operands::MapOperandsBuilder,
+    operation::detach_and_erase_op,
     symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
 };
 use llzk_sys::{
@@ -47,7 +48,7 @@ use llzk_sys::{
 use melior::{
     Context, StringRef,
     ir::{
-        Attribute, AttributeLike, BlockLike as _, Location, OperationRef, RegionLike as _,
+        Attribute, AttributeLike, Block, BlockLike as _, Location, OperationRef, RegionLike as _,
         RegionRef, Type, TypeLike, Value, ValueLike,
         attribute::{StringAttribute, TypeAttribute},
         block::BlockArgument,
@@ -635,17 +636,25 @@ fn prepare_arg_attrs<'c>(
         .collect()
 }
 
-/// Creates a 'function.def' operation. If the arg_attrs parameter is None creates as many empty
-/// argument attributes as input arguments there are to satisfy the requirement of one
-/// DictionaryAttr per argument.
-pub fn def<'c, 'a>(
-    builder: &impl OpBuilderLike<'c>,
+/// Creates a 'function.def' operation and fills its body with operations produced
+/// by the callback. If the arg_attrs parameter is [`None`] creates as many empty
+/// argument attributes as input arguments there are to satisfy the requirement of
+/// one `DictionaryAttr` per argument.
+///
+/// Use [`crate::dialect::empty_region`] as the `fill` callback to leave the body
+/// empty so contents can be added later.
+pub fn def<'c, 'a, B>(
+    builder: &B,
     location: Location<'c>,
     name: &str,
     r#type: FunctionType<'c>,
     attrs: &[NamedAttribute<'c>],
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
-) -> Result<FuncDefOpRef<'c, 'a>, Error> {
+    fill: impl FnOnce(&B) -> Result<(), Error>,
+) -> Result<FuncDefOpRef<'c, 'a>, Error>
+where
+    B: OpBuilderLike<'c>,
+{
     let ctx = location.context();
     let name = StringRef::new(name);
     let attrs: Vec<_> = attrs.iter().map(tuple_to_raw_named_attr).collect();
@@ -660,7 +669,7 @@ pub fn def<'c, 'a>(
     } else {
         arg_attrs.as_ptr()
     };
-    unsafe {
+    let op = unsafe {
         OperationRef::from_raw(llzkFunction_FuncDefOpBuildWithAttrsAndArgAttrs(
             builder.to_raw(),
             location.to_raw(),
@@ -671,8 +680,28 @@ pub fn def<'c, 'a>(
             isize::try_from(arg_attrs.len()).expect("arg_attrs too large"),
             arg_attrs_ptr,
         ))
+    };
+    let op: FuncDefOpRef<'c, 'a> = op.try_into()?;
+
+    let block_args = (0..r#type.input_count())
+        .map(|idx| r#type.input(idx).map(|ty| (ty, location)))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let region = op.body()?;
+    let block = match region.first_block() {
+        Some(block) => block,
+        None => region.append_block(Block::new(&block_args)),
+    };
+
+    let _guard = builder.insertion_guard();
+    builder.set_insertion_point_at_start(block);
+    match fill(builder) {
+        Ok(()) => Ok(op),
+        Err(err) => {
+            detach_and_erase_op(op);
+            Err(err)
+        }
     }
-    .try_into()
 }
 
 /// Creates a `function.def` operation and optionally sets both argument and result attributes.
@@ -687,7 +716,15 @@ pub fn def_with_signature_attrs<'c, 'a>(
 ) -> Result<FuncDefOpRef<'c, 'a>, Error> {
     let context_ref = location.context();
     let context = unsafe { context_ref.to_ref() };
-    let op = def(builder, location, name, r#type, attrs, arg_attrs)?;
+    let op = def(
+        builder,
+        location,
+        name,
+        r#type,
+        attrs,
+        arg_attrs,
+        crate::dialect::empty_region,
+    )?;
     if let Some(arg_attrs) = arg_attrs {
         let attr = ArrayAttribute::new(
             context,

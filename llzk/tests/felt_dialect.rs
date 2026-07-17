@@ -20,13 +20,15 @@ fn f_constant() {
         FunctionType::new(&context, &[], &[FeltType::new(&context).into()]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt =
             dialect::felt::constant(&builder, loc, FeltConstAttribute::new(&context, 42, None))
@@ -60,13 +62,15 @@ fn f_add() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::add(
             &builder,
@@ -104,13 +108,15 @@ fn f_sub() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::sub(
             &builder,
@@ -148,13 +154,15 @@ fn f_mul() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::mul(
             &builder,
@@ -192,13 +200,15 @@ fn f_div() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::div(
             &builder,
@@ -236,6 +246,7 @@ fn f_uintdiv() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -243,7 +254,8 @@ fn f_uintdiv() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::uintdiv(
             &builder,
@@ -281,6 +293,7 @@ fn f_sintdiv() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -288,7 +301,8 @@ fn f_sintdiv() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::sintdiv(
             &builder,
@@ -326,6 +340,7 @@ fn f_umod() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -333,7 +348,8 @@ fn f_umod() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::umod(
             &builder,
@@ -371,6 +387,7 @@ fn f_smod() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -378,7 +395,8 @@ fn f_smod() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::smod(
             &builder,
@@ -416,13 +434,15 @@ fn f_neg() {
         FunctionType::new(&context, &[felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::neg(&builder, loc, block.argument(0).unwrap().into()).unwrap();
         dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
@@ -454,6 +474,7 @@ fn f_inv() {
         FunctionType::new(&context, &[felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -461,7 +482,8 @@ fn f_inv() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::inv(&builder, loc, block.argument(0).unwrap().into()).unwrap();
         dialect::function::r#return(&builder, loc, &[felt.result(0).unwrap().into()]);
@@ -493,6 +515,7 @@ fn f_bit_not() {
         FunctionType::new(&context, &[felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -500,7 +523,8 @@ fn f_bit_not() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt =
             dialect::felt::bit_not(&builder, loc, block.argument(0).unwrap().into()).unwrap();
@@ -533,6 +557,7 @@ fn f_shl() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -540,7 +565,8 @@ fn f_shl() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::shl(
             &builder,
@@ -578,6 +604,7 @@ fn f_shr() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -585,7 +612,8 @@ fn f_shr() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::shr(
             &builder,
@@ -623,6 +651,7 @@ fn f_bit_and() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -630,7 +659,8 @@ fn f_bit_and() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::bit_and(
             &builder,
@@ -668,6 +698,7 @@ fn f_bit_or() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -675,7 +706,8 @@ fn f_bit_or() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::bit_or(
             &builder,
@@ -713,6 +745,7 @@ fn f_bit_xor() {
         FunctionType::new(&context, &[felt_type, felt_type], &[felt_type]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     f.set_allow_non_native_field_ops_attr(true);
@@ -720,7 +753,8 @@ fn f_bit_xor() {
         let block = f
             .body()
             .expect("function.def must have body region")
-            .append_block(Block::new(&[(felt_type, loc), (felt_type, loc)]));
+            .first_block()
+            .expect("function.def must have entry block");
         builder.set_insertion_point_at_start(block);
         let felt = dialect::felt::bit_xor(
             &builder,
