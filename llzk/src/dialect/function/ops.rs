@@ -47,8 +47,8 @@ use llzk_sys::{
 use melior::{
     Context, StringRef,
     ir::{
-        Attribute, AttributeLike, BlockLike as _, Location, Operation, OperationRef,
-        RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
+        Attribute, AttributeLike, BlockLike as _, Location, OperationRef, RegionLike as _,
+        RegionRef, Type, TypeLike, Value, ValueLike,
         attribute::{StringAttribute, TypeAttribute},
         block::BlockArgument,
         operation::{OperationLike, OperationMutLike},
@@ -650,8 +650,9 @@ pub fn def<'c, 'a>(
     let name = StringRef::new(name);
     let attrs: Vec<_> = attrs.iter().map(tuple_to_raw_named_attr).collect();
     let arg_attrs = prepare_arg_attrs(arg_attrs, r#type.input_count(), unsafe { ctx.to_ref() });
-    let op = unsafe {
-        Operation::from_raw(llzkFunction_FuncDefOpBuildWithAttrsAndArgAttrs(
+    unsafe {
+        OperationRef::from_raw(llzkFunction_FuncDefOpBuildWithAttrsAndArgAttrs(
+            builder.to_raw(),
             location.to_raw(),
             name.to_raw(),
             r#type.to_raw(),
@@ -660,9 +661,8 @@ pub fn def<'c, 'a>(
             isize::try_from(arg_attrs.len()).expect("arg_attrs too large"),
             arg_attrs.as_ptr(),
         ))
-    };
-    // TODO: insertion is temporary until the CAPI is updated to do the insertion
-    builder.insert(location, |_, _| op).try_into()
+    }
+    .try_into()
 }
 
 /// Creates a `function.def` operation and optionally sets both argument and result attributes.
