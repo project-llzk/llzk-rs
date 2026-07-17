@@ -64,11 +64,8 @@ fn build_unop<'c, 'a>(
 }
 
 macro_rules! binop {
-    ($name:ident) => {
-        binop!($name, stringify!($name));
-    };
-    ($name:ident, $opname:expr, $build:ident) => {
-        #[doc = concat!("Creates a `felt.", $opname ,"` operation.")]
+    ($name:ident, $build:ident) => {
+        #[doc = concat!("Creates a `felt.", stringify!($name) ,"` operation.")]
         pub fn $name<'c, 'a>(
             builder: &impl OpBuilderLike<'c>,
             location: Location<'c>,
@@ -79,21 +76,18 @@ macro_rules! binop {
         }
 
         paste::paste! {
-            #[doc = concat!("Return `true` iff the given op is `felt.", $opname ,"`.")]
+            #[doc = concat!("Return `true` iff the given op is `felt.", stringify!($name) ,"`.")]
             #[inline]
             pub fn [<is_felt_ $name>]<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("felt.", $opname))
+                crate::operation::isa(op, concat!("felt.", stringify!($name)))
             }
         }
     };
 }
 
 macro_rules! unop {
-    ($name:ident) => {
-        unop!($name, stringify!($name));
-    };
-    ($name:ident, $opname:expr, $build:ident) => {
-        #[doc = concat!("Creates a `felt.", $opname ,"` operation.")]
+    ($name:ident, $build:ident) => {
+        #[doc = concat!("Creates a `felt.", stringify!($name) ,"` operation.")]
         pub fn $name<'c, 'a>(
             builder: &impl OpBuilderLike<'c>,
             location: Location<'c>,
@@ -103,32 +97,32 @@ macro_rules! unop {
         }
 
         paste::paste! {
-            #[doc = concat!("Return `true` iff the given op is `felt.", $opname ,"`.")]
+            #[doc = concat!("Return `true` iff the given op is `felt.", stringify!($name) ,"`.")]
             #[inline]
             pub fn [<is_felt_ $name>]<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("felt.", $opname))
+                crate::operation::isa(op, concat!("felt.", stringify!($name)))
             }
         }
     };
 }
 
-binop!(add, "add", llzkFelt_AddFeltOpBuild);
-binop!(bit_and, "bit_and", llzkFelt_AndFeltOpBuild);
-binop!(bit_or, "bit_or", llzkFelt_OrFeltOpBuild);
-binop!(bit_xor, "bit_xor", llzkFelt_XorFeltOpBuild);
-binop!(div, "div", llzkFelt_DivFeltOpBuild);
-binop!(mul, "mul", llzkFelt_MulFeltOpBuild);
-binop!(pow, "pow", llzkFelt_PowFeltOpBuild);
-binop!(shl, "shl", llzkFelt_ShlFeltOpBuild);
-binop!(shr, "shr", llzkFelt_ShrFeltOpBuild);
-binop!(sintdiv, "sintdiv", llzkFelt_SignedIntDivFeltOpBuild);
-binop!(smod, "smod", llzkFelt_SignedModFeltOpBuild);
-binop!(sub, "sub", llzkFelt_SubFeltOpBuild);
-binop!(uintdiv, "uintdiv", llzkFelt_UnsignedIntDivFeltOpBuild);
-binop!(umod, "umod", llzkFelt_UnsignedModFeltOpBuild);
-unop!(bit_not, "bit_not", llzkFelt_NotFeltOpBuild);
-unop!(inv, "inv", llzkFelt_InvFeltOpBuild);
-unop!(neg, "neg", llzkFelt_NegFeltOpBuild);
+binop!(add, llzkFelt_AddFeltOpBuild);
+binop!(bit_and, llzkFelt_AndFeltOpBuild);
+binop!(bit_or, llzkFelt_OrFeltOpBuild);
+binop!(bit_xor, llzkFelt_XorFeltOpBuild);
+binop!(div, llzkFelt_DivFeltOpBuild);
+binop!(mul, llzkFelt_MulFeltOpBuild);
+binop!(pow, llzkFelt_PowFeltOpBuild);
+binop!(shl, llzkFelt_ShlFeltOpBuild);
+binop!(shr, llzkFelt_ShrFeltOpBuild);
+binop!(sintdiv, llzkFelt_SignedIntDivFeltOpBuild);
+binop!(smod, llzkFelt_SignedModFeltOpBuild);
+binop!(sub, llzkFelt_SubFeltOpBuild);
+binop!(uintdiv, llzkFelt_UnsignedIntDivFeltOpBuild);
+binop!(umod, llzkFelt_UnsignedModFeltOpBuild);
+unop!(bit_not, llzkFelt_NotFeltOpBuild);
+unop!(inv, llzkFelt_InvFeltOpBuild);
+unop!(neg, llzkFelt_NegFeltOpBuild);
 
 /// Creates a `felt.const` operation.
 pub fn constant<'c, 'a>(

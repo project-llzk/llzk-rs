@@ -101,11 +101,11 @@ fn build_unop<'c, 'a>(
 macro_rules! binop {
     ($name:ident) => {
         paste::paste! {
-            binop!($name, stringify!($name), [<llzkBool_ $name:camel BoolOpBuild>]);
+            binop!($name, [<llzkBool_ $name:camel BoolOpBuild>]);
         }
     };
-    ($name:ident, $opname:expr, $build:ident) => {
-        #[doc = concat!("Creates a `bool.", $opname ,"` operation.")]
+    ($name:ident, $build:ident) => {
+        #[doc = concat!("Creates a `bool.", stringify!($name) ,"` operation.")]
         pub fn $name<'c, 'a>(
             builder: &impl OpBuilderLike<'c>,
             location: Location<'c>,
@@ -122,11 +122,11 @@ macro_rules! binop {
 macro_rules! unop {
     ($name:ident) => {
         paste::paste! {
-            unop!($name, stringify!($name), [<llzkBool_ $name:camel BoolOpBuild>]);
+            unop!($name, [<llzkBool_ $name:camel BoolOpBuild>]);
         }
     };
-    ($name:ident, $opname:expr, $build:ident) => {
-        #[doc = concat!("Creates a `bool.", $opname ,"` operation.")]
+    ($name:ident, $build:ident) => {
+        #[doc = concat!("Creates a `bool.", stringify!($name) ,"` operation.")]
         pub fn $name<'c, 'a>(
             builder: &impl OpBuilderLike<'c>,
             location: Location<'c>,
@@ -139,10 +139,10 @@ macro_rules! unop {
     };
 }
 
-binop!(and, "and", llzkBool_AndBoolOpBuild);
-binop!(or, "or", llzkBool_OrBoolOpBuild);
-binop!(xor, "xor", llzkBool_XorBoolOpBuild);
-unop!(not, "not", llzkBool_NotBoolOpBuild);
+binop!(and, llzkBool_AndBoolOpBuild);
+binop!(or, llzkBool_OrBoolOpBuild);
+binop!(xor, llzkBool_XorBoolOpBuild);
+unop!(not, llzkBool_NotBoolOpBuild);
 
 /// Creates a `bool.assert` operation.
 pub fn assert<'c, 'a>(
