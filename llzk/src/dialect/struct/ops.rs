@@ -4,6 +4,7 @@ use crate::{
     dialect::function::FuncDefOpRef,
     error::Error,
     macros::llzk_op_type,
+    operation::detach_and_erase_op,
     prelude::SymbolRefAttribute,
 };
 use llzk_sys::{
@@ -418,7 +419,13 @@ where
 
     let _guard = builder.insertion_guard();
     builder.set_insertion_point_at_start(block);
-    fill(builder).map(|_| op)
+    match fill(builder) {
+        Ok(()) => Ok(op),
+        Err(err) => {
+            detach_and_erase_op(op);
+            Err(err)
+        }
+    }
 }
 
 /// Return `true` iff the given op is `struct.def`.
