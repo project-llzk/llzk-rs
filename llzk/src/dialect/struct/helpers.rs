@@ -3,21 +3,14 @@
 use super::r#type::StructType;
 use crate::{
     attributes::NamedAttribute,
-    builder::{EntryPoint, OpBuilder, OpBuilderLike},
+    builder::{OpBuilder, OpBuilderLike},
     dialect,
     error::Error,
     prelude::{
-        FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FUNC_NAME_PRODUCT, FeltType, FuncDefOpLike as _,
-        FuncDefOpRef, StructDefOp,
+        FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FUNC_NAME_PRODUCT, FuncDefOpLike as _, FuncDefOpRef,
     },
 };
-use melior::{
-    Context,
-    ir::{
-        Attribute, Block, BlockLike as _, Identifier, Location, RegionLike as _, Type,
-        operation::OperationLike as _, r#type::FunctionType,
-    },
-};
+use melior::ir::{Attribute, Identifier, Location, RegionLike as _, Type, r#type::FunctionType};
 
 /// Creates an empty `@compute` function with the configuration expected by `struct.def`.
 pub fn compute_fn<'c, 'a>(
@@ -125,86 +118,4 @@ pub fn product_fn<'c, 'a>(
         f.set_allow_non_native_field_ops_attr(true);
         Ok(f)
     })
-}
-
-/// Creates the `@Signal` struct.
-///
-/// The `@Main` struct's inputs must be of this type or arrays of this type.
-#[deprecated]
-pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>, Error> {
-    let loc = Location::new(context, "Signal struct", 0, 0);
-    let typ = StructType::from_str(context, "Signal");
-    let reg = "reg";
-    let block = Block::new(&[]);
-    let builder = OpBuilder::at_block_begin(context, &block);
-    let op = super::def(&builder, loc, "Signal", |builder| {
-        super::member(builder, loc, reg, FeltType::new(context), true, false, true)?;
-        compute_fn(
-            builder,
-            loc,
-            typ,
-            &[(FeltType::new(context).into(), loc)],
-            None,
-        )
-        .and_then(|compute| {
-            let block = compute
-                .body()?
-                .first_block()
-                .ok_or(Error::BlockExpected(0))?;
-            let fst = block.first_operation().ok_or(Error::EmptyBlock)?;
-            if fst.name() != Identifier::new(context, "struct.new") {
-                return Err(Error::OperationExpected(
-                    "struct.new",
-                    fst.name().as_string_ref().as_str()?.to_owned(),
-                ));
-            }
-            let builder = OpBuilder::new(context, EntryPoint::After(fst));
-            super::writem(
-                &builder,
-                loc,
-                fst.result(0)?.into(),
-                reg,
-                block.argument(0)?.into(),
-            )?;
-            Ok(compute)
-        })?;
-        constrain_fn(
-            builder,
-            loc,
-            typ,
-            &[(FeltType::new(context).into(), loc)],
-            None,
-        )
-        .and_then(|constrain| {
-            let block = constrain
-                .body()?
-                .first_block()
-                .ok_or(Error::BlockExpected(0))?;
-            let fst = block.first_operation().ok_or(Error::EmptyBlock)?;
-            if fst.name() != Identifier::new(context, "function.return") {
-                return Err(Error::OperationExpected(
-                    "function.return",
-                    fst.name().as_string_ref().as_str()?.to_owned(),
-                ));
-            }
-            let builder = OpBuilder::new(context, EntryPoint::Before(fst));
-            let reg = super::readm(
-                &builder,
-                loc,
-                FeltType::new(context).into(),
-                block.argument(0)?.into(),
-                "reg",
-            )?;
-            builder.set_insertion_point_after(reg);
-            dialect::constrain::eq(
-                &builder,
-                loc,
-                reg.result(0)?.into(),
-                block.argument(1)?.into(),
-            );
-            Ok(constrain)
-        })?;
-        Ok(())
-    })?;
-    Ok(unsafe { op.to_ref() }.clone())
 }
