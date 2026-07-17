@@ -6,7 +6,7 @@ use llzk_sys::{
     llzkArray_ArrayTypeGetElementType, llzkArray_ArrayTypeGetWithDims,
     llzkArray_ArrayTypeGetWithShape, llzkTypeIsA_Array_ArrayType,
 };
-use melior::ir::{Attribute, Type, TypeLike};
+use melior::ir::{Attribute, AttributeLike as _, Type, TypeLike};
 use mlir_sys::MlirType;
 
 /// Represents the `!array.type` type.
@@ -37,11 +37,12 @@ impl<'c> ArrayType<'c> {
     ///   - AffineMapAttribute, specifying a dimension size computed from surrounding loop
     ///     induction variables
     pub fn new(element_type: Type<'c>, dims: &[Attribute<'c>]) -> Self {
+        let raw_dims: Vec<_> = dims.iter().map(|dim| dim.to_raw()).collect();
         unsafe {
             Self::from_raw(llzkArray_ArrayTypeGetWithDims(
                 element_type.to_raw(),
-                dims.len() as _,
-                dims.as_ptr() as *const _,
+                raw_dims.len() as _,
+                raw_dims.as_ptr(),
             ))
         }
     }
