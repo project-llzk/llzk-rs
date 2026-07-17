@@ -1,6 +1,6 @@
 //! Types and traits for working with operation builders.
 
-use std::{marker::PhantomData, os::raw::c_void, ptr::null_mut};
+use std::{fmt, marker::PhantomData, os::raw::c_void, ptr::null_mut};
 
 use llzk_sys::{
     MlirOpBuilder, MlirOpBuilderInsertPoint, MlirOpBuilderListener, mlirOpBuilderCreate,
@@ -83,6 +83,14 @@ pub trait OpBuilderLike<'c> {
         }
     }
 
+    /// Returns a guard that restores the current insertion point when dropped.
+    fn insertion_guard<'a>(&self) -> InsertionGuard<'_, 'c, 'a, Self>
+    where
+        Self: Sized,
+    {
+        InsertionGuard::new(self)
+    }
+
     /// Returns a reference to the block where the builder will insert operations.
     fn insertion_block<'a>(&self) -> Option<BlockRef<'c, 'a>> {
         unsafe { BlockRef::from_option_raw(mlirOpBuilderGetInsertionBlock(self.to_raw())) }
@@ -95,7 +103,7 @@ pub trait OpBuilderLike<'c> {
 
     /// Inserts the operation produced by the closure and returns a reference to it.
     fn insert<'a, F: FnOnce(&'c Context, Location<'c>) -> Operation<'c>>(
-        &'c self,
+        &self,
         loc: Location<'c>,
         f: F,
     ) -> OperationRef<'c, 'a> {
@@ -344,6 +352,53 @@ impl<'ctx, 'blk> InsertPoint<'ctx, 'blk> {
     }
 }
 
+/// RAII guard that restores a builder's insertion point when dropped.
+///
+/// Moving this guard transfers responsibility for restoring the insertion point
+/// to the moved value.
+#[must_use = "the insertion point is restored when the guard is dropped"]
+pub struct InsertionGuard<'builder, 'ctx, 'blk, B>
+where
+    B: OpBuilderLike<'ctx> + ?Sized,
+{
+    builder: &'builder B,
+    point: InsertPoint<'ctx, 'blk>,
+}
+
+impl<'builder, 'ctx, 'blk, B> InsertionGuard<'builder, 'ctx, 'blk, B>
+where
+    B: OpBuilderLike<'ctx> + ?Sized,
+{
+    /// Creates a guard that restores the builder's current insertion point
+    /// when dropped.
+    pub fn new(builder: &'builder B) -> Self {
+        Self {
+            builder,
+            point: builder.save_insertion_point(),
+        }
+    }
+}
+
+impl<'ctx, 'blk, B> fmt::Debug for InsertionGuard<'_, 'ctx, 'blk, B>
+where
+    B: OpBuilderLike<'ctx> + ?Sized,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InsertionGuard")
+            .field("point", &self.point)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<'ctx, 'blk, B> Drop for InsertionGuard<'_, 'ctx, 'blk, B>
+where
+    B: OpBuilderLike<'ctx> + ?Sized,
+{
+    fn drop(&mut self) {
+        self.builder.restore_insertion_point(self.point);
+    }
+}
+
 /// Trait defining [`OpBuilderLike`] listeners.
 ///
 /// For simple use cases you can use [`SimpleOpBuilderListener`].
@@ -542,6 +597,16 @@ mod tests {
         *Box::new(builder)
     }
 
+    /// Moves an insertion guard through the heap and back.
+    fn move_guard<'builder, 'ctx, 'blk, B>(
+        guard: InsertionGuard<'builder, 'ctx, 'blk, B>,
+    ) -> InsertionGuard<'builder, 'ctx, 'blk, B>
+    where
+        B: OpBuilderLike<'ctx>,
+    {
+        *Box::new(guard)
+    }
+
     #[rstest]
     fn at_block_begin_inserts_before_existing_operations(ctx: Context) {
         let location = Location::unknown(&ctx);
@@ -622,6 +687,25 @@ mod tests {
         builder.restore_insertion_point(saved);
         let third = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 3));
         assert_eq!(second.next_in_block(), Some(first));
+        assert_eq!(first.next_in_block(), Some(third));
+    }
+
+    #[rstest]
+    fn insertion_guard_restores_insertion_point_when_dropped(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let module = Module::new(location);
+        let body = module.body();
+        let builder = OpBuilder::at_block_begin(&ctx, body);
+
+        let first = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 1));
+        {
+            let _guard = move_guard(builder.insertion_guard());
+            builder.set_insertion_point_at_start(body);
+            let second = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 2));
+            assert_eq!(second.next_in_block(), Some(first));
+        }
+
+        let third = builder.insert(location, |ctx, loc| index_constant(ctx, loc, 3));
         assert_eq!(first.next_in_block(), Some(third));
     }
 

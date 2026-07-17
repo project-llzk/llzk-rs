@@ -8,7 +8,7 @@
 //!
 //! Run with: `cargo run --package llzk --example division`
 
-use std::{error::Error as StdError, result::Result as StdResult};
+use std::result::Result as StdResult;
 
 // Commonly used types are re-exported in the prelude.
 use llzk::{
@@ -16,7 +16,7 @@ use llzk::{
     prelude::*,
 };
 
-type Result<T> = StdResult<T, Box<dyn StdError>>;
+type Result<T> = StdResult<T, LlzkError>;
 
 const MAIN_STRUCT_NAME: &str = "Entry";
 
@@ -39,34 +39,50 @@ fn main() -> Result<()> {
 
     // Operations can be created with factory methods with the same name as the op they create,
     // mimicking its mnemonic (struct.def in this case).
-    let main_st = dialect::r#struct::def(location, MAIN_STRUCT_NAME, [])?;
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
     // The inputs of the main struct must be of type !felt.type (or array thereof).
     let felt_type = FeltType::new(&context);
+    let out_field_name = "c";
 
     // We store the output of the division in a data field.
     // Members can have three extra annotations: signal, column, and public.
     // The signal annotation makes the field a witness-stored constraint variable.
     // The public annotation makes the field an output of the circuit.
-    let out_field = {
+    dialect::r#struct::def(&builder, location, MAIN_STRUCT_NAME, |builder| {
         let is_signal = true;
         let is_column = false;
         let is_public = true;
-        dialect::r#struct::member(location, "c", felt_type, is_signal, is_column, is_public)?
-    };
-    let compute_fn = witness(&context, location, felt_type.into(), &out_field)?;
-    let constrain_fn = constraints(&context, location, felt_type.into(), &out_field)?;
+        dialect::r#struct::member(
+            builder,
+            location,
+            out_field_name,
+            felt_type,
+            is_signal,
+            is_column,
+            is_public,
+        )?;
+        gen_witness(
+            builder,
+            &context,
+            location,
+            felt_type.into(),
+            out_field_name,
+        )?;
+        gen_constrain(
+            builder,
+            &context,
+            location,
+            felt_type.into(),
+            out_field_name,
+        )?;
+        Ok(())
+    })?;
 
-    main_st.body().append_operation(out_field.into());
-    main_st.body().append_operation(compute_fn);
-    main_st.body().append_operation(constrain_fn);
-
-    // Now that we have filled out the struct we can add it to the module, verify it, and print it.
-    module.body().append_operation(main_st.into());
-    // For verifying and printing we need get a reference to the `builtin.module` op representing
-    // the module.
+    // Now that we have filled out the struct we can verify it and print it.
+    // For verifying and printing we need get a reference to the `builtin.module` op
+    // representing the module.
     let module_op = module.as_operation();
-
     if module_op.verify() {
         println!("{module_op}")
     } else {
@@ -76,14 +92,17 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn witness<'c>(
+fn gen_witness<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     // Context is the type used in melior to represent the MLIRContext.
     // A reference to a LlzkContext can be used as a reference to a Context.
     context: &'c Context,
     location: Location<'c>,
     input_type: Type<'c>,
-    out_field: &MemberDefOp<'c>,
-) -> Result<Operation<'c>> {
+    out_field_name: &str,
+) -> Result<OperationRef<'c, 'a>> {
+    let _guard = builder.insertion_guard();
+
     // The inputs to the functions are public circuit inputs.
     let inputs = vec![(input_type, location); 2];
     let pub_attr = [PublicAttribute::new_named_attr(context)];
@@ -92,6 +111,7 @@ fn witness<'c>(
     // The functions inside a struct need to have a particular structure. This helper creates the
     // `@compute` function with its proper structure.
     let compute_fn = dialect::r#struct::helpers::compute_fn(
+        builder,
         location,
         main_ty,
         &inputs,
@@ -105,7 +125,7 @@ fn witness<'c>(
     // We will insert it using the return op as reference so we need to get ahold of it and the
     // block that contains it.
     let (block, ret_op) = compute_fn
-        .region(0)?
+        .body()?
         .first_block()
         .and_then(|b| Some((b, b.terminator()?)))
         .unwrap();
@@ -115,32 +135,32 @@ fn witness<'c>(
     let b = block.argument(1)?;
 
     // The witness computes c = a / b
-    let c = block
-        .insert_operation_before(ret_op, dialect::felt::div(location, a.into(), b.into())?)
-        .result(0)?;
+    builder.set_insertion_point(ret_op);
+    let c = dialect::felt::div(builder, location, a.into(), b.into())?.result(0)?;
     // The result needs to be written into the output field. For that we need to get the value
     // created by `struct.new` first.
     let self_value = block.first_operation().unwrap().result(0)?;
     // Then use the `struct.writem` operation to commit the value into the field.
-    block.insert_operation_before(
-        ret_op,
-        dialect::r#struct::writem(
-            location,
-            self_value.into(),
-            out_field.member_name(),
-            c.into(),
-        )?,
-    );
+    dialect::r#struct::writem(
+        builder,
+        location,
+        self_value.into(),
+        out_field_name,
+        c.into(),
+    )?;
 
     Ok(compute_fn.into())
 }
 
-fn constraints<'c>(
+fn gen_constrain<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     context: &'c Context,
     location: Location<'c>,
     input_type: Type<'c>,
-    out_field: &MemberDefOp<'c>,
-) -> Result<Operation<'c>> {
+    out_field_name: &str,
+) -> Result<OperationRef<'c, 'a>> {
+    let _guard = builder.insertion_guard();
+
     // The inputs to the functions are public circuit inputs.
     let inputs = vec![(input_type, location); 2];
     let pub_attr = [PublicAttribute::new_named_attr(context)];
@@ -149,6 +169,7 @@ fn constraints<'c>(
     // The functions inside a struct need to have a particular structure. This helper creates the
     // `@constrain` function with its proper structure.
     let constrain_fn = dialect::r#struct::helpers::constrain_fn(
+        builder,
         location,
         main_ty,
         &inputs,
@@ -163,12 +184,10 @@ fn constraints<'c>(
     // Similar to how we generated the IR for `@compute` we need to put the IR before the
     // `function.return` operation.
     let (block, ret_op) = constrain_fn
-        .region(0)?
+        .body()?
         .first_block()
         .and_then(|b| Some((b, b.terminator()?)))
         .unwrap();
-
-    let builder = OpBuilder::at_block_end(context, block);
 
     // Obtain the inputs same as before but with the offsets increased by 1.
     let a = block.argument(1)?;
@@ -179,20 +198,18 @@ fn constraints<'c>(
     // And then read the witness output from the instance.
     builder.set_insertion_point(ret_op);
     let c = dialect::r#struct::readm(
-        &builder,
+        builder,
         location,
         FeltType::new(context).into(),
         self_value.into(),
-        out_field.member_name(),
+        out_field_name,
     )?
     .result(0)?;
 
     // The constraint is  c * b = a
     // We can use the `constrain.eq` operation for emitting equality constraints.
-    let t = block
-        .insert_operation_before(ret_op, dialect::felt::mul(location, c.into(), b.into())?)
-        .result(0)?;
-    block.insert_operation_before(ret_op, dialect::constrain::eq(location, t.into(), a.into()));
+    let t = dialect::felt::mul(builder, location, c.into(), b.into())?.result(0)?;
+    dialect::constrain::eq(builder, location, t.into(), a.into());
 
     Ok(constrain_fn.into())
 }

@@ -1,22 +1,30 @@
 #![allow(unused_crate_dependencies)]
 //! Integration tests for symbol table behavior.
 
-use llzk::dialect;
+use llzk::builder::{OpBuilder, OpBuilderLike};
 use llzk::dialect::module::llzk_module;
-use llzk::prelude::{BlockLike, FuncDefOp, FuncDefOpLike, FuncDefOpRef, FunctionType, LlzkContext};
+use llzk::prelude::{
+    FuncDefOpLike as _, FuncDefOpRef, FunctionType, LlzkContext, Location, Operation, dialect,
+};
 use llzk::symbol_table;
-use melior::ir::Location;
 
 mod common;
 
 #[inline]
-fn make_empty_func<'c>(context: &'c LlzkContext, name: &str) -> FuncDefOp<'c> {
+fn make_empty_func<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    context: &'c LlzkContext,
+    location: Location<'c>,
+    name: &str,
+) -> FuncDefOpRef<'c, 'a> {
     dialect::function::def(
-        Location::unknown(context),
+        builder,
+        location,
         name,
         FunctionType::new(context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap()
 }
@@ -25,17 +33,15 @@ fn make_empty_func<'c>(context: &'c LlzkContext, name: &str) -> FuncDefOp<'c> {
 fn insert_renames_symbols_on_collision() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let loc = Location::unknown(&context);
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
 
-    let first = FuncDefOpRef::try_from(
-        module
-            .body()
-            .append_operation(make_empty_func(&context, "foo").into()),
-    )
-    .unwrap();
+    let first = make_empty_func(&builder, &context, loc, "foo");
+    let duplicate = unsafe { Operation::from_raw(llzk_sys::mlirOperationClone(first.to_raw())) };
 
     let module_op = module.as_operation();
-    let inserted = symbol_table::insert(&module_op, make_empty_func(&context, "foo").into());
+    let inserted = symbol_table::insert(&module_op, duplicate);
     let second = FuncDefOpRef::try_from(inserted).unwrap();
 
     assert_eq!(format!("{}", first.fully_qualified_name()), "@foo");

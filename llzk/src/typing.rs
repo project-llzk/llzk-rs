@@ -1,9 +1,8 @@
 //! Utilities related to type unification.
 
-use std::ptr::null;
-
 use melior::{StringRef, ir::TypeLike};
 use mlir_sys::MlirStringRef;
+use std::ptr::null;
 
 /// Return `true` iff the two types are equivalent or could be equivalent after full
 /// instantiation of struct parameters.

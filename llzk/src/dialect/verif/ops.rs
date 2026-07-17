@@ -837,15 +837,12 @@ impl<'a, 'c: 'a> InvariantOpLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
 impl<'a, 'c: 'a> InvariantOpMutLike<'c, 'a> for InvariantOpRefMut<'c, 'a> {}
 
 /// Creates a new invariant operation.
-pub fn invariant<'c, 'o, B>(
-    builder: &B,
+pub fn invariant<'c, 'o>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     loop_label: &str,
     args: &[(Type<'c>, Location<'c>)],
-) -> InvariantOpRef<'c, 'o>
-where
-    B: OpBuilderLike<'c>,
-{
+) -> InvariantOpRef<'c, 'o> {
     let (types, locations): (Vec<_>, Vec<_>) =
         args.iter().map(|(t, l)| (t.to_raw(), l.to_raw())).unzip();
     unsafe {
@@ -875,13 +872,12 @@ where
 {
     let op = invariant(builder, location, loop_label, args);
     let body = op.body();
-    let saved = builder.save_insertion_point();
+
+    let _guard = builder.insertion_guard();
     builder.set_insertion_point_at_end(body);
     let arguments =
         Vec::from_iter((0..body.argument_count()).map(|n| Value::from(body.argument(n).unwrap())));
-    let res = build(builder, &arguments);
-    builder.restore_insertion_point(saved);
-    res.map(|_| op)
+    build(builder, &arguments).map(|_| op)
 }
 
 isa_fn!(verif, invariant);
@@ -924,10 +920,10 @@ isa_fn!(verif, decreases);
 ///
 /// The operation is constructed as is and the caller is
 /// responsible of manually adding the body.
-pub fn step<'c, 'a, B>(builder: &B, location: Location<'c>) -> OperationRef<'c, 'a>
-where
-    B: OpBuilderLike<'c>,
-{
+pub fn step<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+) -> OperationRef<'c, 'a> {
     unsafe { OperationRef::from_raw(llzkVerif_StepOpBuild(builder.to_raw(), location.to_raw())) }
 }
 
@@ -947,13 +943,13 @@ where
     let op = step(builder, location);
     let region = unsafe { RegionRef::from_raw(llzkVerif_StepOpGetRegion(op.to_raw())) };
     let block = region.append_block(Block::new(&[]));
-    let saved = builder.save_insertion_point();
+
+    let _guard = builder.insertion_guard();
     builder.set_insertion_point_at_end(block);
     let res = build(builder);
     if let Ok(value) = &res {
         step_yield(builder, location, *value);
     }
-    builder.restore_insertion_point(saved);
     res.map(|_| op)
 }
 

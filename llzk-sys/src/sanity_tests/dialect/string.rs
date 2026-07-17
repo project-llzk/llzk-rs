@@ -1,12 +1,10 @@
-use std::ptr::null;
-
-use mlir_sys::mlirIndexTypeGet;
-use rstest::rstest;
-
 use crate::{
     llzkString_StringTypeGet, llzkTypeIsA_String_StringType, mlirGetDialectHandle__llzk__string__,
     sanity_tests::{TestContext, context},
 };
+use mlir_sys::mlirIndexTypeGet;
+use rstest::rstest;
+use std::ptr::null;
 
 #[test]
 fn test_mlir_get_dialect_handle_llzk_string() {

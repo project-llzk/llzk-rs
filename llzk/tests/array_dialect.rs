@@ -2,7 +2,7 @@
 //! Integration tests for the array dialect.
 
 use llzk::{
-    builder::OpBuilder,
+    builder::{OpBuilder, OpBuilderLike as _},
     dialect::array::ArrayCtor,
     prelude::melior_dialects::arith,
     prelude::*,
@@ -18,27 +18,30 @@ fn array_new_empty() {
     let location = Location::unknown(&context);
     let module = llzk_module(location, None);
     let index_type = Type::index(&context);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         location,
         "array_new",
         FunctionType::new(&context, &[], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
-        let block = Block::new(&[]);
-        let builder = OpBuilder::at_block_begin(&context, &block);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .first_block()
+            .expect("function.def must have entry block");
+        builder.set_insertion_point_at_start(block);
         let array_type = ArrayType::new(index_type, &[IntegerAttribute::new(index_type, 2).into()]);
         let _array = dialect::array::new(&builder, location, array_type, ArrayCtor::Empty);
-        block.append_operation(dialect::function::r#return(location, &[]));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        dialect::function::r#return(&builder, location, &[]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -58,20 +61,26 @@ fn array_new_affine_map() {
     let location = Location::unknown(&context);
     let module = llzk_module(location, None);
     let index_type = Type::index(&context);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
+        &builder,
         location,
         "array_new",
         FunctionType::new(&context, &[index_type, index_type], &[]),
         &[],
         None,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
-        let block_arg = (index_type, location);
-        let block = Block::new(&[block_arg, block_arg]);
+        let block = f
+            .body()
+            .expect("function.def must have body region")
+            .first_block()
+            .expect("function.def must have entry block");
         let arg0: Value = block.argument(0).unwrap().into();
         let arg1: Value = block.argument(1).unwrap().into();
-        let builder = OpBuilder::at_block_begin(&context, &block);
+        builder.set_insertion_point_at_start(block);
         let affine_map = Attribute::parse(&context, "affine_map<()[s0, s1] -> (s0 + s1)>")
             .expect("failed to parse affine_map");
         let array_type = ArrayType::new(index_type, &[affine_map]);
@@ -83,14 +92,10 @@ fn array_new_affine_map() {
             array_type,
             ArrayCtor::MapDimSlice(&[value_range], &[0]),
         );
-        block.append_operation(dialect::function::r#return(location, &[]));
-        f.region(0)
-            .expect("function.def must have at least 1 region")
-            .append_block(block);
+        dialect::function::r#return(&builder, location, &[]);
     }
 
     assert_eq!(f.region_count(), 1);
-    let f = module.body().append_operation(f.into());
     assert!(f.verify());
     log::info!("Op passed verification");
     let ir = format!("{f}");
@@ -117,14 +122,16 @@ fn array_len() {
     let op = dialect::array::new(&builder, unknown, ty, ArrayCtor::Values(&[]));
     assert_eq!(1, op.result_count(), "op {op} must only have one result");
     let arr_ref = op.result(0).unwrap();
-    let arr_dim_op = arith::constant(&ctx, IntegerAttribute::new(index_ty, 0).into(), unknown);
+    let arr_dim_op = builder.insert(unknown, |ctx, loc| {
+        arith::constant(ctx, IntegerAttribute::new(index_ty, 0).into(), loc)
+    });
     assert_eq!(
         1,
         arr_dim_op.result_count(),
         "op {arr_dim_op} must only have one result"
     );
     let arr_dim = arr_dim_op.result(0).unwrap();
-    let len = dialect::array::len(unknown, arr_ref.into(), arr_dim.into());
+    let len = dialect::array::len(&builder, unknown, arr_ref.into(), arr_dim.into());
     assert!(len.verify(), "op {len} failed to verify");
     assert!(dialect::array::is_array_len(&len));
 }

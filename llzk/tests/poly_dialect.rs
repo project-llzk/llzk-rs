@@ -41,10 +41,12 @@ fn create_read_const() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let op = dialect::poly::read_const(loc, "A", FeltType::new(&context).into());
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let op = dialect::poly::read_const(&builder, loc, "A", FeltType::new(&context).into());
 
     let ir = format!("{op}");
-    let expected = "%0 = poly.read_const @A : !felt.type\n";
+    let expected = "%0 = \"poly.read_const\"() <{const_name = @A}> : () -> !felt.type";
     assert_eq!(ir, expected);
     assert!(op.verify());
 }
@@ -54,10 +56,11 @@ fn is_read_const() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let op = dialect::poly::read_const(loc, "C", IntegerType::new(&context, 64).into());
+    let module = llzk_module(loc, None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let op = dialect::poly::read_const(&builder, loc, "C", IntegerType::new(&context, 64).into());
 
-    let op_ref = unsafe { OperationRef::from_raw(op.to_raw()) };
-    assert!(dialect::poly::is_read_const_op(&op_ref));
+    assert!(dialect::poly::is_read_const_op(&op));
 }
 
 #[test]
@@ -250,18 +253,11 @@ fn empty_struct_with_one_param() {
 
     let tmpl = template(&builder, loc, "tmpl", |builder| {
         param(builder, loc, "T", None)?;
-        builder.insert(loc, |_, loc| {
-            dialect::r#struct::def(
-                loc,
-                "empty",
-                [
-                    dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
-                    dialect::r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
-                ],
-            )
-            .unwrap()
-            .into()
-        });
+        dialect::r#struct::def(builder, loc, "empty", |builder| {
+            dialect::r#struct::helpers::compute_fn(builder, loc, typ, &[], None)?;
+            dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &[], None)?;
+            Ok(())
+        })?;
         Ok(())
     })
     .unwrap();
@@ -394,6 +390,7 @@ fn create_unifiable_cast() {
     let location = Location::unknown(&context);
     let module = llzk_module(location, None);
     let block = module.body();
+    let builder = OpBuilder::at_block_begin(&context, block);
 
     let affine_map_str = "affine_map<()[s0, s1] -> (s0 + s1)>";
     let affine_map =
@@ -403,18 +400,18 @@ fn create_unifiable_cast() {
         &[FlatSymbolRefAttribute::new(&context, "N").into()],
     );
     let array_op = dialect::array::new(
-        &OpBuilder::at_block_begin(&context, module.body()),
+        &builder,
         location,
         array_ty,
         llzk::dialect::array::ArrayCtor::Values(&[]),
     );
     let new_array_ty = ArrayType::new(FeltType::new(&context).into(), &[affine_map]);
     let cast = unifiable_cast(
+        &builder,
         location,
         array_op.result(0).unwrap().into(),
         new_array_ty.into(),
     );
-    let cast = block.append_operation(cast);
     assert!(cast.verify(), "op {cast} failed to verify");
     assert!(is_unifiable_cast_op(&cast));
 
@@ -670,7 +667,7 @@ fn const_binding_ops_empty_template() {
     let loc = Location::unknown(&context);
     let module = llzk_module(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
-    let tmpl = template(&builder, loc, "empty", |_| Ok(())).unwrap();
+    let tmpl = template(&builder, loc, "empty", llzk::dialect::empty_region).unwrap();
     assert!(tmpl.const_binding_ops().is_empty());
     assert!(!tmpl.has_const_param_ops());
     assert!(!tmpl.has_const_expr_ops());

@@ -1,25 +1,30 @@
 #![allow(unused_crate_dependencies)]
 //! Integration tests for the struct dialect.
 
-use llzk::{builder::OpBuilder, prelude::*};
+use llzk::{
+    builder::{OpBuilder, OpBuilderLike},
+    prelude::*,
+};
 
 mod common;
 
 fn default_funcs<'c>(
+    builder: &impl OpBuilderLike<'c>,
     loc: Location<'c>,
     typ: StructType<'c>,
-) -> [Result<Operation<'c>, LlzkError>; 2] {
-    [
-        dialect::r#struct::helpers::compute_fn(loc, typ, &[], None).map(Into::into),
-        dialect::r#struct::helpers::constrain_fn(loc, typ, &[], None).map(Into::into),
-    ]
+) -> Result<(), LlzkError> {
+    dialect::r#struct::helpers::compute_fn(builder, loc, typ, &[], None)?;
+    dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &[], None)?;
+    Ok(())
 }
 
 fn product_only_funcs<'c>(
+    builder: &impl OpBuilderLike<'c>,
     loc: Location<'c>,
     typ: StructType<'c>,
-) -> [Result<Operation<'c>, LlzkError>; 1] {
-    [dialect::r#struct::helpers::product_fn(loc, typ, &[], None).map(Into::into)]
+) -> Result<(), LlzkError> {
+    dialect::r#struct::helpers::product_fn(builder, loc, typ, &[], None)?;
+    Ok(())
 }
 
 #[test]
@@ -50,8 +55,11 @@ fn empty_struct() {
     let typ = StructType::from_str(&context, name);
     assert_eq!(typ.name().to_string(), format!("@{}", name));
 
-    let s = dialect::r#struct::def(loc, name, default_funcs(loc, typ)).unwrap();
-    let s = module.body().append_operation(s.into());
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let s = dialect::r#struct::def(&builder, loc, name, |builder| {
+        default_funcs(builder, loc, typ)
+    })
+    .unwrap();
 
     assert_test!(s, module, @file "expected/empty_struct.mlir" );
 }
@@ -66,16 +74,22 @@ fn struct_with_one_member() {
     let typ = StructType::from_str_params(&context, name, &[]);
     assert_eq!(typ.name().to_string(), format!("@{}", name));
 
-    let mut region_ops = vec![
-        dialect::r#struct::member(loc, "foo", Type::index(&context), false, false, false)
-            .map(Into::into),
-    ];
-    region_ops.extend(default_funcs(loc, typ));
-
-    let s = dialect::r#struct::def(loc, name, region_ops).unwrap();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let s = dialect::r#struct::def(&builder, loc, name, |builder| {
+        dialect::r#struct::member(
+            builder,
+            loc,
+            "foo",
+            Type::index(&context),
+            false,
+            false,
+            false,
+        )?;
+        default_funcs(builder, loc, typ)
+    })
+    .unwrap();
     assert!(s.find_member_def("foo").is_some());
     assert_eq!(s.member_defs().len(), 1);
-    let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/struct_with_one_member.mlir");
 }
@@ -85,8 +99,18 @@ fn signal_column_and_public_member() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let member =
-        dialect::r#struct::member(loc, "foo", FeltType::new(&context), true, true, true).unwrap();
+    let module = Module::new(loc);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let member = dialect::r#struct::member(
+        &builder,
+        loc,
+        "foo",
+        FeltType::new(&context),
+        true,
+        true,
+        true,
+    )
+    .unwrap();
 
     assert!(member.signal());
     assert!(member.column());
@@ -118,26 +142,25 @@ fn empty_struct_with_pub_inputs() {
 
     let inputs = vec![(FeltType::new(&context).into(), Location::unknown(&context))];
     let arg_attrs = vec![vec![PublicAttribute::new_named_attr(&context)]];
-    let s = dialect::r#struct::def(loc, name, {
-        [
-            dialect::r#struct::helpers::compute_fn(
-                loc,
-                typ,
-                inputs.as_slice(),
-                Some(arg_attrs.as_slice()),
-            )
-            .map(Into::into),
-            dialect::r#struct::helpers::constrain_fn(
-                loc,
-                typ,
-                inputs.as_slice(),
-                Some(arg_attrs.as_slice()),
-            )
-            .map(Into::into),
-        ]
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let s = dialect::r#struct::def(&builder, loc, name, |builder| {
+        dialect::r#struct::helpers::compute_fn(
+            builder,
+            loc,
+            typ,
+            inputs.as_slice(),
+            Some(arg_attrs.as_slice()),
+        )?;
+        dialect::r#struct::helpers::constrain_fn(
+            builder,
+            loc,
+            typ,
+            inputs.as_slice(),
+            Some(arg_attrs.as_slice()),
+        )?;
+        Ok(())
     })
     .unwrap();
-    let s = module.body().append_operation(s.into());
 
     assert_test!(s, module, @file "expected/empty_struct_with_pub_inputs.mlir");
 }
@@ -151,20 +174,26 @@ fn struct_readm() {
     let loc = Location::unknown(&context);
     let typ = StructType::from_str_params(&context, name, &[]);
 
-    let mut region_ops = vec![
-        dialect::r#struct::member(loc, "foo", Type::index(&context), false, false, false)
-            .map(Into::into),
-    ];
-    region_ops.extend(default_funcs(loc, typ));
-
-    let s = dialect::r#struct::def(loc, name, region_ops).unwrap();
-    let s = StructDefOpRef::try_from(module.body().append_operation(s.into())).unwrap();
+    let module_builder = OpBuilder::at_block_begin(&context, module.body());
+    let s = dialect::r#struct::def(&module_builder, loc, name, |builder| {
+        dialect::r#struct::member(
+            builder,
+            loc,
+            "foo",
+            Type::index(&context),
+            false,
+            false,
+            false,
+        )?;
+        default_funcs(builder, loc, typ)
+    })
+    .unwrap();
 
     let constrain_body = s
         .constrain_func()
         .expect("failed to get constrain function")
-        .region(0)
-        .expect("failed to get first region")
+        .body()
+        .expect("failed to get body region")
         .first_block()
         .expect("failed to get first block");
 
@@ -180,6 +209,57 @@ fn struct_readm() {
 }
 
 #[test]
+fn struct_readm_with_literal_offset() {
+    common::setup();
+    let name = "read_member_offset";
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context), None);
+    let loc = Location::unknown(&context);
+    let typ = StructType::from_str_params(&context, name, &[]);
+
+    let module_builder = OpBuilder::at_block_begin(&context, module.body());
+    let s = dialect::r#struct::def(&module_builder, loc, name, |builder| {
+        dialect::r#struct::member(
+            builder,
+            loc,
+            "foo",
+            Type::index(&context),
+            false,
+            true,
+            false,
+        )?;
+        default_funcs(builder, loc, typ)
+    })
+    .unwrap();
+
+    let constrain_body = s
+        .constrain_func()
+        .expect("failed to get constrain function")
+        .body()
+        .expect("failed to get body region")
+        .first_block()
+        .expect("failed to get first block");
+
+    let self_value: Value = constrain_body.argument(0).unwrap().into();
+    let builder = OpBuilder::new(
+        &context,
+        llzk::builder::EntryPoint::Before(constrain_body.terminator().unwrap()),
+    );
+    let readm_op = dialect::r#struct::readm_with_offset(
+        &builder,
+        loc,
+        Type::index(&context),
+        self_value,
+        "foo",
+        1,
+    )
+    .unwrap();
+
+    assert!(dialect::r#struct::is_struct_readm(&readm_op));
+    assert!(readm_op.verify());
+}
+
+#[test]
 fn product_only_struct_product_func() {
     common::setup();
     let name = "product_only";
@@ -188,8 +268,11 @@ fn product_only_struct_product_func() {
     let loc = Location::unknown(&context);
     let typ = StructType::from_str_params(&context, name, &[]);
 
-    let s = dialect::r#struct::def(loc, name, product_only_funcs(loc, typ)).unwrap();
-    let s = StructDefOpRef::try_from(module.body().append_operation(s.into())).unwrap();
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+    let s = dialect::r#struct::def(&builder, loc, name, |builder| {
+        product_only_funcs(builder, loc, typ)
+    })
+    .unwrap();
 
     assert!(s.compute_func().is_none());
     assert!(s.constrain_func().is_none());

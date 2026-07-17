@@ -138,6 +138,14 @@ pub fn erase_op<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) {
     }
 }
 
+/// Detach the given operation from its parent block, then erase it.
+#[inline]
+pub fn detach_and_erase_op<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) {
+    let mut op = unsafe { OperationRefMut::from_raw(op.to_raw()) };
+    op.remove_from_parent();
+    erase_op(op);
+}
+
 /// Return `true` iff the given op is has the given name.
 #[inline]
 pub fn isa<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>, name: &str) -> bool {

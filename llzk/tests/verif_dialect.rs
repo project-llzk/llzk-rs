@@ -3,7 +3,7 @@
 
 use llzk::{
     attributes::NamedAttribute,
-    builder::{OpBuilder, OpBuilderLike},
+    builder::{OpBuilder, OpBuilderLike as _},
     prelude::*,
     value_ext::{OwningValueRange, ValueRange},
 };
@@ -23,21 +23,24 @@ fn make_function_target<'c>(
 ) -> FuncDefOpRef<'c, 'c> {
     let loc = Location::unknown(context);
     let felt_type: Type = FeltType::new(context).into();
+    let builder = OpBuilder::at_block_end(context, module.body());
     let func = dialect::function::def(
+        &builder,
         loc,
         name,
         FunctionType::new(context, &[felt_type], &[felt_type]),
         &[],
         arg_attrs,
+        llzk::dialect::empty_region,
     )
     .unwrap();
     {
-        let block = Block::new(&[(felt_type, loc)]);
+        let block = func.body().unwrap().first_block().unwrap();
         let arg: Value = block.argument(0).unwrap().into();
-        block.append_operation(dialect::function::r#return(loc, &[arg]));
-        func.region(0).unwrap().append_block(block);
+        let builder = OpBuilder::at_block_begin(context, block);
+        dialect::function::r#return(&builder, loc, &[arg]);
     }
-    FuncDefOpRef::try_from(module.body().append_operation(func.into())).unwrap()
+    func
 }
 
 fn make_zero_arg_function_target<'c>(
@@ -46,14 +49,23 @@ fn make_zero_arg_function_target<'c>(
     name: &str,
 ) -> FuncDefOpRef<'c, 'c> {
     let loc = Location::unknown(context);
-    let func =
-        dialect::function::def(loc, name, FunctionType::new(context, &[], &[]), &[], None).unwrap();
+    let builder = OpBuilder::at_block_end(context, module.body());
+    let func = dialect::function::def(
+        &builder,
+        loc,
+        name,
+        FunctionType::new(context, &[], &[]),
+        &[],
+        None,
+        llzk::dialect::empty_region,
+    )
+    .unwrap();
     {
-        let block = Block::new(&[]);
-        block.append_operation(dialect::function::r#return(loc, &[]));
-        func.region(0).unwrap().append_block(block);
+        let block = func.body().unwrap().first_block().unwrap();
+        let builder = OpBuilder::at_block_begin(context, block);
+        dialect::function::r#return(&builder, loc, &[]);
     }
-    FuncDefOpRef::try_from(module.body().append_operation(func.into())).unwrap()
+    func
 }
 
 fn make_struct_target<'c>(
@@ -66,12 +78,13 @@ fn make_struct_target<'c>(
     let typ = StructType::from_str_params(context, name, &[]);
     let felt_type: Type = FeltType::new(context).into();
     let inputs = [(felt_type, loc)];
-    let ops = [
-        dialect::r#struct::helpers::compute_fn(loc, typ, &inputs, arg_attrs).map(Into::into),
-        dialect::r#struct::helpers::constrain_fn(loc, typ, &inputs, arg_attrs).map(Into::into),
-    ];
-    let strukt = dialect::r#struct::def(loc, name, ops).unwrap();
-    StructDefOpRef::try_from(module.body().append_operation(strukt.into())).unwrap()
+    let builder = OpBuilder::at_block_end(context, module.body());
+    dialect::r#struct::def(&builder, loc, name, |builder| {
+        dialect::r#struct::helpers::compute_fn(builder, loc, typ, &inputs, arg_attrs)?;
+        dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &inputs, arg_attrs)?;
+        Ok(())
+    })
+    .unwrap()
 }
 
 fn bool_constant<'c>(context: &'c LlzkContext, value: bool) -> Operation<'c> {

@@ -1,14 +1,20 @@
-use melior::ir::{
-    Location, Operation, Type,
-    operation::{OperationBuilder, OperationLike},
-};
+use crate::builder::OpBuilderLike;
+use llzk_sys::llzkLlzk_NonDetOpBuild;
+use melior::ir::{Location, OperationRef, Type, TypeLike, operation::OperationLike};
 
 /// Creates a new `llzk.nondet` operation.
-pub fn nondet<'c>(location: Location<'c>, result_type: Type<'c>) -> Operation<'c> {
-    OperationBuilder::new("llzk.nondet", location)
-        .add_results(&[result_type])
-        .build()
-        .unwrap()
+pub fn nondet<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    result_type: Type<'c>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzkLlzk_NonDetOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            result_type.to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `llzk.nondet`.

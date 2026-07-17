@@ -1,11 +1,9 @@
-use std::ptr::null;
-
-use rstest::rstest;
-
 use crate::{
     llzkAttributeIsA_Llzk_PublicAttr, llzkLlzk_PublicAttrGet, mlirGetDialectHandle__llzk__,
     sanity_tests::{TestContext, context},
 };
+use rstest::rstest;
+use std::ptr::null;
 
 #[test]
 fn test_mlir_get_dialect_handle_llzk() {

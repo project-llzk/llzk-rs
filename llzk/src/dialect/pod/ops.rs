@@ -1,16 +1,14 @@
 //! `pod` dialect operations and helper functions.
 
 use super::r#type::PodType;
-use crate::{builder::OpBuilderLike, ident, map_operands::MapOperandsBuilder};
+use crate::{builder::OpBuilderLike, map_operands::MapOperandsBuilder};
 use llzk_sys::{
     LlzkRecordValue, llzkPod_NewPodOpBuild, llzkPod_NewPodOpBuildInferredFromInitialValues,
-    llzkPod_NewPodOpBuildWithMapOperands,
+    llzkPod_NewPodOpBuildWithMapOperands, llzkPod_ReadPodOpBuild, llzkPod_WritePodOpBuild,
 };
 use melior::StringRef;
-use melior::ir::attribute::StringAttribute;
 use melior::ir::{
-    Location, Operation, OperationRef, Type, TypeLike, Value, ValueLike,
-    operation::{OperationBuilder, OperationLike},
+    Identifier, Location, OperationRef, Type, TypeLike, Value, ValueLike, operation::OperationLike,
 };
 use std::marker::PhantomData;
 
@@ -107,20 +105,23 @@ pub fn is_pod_new<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates a 'pod.read' operation.
-pub fn read<'c>(
+pub fn read<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     pod_ref: Value<'c, '_>,
     record_name: &str,
     result: Type<'c>,
-) -> Operation<'c> {
+) -> OperationRef<'c, 'a> {
     let ctx = location.context();
-    let record_name = StringAttribute::new(unsafe { ctx.to_ref() }, record_name);
-    OperationBuilder::new("pod.read", location)
-        .add_attributes(&[(ident!(ctx, "record_name"), record_name.into())])
-        .add_operands(&[pod_ref])
-        .add_results(&[result])
-        .build()
-        .expect("valid operation")
+    unsafe {
+        OperationRef::from_raw(llzkPod_ReadPodOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            result.to_raw(),
+            pod_ref.to_raw(),
+            Identifier::new(ctx.to_ref(), record_name).to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `pod.read`.
@@ -130,19 +131,23 @@ pub fn is_pod_read<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
 }
 
 /// Creates a 'pod.write' operation.
-pub fn write<'c>(
+pub fn write<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     pod_ref: Value<'c, '_>,
     record_name: &str,
     rvalue: Value<'c, '_>,
-) -> Operation<'c> {
+) -> OperationRef<'c, 'a> {
     let ctx = location.context();
-    let record_name = StringAttribute::new(unsafe { ctx.to_ref() }, record_name);
-    OperationBuilder::new("pod.write", location)
-        .add_attributes(&[(ident!(ctx, "record_name"), record_name.into())])
-        .add_operands(&[pod_ref, rvalue])
-        .build()
-        .expect("valid operation")
+    unsafe {
+        OperationRef::from_raw(llzkPod_WritePodOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            pod_ref.to_raw(),
+            rvalue.to_raw(),
+            Identifier::new(ctx.to_ref(), record_name).to_raw(),
+        ))
+    }
 }
 
 /// Return `true` iff the given op is `pod.write`.

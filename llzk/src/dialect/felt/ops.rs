@@ -1,100 +1,55 @@
-use crate::{error::Error, ident};
-
 use super::FeltConstAttribute;
+use crate::{builder::OpBuilderLike, error::Error, macros::isa_fn};
+use llzk_sys::{
+    llzkFelt_AddFeltOpBuild, llzkFelt_AndFeltOpBuild, llzkFelt_DivFeltOpBuild,
+    llzkFelt_FeltConstantOpBuild, llzkFelt_InvFeltOpBuild, llzkFelt_MulFeltOpBuild,
+    llzkFelt_NegFeltOpBuild, llzkFelt_NotFeltOpBuild, llzkFelt_OrFeltOpBuild,
+    llzkFelt_PowFeltOpBuild, llzkFelt_ShlFeltOpBuild, llzkFelt_ShrFeltOpBuild,
+    llzkFelt_SignedIntDivFeltOpBuild, llzkFelt_SignedModFeltOpBuild, llzkFelt_SubFeltOpBuild,
+    llzkFelt_UnsignedIntDivFeltOpBuild, llzkFelt_UnsignedModFeltOpBuild, llzkFelt_XorFeltOpBuild,
+};
 use melior::ir::{
-    Location, Operation, Type, Value, ValueLike as _,
-    operation::{OperationBuilder, OperationLike},
+    AttributeLike as _, Location, OperationRef, TypeLike as _, operation::OperationLike,
 };
 
-fn build_op<'c>(
-    name: &str,
-    location: Location<'c>,
-    result: Type<'c>,
-    operands: &[Value<'c, '_>],
-) -> Result<Operation<'c>, Error> {
-    OperationBuilder::new(format!("felt.{name}").as_str(), location)
-        .add_results(&[result])
-        .add_operands(operands)
-        .build()
-        .map_err(Into::into)
-}
-
-macro_rules! binop {
-    ($name:ident) => {
-        binop!($name, stringify!($name));
-    };
-    ($name:ident, $opname:expr) => {
-        #[doc = concat!("Creates a `felt.", $opname ,"` operation.")]
-        pub fn $name<'c>(
-            location: Location<'c>,
-            lhs: Value<'c, '_>,
-            rhs: Value<'c, '_>,
-        ) -> Result<Operation<'c>, Error> {
-            build_op($opname, location, lhs.r#type(), &[lhs, rhs])
-        }
-
-        paste::paste! {
-            #[doc = concat!("Return `true` iff the given op is `felt.", $opname ,"`.")]
-            #[inline]
-            pub fn [<is_felt_ $name>]<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("felt.", $opname))
-            }
-        }
+macro_rules! op {
+    ($arity:ident, $($args:tt)*) => {
+        crate::macros::dialect_op!($arity typed felt, $($args)*);
     };
 }
 
-macro_rules! unop {
-    ($name:ident) => {
-        unop!($name, stringify!($name));
-    };
-    ($name:ident, $opname:expr) => {
-        #[doc = concat!("Creates a `felt.", $opname ,"` operation.")]
-        pub fn $name<'c>(
-            location: Location<'c>,
-            value: Value<'c, '_>,
-        ) -> Result<Operation<'c>, Error> {
-            build_op($opname, location, value.r#type(), &[value])
-        }
-
-        paste::paste! {
-            #[doc = concat!("Return `true` iff the given op is `felt.", $opname ,"`.")]
-            #[inline]
-            pub fn [<is_felt_ $name>]<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("felt.", $opname))
-            }
-        }
-    };
-}
-
-binop!(add);
-binop!(bit_and);
-binop!(bit_or);
-binop!(bit_xor);
-binop!(div);
-binop!(mul);
-binop!(pow);
-binop!(shl);
-binop!(shr);
-binop!(sintdiv);
-binop!(smod);
-binop!(sub);
-binop!(uintdiv);
-binop!(umod);
-unop!(bit_not);
-unop!(inv);
-unop!(neg);
+op!(binop, add);
+op!(binop, sub);
+op!(binop, div);
+op!(binop, mul);
+op!(binop, pow);
+op!(binop, shl);
+op!(binop, shr);
+op!(binop, sintdiv, llzkFelt_SignedIntDivFeltOpBuild);
+op!(binop, smod, llzkFelt_SignedModFeltOpBuild);
+op!(binop, uintdiv, llzkFelt_UnsignedIntDivFeltOpBuild);
+op!(binop, umod, llzkFelt_UnsignedModFeltOpBuild);
+op!(binop, bit_and, llzkFelt_AndFeltOpBuild);
+op!(binop, bit_or, llzkFelt_OrFeltOpBuild);
+op!(binop, bit_xor, llzkFelt_XorFeltOpBuild);
+op!(unop, inv);
+op!(unop, neg);
+op!(unop, bit_not, llzkFelt_NotFeltOpBuild);
 
 /// Creates a `felt.const` operation.
-pub fn constant<'c>(
+pub fn constant<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     value: FeltConstAttribute<'c>,
-) -> Result<Operation<'c>, Error> {
-    let ctx = location.context();
-    OperationBuilder::new("felt.const", location)
-        .add_results(&[value.r#type().into()])
-        .add_attributes(&[(ident!(ctx, "value"), value.into())])
-        .build()
-        .map_err(Into::into)
+) -> Result<OperationRef<'c, 'a>, Error> {
+    Ok(unsafe {
+        OperationRef::from_raw(llzkFelt_FeltConstantOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            value.r#type().to_raw(),
+            value.to_raw(),
+        ))
+    })
 }
 
 /// Return `true` iff the given op is `felt.const`.
@@ -114,7 +69,10 @@ mod tests {
         // ensure value fits in i64, which is what's internally used by FeltConstAttribute
         let value = value % (i64::MAX as u64 + 1);
         let ctx = LlzkContext::new();
+        let module = Module::new(Location::unknown(&ctx));
+        let builder = crate::builder::OpBuilder::at_block_begin(&ctx, module.body());
         let op = constant(
+            &builder,
             Location::unknown(&ctx),
             FeltConstAttribute::new(&ctx, value, None),
         )
@@ -127,7 +85,10 @@ mod tests {
         // ensure value fits in i64, which is what's internally used by FeltConstAttribute
         let value = value % (i64::MAX as u64 + 1);
         let ctx = LlzkContext::new();
+        let module = Module::new(Location::unknown(&ctx));
+        let builder = crate::builder::OpBuilder::at_block_begin(&ctx, module.body());
         let op = constant(
+            &builder,
             Location::unknown(&ctx),
             FeltConstAttribute::new(&ctx, value, None),
         )

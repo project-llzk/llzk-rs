@@ -1,5 +1,3 @@
-use std::ptr::null_mut;
-
 use mlir_sys::{
     MlirAttribute, MlirContext, MlirNamedAttribute, MlirOperation, MlirType,
     mlirAttributeGetContext, mlirFlatSymbolRefAttrGet, mlirIdentifierGet, mlirIndexTypeGet,
@@ -8,6 +6,7 @@ use mlir_sys::{
     mlirUnitAttrGet,
 };
 use rstest::rstest;
+use std::ptr::null_mut;
 
 use crate::{
     llzkGlobal_GlobalDefOpIsConstant, llzkOperationIsA_Global_GlobalDefOp,

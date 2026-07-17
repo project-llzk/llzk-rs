@@ -1,7 +1,7 @@
 #![allow(unused_crate_dependencies)]
 //! Integration tests for the pod dialect.
 
-use llzk::builder::{OpBuilder, OpBuilderLike};
+use llzk::builder::{OpBuilder, OpBuilderLike as _};
 use llzk::map_operands::MapOperandsBuilder;
 use llzk::prelude::melior_dialects::arith;
 use llzk::prelude::*;

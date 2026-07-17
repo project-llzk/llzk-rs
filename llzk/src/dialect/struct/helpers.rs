@@ -1,36 +1,29 @@
 //! Convenience functions for creating common operation patterns.
 
-use melior::{
-    Context,
-    ir::{
-        Attribute, Block, BlockLike as _, Identifier, Location, RegionLike as _, Type,
-        operation::OperationLike as _, r#type::FunctionType,
-    },
-};
-
+use super::r#type::StructType;
 use crate::{
     attributes::NamedAttribute,
-    builder::{EntryPoint, OpBuilder, OpBuilderLike},
+    builder::{OpBuilder, OpBuilderLike},
     dialect,
     error::Error,
     prelude::{
-        FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FUNC_NAME_PRODUCT, FeltType, FuncDefOp,
-        FuncDefOpLike as _, StructDefOp,
+        FUNC_NAME_COMPUTE, FUNC_NAME_CONSTRAIN, FUNC_NAME_PRODUCT, FuncDefOpLike as _, FuncDefOpRef,
     },
 };
-
-use super::r#type::StructType;
+use melior::ir::{Attribute, Identifier, Location, RegionLike as _, Type, r#type::FunctionType};
 
 /// Creates an empty `@compute` function with the configuration expected by `struct.def`.
-pub fn compute_fn<'c>(
+pub fn compute_fn<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     loc: Location<'c>,
     struct_type: StructType<'c>,
     inputs: &[(Type<'c>, Location<'c>)],
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
-) -> Result<FuncDefOp<'c>, Error> {
+) -> Result<FuncDefOpRef<'c, 'a>, Error> {
     let context = loc.context();
     let input_types: Vec<Type<'c>> = inputs.iter().map(|(t, _)| *t).collect();
     dialect::function::def(
+        builder,
         loc,
         FUNC_NAME_COMPUTE.as_ref(),
         FunctionType::new(
@@ -40,17 +33,15 @@ pub fn compute_fn<'c>(
         ),
         &[],
         arg_attrs,
+        dialect::empty_region,
     )
     .and_then(|f| {
-        let block = Block::new(inputs);
-        let new_struct = block.append_operation(super::new(loc, struct_type));
-        block.append_operation(dialect::function::r#return(
-            loc,
-            &[new_struct.result(0)?.into()],
-        ));
+        let block = f.body()?.first_block().ok_or(Error::EmptyBlock)?;
+        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, block);
+        let new_struct = super::new(&inner_bldr, loc, struct_type);
+        dialect::function::r#return(&inner_bldr, loc, &[new_struct.result(0)?.into()]);
         f.set_allow_witness_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
-        f.region(0)?.append_block(block);
         Ok(f)
     })
 }
@@ -59,50 +50,53 @@ pub fn compute_fn<'c>(
 ///
 /// If `arg_attrs` is `Some` it must have `inputs.len() + 1` elements and element #0 is the
 /// argument attributes of the self argument.
-pub fn constrain_fn<'c>(
+pub fn constrain_fn<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     loc: Location<'c>,
     struct_type: StructType<'c>,
     inputs: &[(Type<'c>, Location<'c>)],
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
-) -> Result<FuncDefOp<'c>, Error> {
+) -> Result<FuncDefOpRef<'c, 'a>, Error> {
     let context = loc.context();
     let mut input_types: Vec<Type<'c>> = Vec::with_capacity(inputs.len() + 1);
     input_types.push(struct_type.into());
     input_types.extend(inputs.iter().map(|(t, _)| *t));
-    let mut all_inputs = vec![(struct_type.into(), loc)];
-    all_inputs.extend(inputs);
     let all_arg_attrs = arg_attrs.map(|original| {
         let mut result: Vec<Vec<(Identifier<'_>, Attribute<'_>)>> = vec![vec![]];
         result.extend(original.iter().cloned());
         result
     });
     dialect::function::def(
+        builder,
         loc,
         FUNC_NAME_CONSTRAIN.as_ref(),
         FunctionType::new(unsafe { context.to_ref() }, &input_types, &[]),
         &[],
         all_arg_attrs.as_deref(),
+        dialect::empty_region,
     )
     .and_then(|f| {
-        let block = Block::new(&all_inputs);
-        block.append_operation(dialect::function::r#return(loc, &[]));
+        let block = f.body()?.first_block().ok_or(Error::EmptyBlock)?;
+        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, block);
+        dialect::function::r#return(&inner_bldr, loc, &[]);
         f.set_allow_constraint_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
-        f.region(0)?.append_block(block);
         Ok(f)
     })
 }
 
 /// Creates an empty `@product` function with the configuration expected by `struct.def`.
-pub fn product_fn<'c>(
+pub fn product_fn<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
     loc: Location<'c>,
     struct_type: StructType<'c>,
     inputs: &[(Type<'c>, Location<'c>)],
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
-) -> Result<FuncDefOp<'c>, Error> {
+) -> Result<FuncDefOpRef<'c, 'a>, Error> {
     let context = loc.context();
     let input_types: Vec<Type<'c>> = inputs.iter().map(|(t, _)| *t).collect();
     dialect::function::def(
+        builder,
         loc,
         FUNC_NAME_PRODUCT.as_ref(),
         FunctionType::new(
@@ -112,86 +106,16 @@ pub fn product_fn<'c>(
         ),
         &[],
         arg_attrs,
+        dialect::empty_region,
     )
     .and_then(|f| {
-        let block = Block::new(inputs);
-        let new_struct = block.append_operation(super::new(loc, struct_type));
-        block.append_operation(dialect::function::r#return(
-            loc,
-            &[new_struct.result(0)?.into()],
-        ));
+        let block = f.body()?.first_block().ok_or(Error::EmptyBlock)?;
+        let inner_bldr = OpBuilder::at_block_begin(unsafe { context.to_ref() }, block);
+        let new_struct = super::new(&inner_bldr, loc, struct_type);
+        dialect::function::r#return(&inner_bldr, loc, &[new_struct.result(0)?.into()]);
         f.set_allow_constraint_attr(true);
         f.set_allow_witness_attr(true);
         f.set_allow_non_native_field_ops_attr(true);
-        f.region(0)?.append_block(block);
         Ok(f)
-    })
-}
-
-/// Creates the `@Signal` struct.
-///
-/// The `@Main` struct's inputs must be of this type or arrays of this type.
-#[deprecated]
-pub fn define_signal_struct<'c>(context: &'c Context) -> Result<StructDefOp<'c>, Error> {
-    let loc = Location::new(context, "Signal struct", 0, 0);
-    let typ = StructType::from_str(context, "Signal");
-    let reg = "reg";
-    super::def(loc, "Signal", {
-        [
-            super::member(loc, reg, FeltType::new(context), true, false, true).map(Into::into),
-            compute_fn(loc, typ, &[(FeltType::new(context).into(), loc)], None)
-                .and_then(|compute| {
-                    let block = compute
-                        .region(0)?
-                        .first_block()
-                        .ok_or(Error::BlockExpected(0))?;
-                    let fst = block.first_operation().ok_or(Error::EmptyBlock)?;
-                    if fst.name() != Identifier::new(context, "struct.new") {
-                        return Err(Error::OperationExpected(
-                            "struct.new",
-                            fst.name().as_string_ref().as_str()?.to_owned(),
-                        ));
-                    }
-                    block.insert_operation_after(
-                        fst,
-                        super::writem(loc, fst.result(0)?.into(), reg, block.argument(0)?.into())?,
-                    );
-                    Ok(compute)
-                })
-                .map(Into::into),
-            constrain_fn(loc, typ, &[(FeltType::new(context).into(), loc)], None)
-                .and_then(|constrain| {
-                    let block = constrain
-                        .region(0)?
-                        .first_block()
-                        .ok_or(Error::BlockExpected(0))?;
-                    let fst = block.first_operation().ok_or(Error::EmptyBlock)?;
-                    if fst.name() != Identifier::new(context, "function.return") {
-                        return Err(Error::OperationExpected(
-                            "function.return",
-                            fst.name().as_string_ref().as_str()?.to_owned(),
-                        ));
-                    }
-                    let builder = OpBuilder::new(context, EntryPoint::Before(fst));
-                    let reg = super::readm(
-                        &builder,
-                        loc,
-                        FeltType::new(context).into(),
-                        block.argument(0)?.into(),
-                        "reg",
-                    )?;
-                    builder.set_insertion_point_after(reg);
-                    block.insert_operation_after(
-                        reg,
-                        dialect::constrain::eq(
-                            loc,
-                            reg.result(0)?.into(),
-                            block.argument(1)?.into(),
-                        ),
-                    );
-                    Ok(constrain)
-                })
-                .map(Into::into),
-        ]
     })
 }
