@@ -4,7 +4,8 @@ use mlir_sys::{mlirLocationUnknownGet, mlirOperationDestroy};
 use rstest::rstest;
 
 use crate::{
-    llzkInclude_IncludeOpCreateInferredContext, mlirGetDialectHandle__llzk__include__,
+    llzkInclude_IncludeOpBuildInferredContext, mlirGetDialectHandle__llzk__include__,
+    mlirOpBuilderCreate, mlirOpBuilderDestroy,
     sanity_tests::{TestContext, context, str_ref},
 };
 
@@ -18,8 +19,10 @@ fn test_mlir_get_dialect_handle_llzk_include() {
 #[rstest]
 fn test_llzk_include_op_create(context: TestContext) {
     unsafe {
+        let builder = mlirOpBuilderCreate(context.ctx);
         let location = mlirLocationUnknownGet(context.ctx);
-        let op = llzkInclude_IncludeOpCreateInferredContext(
+        let op = llzkInclude_IncludeOpBuildInferredContext(
+            builder,
             location,
             str_ref("test"),
             str_ref("test.mlir"),
@@ -27,5 +30,6 @@ fn test_llzk_include_op_create(context: TestContext) {
 
         assert_ne!(op.ptr, null_mut());
         mlirOperationDestroy(op);
+        mlirOpBuilderDestroy(builder);
     }
 }

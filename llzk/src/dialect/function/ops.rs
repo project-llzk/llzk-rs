@@ -22,7 +22,7 @@ use llzk_sys::{
     llzkFunction_CallOpGetSelfValueFromCompute, llzkFunction_CallOpGetSelfValueFromConstrain,
     llzkFunction_CallOpGetTemplateParams, llzkFunction_CallOpSetArgOperands,
     llzkFunction_CallOpSetCallee, llzkFunction_CallOpSetMapOperands,
-    llzkFunction_CallOpSetTemplateParams, llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs,
+    llzkFunction_CallOpSetTemplateParams, llzkFunction_FuncDefOpBuildWithAttrsAndArgAttrs,
     llzkFunction_FuncDefOpGetArgAttrs, llzkFunction_FuncDefOpGetArgNameAttr,
     llzkFunction_FuncDefOpGetBody, llzkFunction_FuncDefOpGetFullyQualifiedName,
     llzkFunction_FuncDefOpGetFunctionType, llzkFunction_FuncDefOpGetResAttrs,
@@ -650,7 +650,7 @@ pub fn def<'c>(
     let attrs: Vec<_> = attrs.iter().map(tuple_to_raw_named_attr).collect();
     let arg_attrs = prepare_arg_attrs(arg_attrs, r#type.input_count(), unsafe { ctx.to_ref() });
     unsafe {
-        Operation::from_raw(llzkFunction_FuncDefOpCreateWithAttrsAndArgAttrs(
+        Operation::from_raw(llzkFunction_FuncDefOpBuildWithAttrsAndArgAttrs(
             location.to_raw(),
             name.to_raw(),
             r#type.to_raw(),
