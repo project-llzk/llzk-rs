@@ -291,7 +291,9 @@ fn f_assert() {
     let module = Module::new(loc);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
-    let cond = arith::constant(&context, BoolAttribute::new(&context, false).into(), loc);
+    let cond = builder.insert(loc, |ctx, loc| {
+        arith::constant(ctx, BoolAttribute::new(ctx, false).into(), loc)
+    });
     let cond = cond.result(0).unwrap().into();
     let op = llzk::dialect::bool::assert(&builder, loc, cond, Some("assertion failed"))
         .expect("failed to build assert op");
