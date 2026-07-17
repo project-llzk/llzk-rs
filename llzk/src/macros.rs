@@ -374,3 +374,97 @@ macro_rules! isa_fn {
 }
 
 pub(crate) use isa_fn;
+
+macro_rules! dialect_op {
+    ($arity:ident $type_mode:ident $dialect:ident, $name:ident) => {
+        paste::paste! {
+            $crate::macros::dialect_op!(
+                $arity $type_mode $dialect,
+                $name,
+                [<llzk $dialect:camel _ $name:camel $dialect:camel OpBuild>]
+            );
+        }
+    };
+    (binop untyped $dialect:ident, $name:ident, $build:ident) => {
+        #[doc = concat!("Creates a `", stringify!($dialect), ".", stringify!($name) ,"` operation.")]
+        pub fn $name<'c, 'a>(
+            builder: &impl $crate::builder::OpBuilderLike<'c>,
+            location: ::melior::ir::Location<'c>,
+            lhs: ::melior::ir::Value<'c, '_>,
+            rhs: ::melior::ir::Value<'c, '_>,
+        ) -> Result<::melior::ir::OperationRef<'c, 'a>, $crate::error::Error> {
+            Ok(unsafe {
+                ::melior::ir::OperationRef::from_raw($build(
+                    builder.to_raw(),
+                    location.to_raw(),
+                    ::melior::ir::ValueLike::to_raw(&lhs),
+                    ::melior::ir::ValueLike::to_raw(&rhs),
+                ))
+            })
+        }
+
+        $crate::macros::isa_fn!(prefixed $dialect, $name);
+    };
+    (binop typed $dialect:ident, $name:ident, $build:ident) => {
+        #[doc = concat!("Creates a `", stringify!($dialect), ".", stringify!($name) ,"` operation.")]
+        pub fn $name<'c, 'a>(
+            builder: &impl $crate::builder::OpBuilderLike<'c>,
+            location: ::melior::ir::Location<'c>,
+            lhs: ::melior::ir::Value<'c, '_>,
+            rhs: ::melior::ir::Value<'c, '_>,
+        ) -> Result<::melior::ir::OperationRef<'c, 'a>, $crate::error::Error> {
+            let result = ::melior::ir::ValueLike::r#type(&lhs);
+            Ok(unsafe {
+                ::melior::ir::OperationRef::from_raw($build(
+                    builder.to_raw(),
+                    location.to_raw(),
+                    ::melior::ir::TypeLike::to_raw(&result),
+                    ::melior::ir::ValueLike::to_raw(&lhs),
+                    ::melior::ir::ValueLike::to_raw(&rhs),
+                ))
+            })
+        }
+
+        $crate::macros::isa_fn!(prefixed $dialect, $name);
+    };
+    (unop untyped $dialect:ident, $name:ident, $build:ident) => {
+        #[doc = concat!("Creates a `", stringify!($dialect), ".", stringify!($name) ,"` operation.")]
+        pub fn $name<'c, 'a>(
+            builder: &impl $crate::builder::OpBuilderLike<'c>,
+            location: ::melior::ir::Location<'c>,
+            value: ::melior::ir::Value<'c, '_>,
+        ) -> Result<::melior::ir::OperationRef<'c, 'a>, $crate::error::Error> {
+            Ok(unsafe {
+                ::melior::ir::OperationRef::from_raw($build(
+                    builder.to_raw(),
+                    location.to_raw(),
+                    ::melior::ir::ValueLike::to_raw(&value),
+                ))
+            })
+        }
+
+        $crate::macros::isa_fn!(prefixed $dialect, $name);
+    };
+    (unop typed $dialect:ident, $name:ident, $build:ident) => {
+        #[doc = concat!("Creates a `", stringify!($dialect), ".", stringify!($name) ,"` operation.")]
+        pub fn $name<'c, 'a>(
+            builder: &impl $crate::builder::OpBuilderLike<'c>,
+            location: ::melior::ir::Location<'c>,
+            value: ::melior::ir::Value<'c, '_>,
+        ) -> Result<::melior::ir::OperationRef<'c, 'a>, $crate::error::Error> {
+            let result = ::melior::ir::ValueLike::r#type(&value);
+            Ok(unsafe {
+                ::melior::ir::OperationRef::from_raw($build(
+                    builder.to_raw(),
+                    location.to_raw(),
+                    ::melior::ir::TypeLike::to_raw(&result),
+                    ::melior::ir::ValueLike::to_raw(&value),
+                ))
+            })
+        }
+
+        $crate::macros::isa_fn!(prefixed $dialect, $name);
+    };
+}
+
+pub(crate) use dialect_op;

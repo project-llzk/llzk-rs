@@ -9,8 +9,8 @@ use llzk_sys::{
     llzkBool_OrBoolOpBuild, llzkBool_XorBoolOpBuild,
 };
 use melior::ir::{
-    AttributeLike, Block, Identifier, Location, OperationRef, RegionLike, Value, ValueLike,
-    operation::OperationLike,
+    AttributeLike as _, Block, Identifier, Location, OperationRef, RegionLike as _, Value,
+    ValueLike as _, operation::OperationLike as _,
 };
 use mlir_sys::MlirIdentifier;
 use std::ptr::null_mut;
@@ -59,90 +59,16 @@ cmp_binop!(ne, CmpPredicate::Ne);
 
 isa_fn!(prefixed bool, cmp);
 
-#[inline]
-fn build_binop<'c, 'a>(
-    builder: &impl OpBuilderLike<'c>,
-    location: Location<'c>,
-    lhs: Value<'c, '_>,
-    rhs: Value<'c, '_>,
-    build: unsafe extern "C" fn(
-        llzk_sys::MlirOpBuilder,
-        mlir_sys::MlirLocation,
-        mlir_sys::MlirValue,
-        mlir_sys::MlirValue,
-    ) -> mlir_sys::MlirOperation,
-) -> Result<OperationRef<'c, 'a>, Error> {
-    Ok(unsafe {
-        OperationRef::from_raw(build(
-            builder.to_raw(),
-            location.to_raw(),
-            lhs.to_raw(),
-            rhs.to_raw(),
-        ))
-    })
-}
-
-#[inline]
-fn build_unop<'c, 'a>(
-    builder: &impl OpBuilderLike<'c>,
-    location: Location<'c>,
-    value: Value<'c, '_>,
-    build: unsafe extern "C" fn(
-        llzk_sys::MlirOpBuilder,
-        mlir_sys::MlirLocation,
-        mlir_sys::MlirValue,
-    ) -> mlir_sys::MlirOperation,
-) -> Result<OperationRef<'c, 'a>, Error> {
-    Ok(unsafe {
-        OperationRef::from_raw(build(builder.to_raw(), location.to_raw(), value.to_raw()))
-    })
-}
-
-macro_rules! binop {
-    ($name:ident) => {
-        paste::paste! {
-            binop!($name, [<llzkBool_ $name:camel BoolOpBuild>]);
-        }
-    };
-    ($name:ident, $build:ident) => {
-        #[doc = concat!("Creates a `bool.", stringify!($name) ,"` operation.")]
-        pub fn $name<'c, 'a>(
-            builder: &impl OpBuilderLike<'c>,
-            location: Location<'c>,
-            lhs: Value<'c, '_>,
-            rhs: Value<'c, '_>,
-        ) -> Result<OperationRef<'c, 'a>, Error> {
-            build_binop(builder, location, lhs, rhs, $build)
-        }
-
-        isa_fn!(prefixed bool, $name);
+macro_rules! op {
+    ($arity:ident, $($args:tt)*) => {
+        crate::macros::dialect_op!($arity untyped bool, $($args)*);
     };
 }
 
-macro_rules! unop {
-    ($name:ident) => {
-        paste::paste! {
-            unop!($name, [<llzkBool_ $name:camel BoolOpBuild>]);
-        }
-    };
-    ($name:ident, $build:ident) => {
-        #[doc = concat!("Creates a `bool.", stringify!($name) ,"` operation.")]
-        pub fn $name<'c, 'a>(
-            builder: &impl OpBuilderLike<'c>,
-            location: Location<'c>,
-            value: Value<'c, '_>,
-        ) -> Result<OperationRef<'c, 'a>, Error> {
-            build_unop(builder, location, value, $build)
-        }
-
-        isa_fn!(prefixed bool, $name);
-    };
-}
-
-binop!(and, llzkBool_AndBoolOpBuild);
-binop!(or, llzkBool_OrBoolOpBuild);
-binop!(xor, llzkBool_XorBoolOpBuild);
-unop!(not, llzkBool_NotBoolOpBuild);
+op!(binop, and);
+op!(binop, or);
+op!(binop, xor);
+op!(unop, not);
 
 /// Creates a `bool.assert` operation.
 pub fn assert<'c, 'a>(

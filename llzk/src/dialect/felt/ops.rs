@@ -1,6 +1,5 @@
 use super::FeltConstAttribute;
-use crate::builder::OpBuilderLike;
-use crate::error::Error;
+use crate::{builder::OpBuilderLike, error::Error, macros::isa_fn};
 use llzk_sys::{
     llzkFelt_AddFeltOpBuild, llzkFelt_AndFeltOpBuild, llzkFelt_DivFeltOpBuild,
     llzkFelt_FeltConstantOpBuild, llzkFelt_InvFeltOpBuild, llzkFelt_MulFeltOpBuild,
@@ -10,119 +9,32 @@ use llzk_sys::{
     llzkFelt_UnsignedIntDivFeltOpBuild, llzkFelt_UnsignedModFeltOpBuild, llzkFelt_XorFeltOpBuild,
 };
 use melior::ir::{
-    AttributeLike, Location, OperationRef, Type, TypeLike, Value, ValueLike as _,
-    operation::OperationLike,
+    AttributeLike as _, Location, OperationRef, TypeLike as _, operation::OperationLike,
 };
 
-#[inline]
-fn build_binop<'c, 'a>(
-    builder: &impl OpBuilderLike<'c>,
-    location: Location<'c>,
-    lhs: Value<'c, '_>,
-    rhs: Value<'c, '_>,
-    result: Type<'c>,
-    build: unsafe extern "C" fn(
-        llzk_sys::MlirOpBuilder,
-        mlir_sys::MlirLocation,
-        mlir_sys::MlirType,
-        mlir_sys::MlirValue,
-        mlir_sys::MlirValue,
-    ) -> mlir_sys::MlirOperation,
-) -> Result<OperationRef<'c, 'a>, Error> {
-    Ok(unsafe {
-        OperationRef::from_raw(build(
-            builder.to_raw(),
-            location.to_raw(),
-            result.to_raw(),
-            lhs.to_raw(),
-            rhs.to_raw(),
-        ))
-    })
-}
-
-#[inline]
-fn build_unop<'c, 'a>(
-    builder: &impl OpBuilderLike<'c>,
-    location: Location<'c>,
-    value: Value<'c, '_>,
-    result: Type<'c>,
-    build: unsafe extern "C" fn(
-        llzk_sys::MlirOpBuilder,
-        mlir_sys::MlirLocation,
-        mlir_sys::MlirType,
-        mlir_sys::MlirValue,
-    ) -> mlir_sys::MlirOperation,
-) -> Result<OperationRef<'c, 'a>, Error> {
-    Ok(unsafe {
-        OperationRef::from_raw(build(
-            builder.to_raw(),
-            location.to_raw(),
-            result.to_raw(),
-            value.to_raw(),
-        ))
-    })
-}
-
-macro_rules! binop {
-    ($name:ident, $build:ident) => {
-        #[doc = concat!("Creates a `felt.", stringify!($name) ,"` operation.")]
-        pub fn $name<'c, 'a>(
-            builder: &impl OpBuilderLike<'c>,
-            location: Location<'c>,
-            lhs: Value<'c, '_>,
-            rhs: Value<'c, '_>,
-        ) -> Result<OperationRef<'c, 'a>, Error> {
-            build_binop(builder, location, lhs, rhs, lhs.r#type(), $build)
-        }
-
-        paste::paste! {
-            #[doc = concat!("Return `true` iff the given op is `felt.", stringify!($name) ,"`.")]
-            #[inline]
-            pub fn [<is_felt_ $name>]<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("felt.", stringify!($name)))
-            }
-        }
+macro_rules! op {
+    ($arity:ident, $($args:tt)*) => {
+        crate::macros::dialect_op!($arity typed felt, $($args)*);
     };
 }
 
-macro_rules! unop {
-    ($name:ident, $build:ident) => {
-        #[doc = concat!("Creates a `felt.", stringify!($name) ,"` operation.")]
-        pub fn $name<'c, 'a>(
-            builder: &impl OpBuilderLike<'c>,
-            location: Location<'c>,
-            value: Value<'c, '_>,
-        ) -> Result<OperationRef<'c, 'a>, Error> {
-            build_unop(builder, location, value, value.r#type(), $build)
-        }
-
-        paste::paste! {
-            #[doc = concat!("Return `true` iff the given op is `felt.", stringify!($name) ,"`.")]
-            #[inline]
-            pub fn [<is_felt_ $name>]<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!("felt.", stringify!($name)))
-            }
-        }
-    };
-}
-
-binop!(add, llzkFelt_AddFeltOpBuild);
-binop!(bit_and, llzkFelt_AndFeltOpBuild);
-binop!(bit_or, llzkFelt_OrFeltOpBuild);
-binop!(bit_xor, llzkFelt_XorFeltOpBuild);
-binop!(div, llzkFelt_DivFeltOpBuild);
-binop!(mul, llzkFelt_MulFeltOpBuild);
-binop!(pow, llzkFelt_PowFeltOpBuild);
-binop!(shl, llzkFelt_ShlFeltOpBuild);
-binop!(shr, llzkFelt_ShrFeltOpBuild);
-binop!(sintdiv, llzkFelt_SignedIntDivFeltOpBuild);
-binop!(smod, llzkFelt_SignedModFeltOpBuild);
-binop!(sub, llzkFelt_SubFeltOpBuild);
-binop!(uintdiv, llzkFelt_UnsignedIntDivFeltOpBuild);
-binop!(umod, llzkFelt_UnsignedModFeltOpBuild);
-unop!(bit_not, llzkFelt_NotFeltOpBuild);
-unop!(inv, llzkFelt_InvFeltOpBuild);
-unop!(neg, llzkFelt_NegFeltOpBuild);
+op!(binop, add);
+op!(binop, sub);
+op!(binop, div);
+op!(binop, mul);
+op!(binop, pow);
+op!(binop, shl);
+op!(binop, shr);
+op!(binop, sintdiv, llzkFelt_SignedIntDivFeltOpBuild);
+op!(binop, smod, llzkFelt_SignedModFeltOpBuild);
+op!(binop, uintdiv, llzkFelt_UnsignedIntDivFeltOpBuild);
+op!(binop, umod, llzkFelt_UnsignedModFeltOpBuild);
+op!(binop, bit_and, llzkFelt_AndFeltOpBuild);
+op!(binop, bit_or, llzkFelt_OrFeltOpBuild);
+op!(binop, bit_xor, llzkFelt_XorFeltOpBuild);
+op!(unop, inv);
+op!(unop, neg);
+op!(unop, bit_not, llzkFelt_NotFeltOpBuild);
 
 /// Creates a `felt.const` operation.
 pub fn constant<'c, 'a>(
