@@ -683,14 +683,15 @@ where
     };
     let op: FuncDefOpRef<'c, 'a> = op.try_into()?;
 
-    let block_args = (0..r#type.input_count())
-        .map(|idx| r#type.input(idx).map(|ty| (ty, location)))
-        .collect::<Result<Vec<_>, _>>()?;
-
     let region = op.body()?;
     let block = match region.first_block() {
         Some(block) => block,
-        None => region.append_block(Block::new(&block_args)),
+        None => {
+            let block_args = (0..r#type.input_count())
+                .map(|idx| r#type.input(idx).map(|ty| (ty, location)))
+                .collect::<Result<Vec<_>, _>>()?;
+            region.append_block(Block::new(&block_args))
+        }
     };
 
     let _guard = builder.insertion_guard();

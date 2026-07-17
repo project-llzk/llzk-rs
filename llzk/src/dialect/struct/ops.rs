@@ -411,11 +411,11 @@ where
         ))
     };
     let op: StructDefOpRef<'c, 'a> = op.try_into()?;
+
     let region = op.body_region();
-    let block = match region.first_block() {
-        Some(block) => block,
-        None => region.append_block(Block::new(&[])),
-    };
+    let block = region
+        .first_block()
+        .unwrap_or_else(|| region.append_block(Block::new(&[])));
 
     let _guard = builder.insertion_guard();
     builder.set_insertion_point_at_start(block);

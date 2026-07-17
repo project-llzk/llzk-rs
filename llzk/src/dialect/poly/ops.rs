@@ -164,6 +164,7 @@ where
         ))
     };
     let op: TemplateOpRef<'c, 'a> = op.try_into()?;
+
     let region = op.body_region();
     let block = region
         .first_block()
@@ -525,6 +526,7 @@ where
         ))
     };
     let op: TemplateExprOpRef<'c, 'a> = op.try_into()?;
+
     let region = op.initializer_region();
     let block = region
         .first_block()
