@@ -4,13 +4,16 @@ use crate::error::{DiagnosticError, Error};
 use core::ffi::c_void;
 use llzk_sys::mlirOperationWalkReverse;
 use melior::{
+    Context,
     diagnostic::DiagnosticSeverity,
     ir::{
-        ValueLike,
+        Block, Operation, OperationRef, ValueLike,
         operation::{OperationLike, OperationMutLike, OperationRefMut, WalkOrder, WalkResult},
     },
 };
 use mlir_sys::{MlirOperation, MlirWalkResult, mlirOperationWalk};
+
+use crate::builder::OpBuilder;
 
 /// Walk iterator over mutable operation.
 pub trait WalkOperationMutLike<'c: 'a, 'a> {
@@ -138,16 +141,120 @@ pub fn erase_op<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) {
     }
 }
 
+/// Detach a builder-created operation from its current block and return ownership of it.
+///
+/// LLZK's builder APIs insert operations immediately. However, some users may need to
+/// hold an owned operation to be inserted at a later time.
+pub fn detach_owned_operation<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> Operation<'c> {
+    let raw = op.to_raw();
+    // SAFETY: `raw` is a valid operation inserted in a scratch block. Removing it transfers
+    // responsibility for destroying it to the owned `Operation` constructed below.
+    unsafe {
+        let mut op_ref = OperationRefMut::from_raw(raw);
+        op_ref.remove_from_parent();
+        Operation::from_raw(raw)
+    }
+}
+
+/// Build an owned operation that is not attached to any block.
+pub fn build_owned_operation<'c, E>(
+    context: &'c Context,
+    build: impl for<'a> FnOnce(&'a OpBuilder<'c, '_>) -> Result<OperationRef<'c, 'a>, E>,
+) -> Result<Operation<'c>, E> {
+    let scratch = Block::new(&[]);
+    let builder = OpBuilder::at_block_end(context, &scratch);
+    let op = build(&builder)?;
+    Ok(detach_owned_operation(&op))
+}
+
 /// Detach the given operation from its parent block, then erase it.
 #[inline]
 pub fn detach_and_erase_op<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) {
-    let mut op = unsafe { OperationRefMut::from_raw(op.to_raw()) };
-    op.remove_from_parent();
-    erase_op(op);
+    erase_op(detach_owned_operation(&op));
 }
 
 /// Return `true` iff the given op is has the given name.
 #[inline]
 pub fn isa<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>, name: &str) -> bool {
     op.name().as_string_ref().as_str() == Result::Ok(name)
+}
+
+#[cfg(test)]
+mod tests {
+    use melior::{
+        Context,
+        dialect::arith,
+        ir::{
+            BlockLike as _, Location, Module, Type, attribute::IntegerAttribute,
+            operation::OperationLike as _,
+        },
+    };
+    use rstest::rstest;
+
+    use crate::{
+        builder::{OpBuilder, OpBuilderLike as _},
+        operation::{build_owned_operation, detach_owned_operation},
+        test::ctx,
+    };
+
+    fn index_constant<'c: 'a, 'a>(
+        builder: &'a OpBuilder<'c, '_>,
+        location: Location<'c>,
+        value: i64,
+    ) -> melior::ir::OperationRef<'c, 'a> {
+        builder.insert(location, |ctx, loc| {
+            arith::constant(
+                ctx,
+                IntegerAttribute::new(Type::index(ctx), value).into(),
+                loc,
+            )
+        })
+    }
+
+    #[rstest]
+    fn detached_operation_survives_scratch_block_drop(ctx: Context) {
+        let location = Location::unknown(&ctx);
+
+        let op = build_owned_operation(&ctx, |builder| {
+            Ok::<_, core::convert::Infallible>(index_constant(builder, location, 7))
+        })
+        .unwrap();
+
+        assert!(
+            unsafe { mlir_sys::mlirOperationGetBlock(op.to_raw()) }
+                .ptr
+                .is_null()
+        );
+        assert_eq!(op.name().as_string_ref().as_str(), Ok("arith.constant"));
+        assert!(op.verify());
+    }
+
+    #[rstest]
+    fn detached_operation_can_be_reinserted_once(ctx: Context) {
+        let location = Location::unknown(&ctx);
+        let scratch = melior::ir::Block::new(&[]);
+        let builder = OpBuilder::at_block_end(&ctx, &scratch);
+        let inserted = index_constant(&builder, location, 11);
+        let raw = inserted.to_raw();
+
+        let op = detach_owned_operation(&inserted);
+
+        assert!(scratch.first_operation().is_none());
+        assert_eq!(op.to_raw().ptr, raw.ptr);
+        assert!(
+            unsafe { mlir_sys::mlirOperationGetBlock(op.to_raw()) }
+                .ptr
+                .is_null()
+        );
+
+        let module = Module::new(location);
+        let reinserted = module.body().append_operation(op);
+
+        assert_eq!(reinserted.to_raw().ptr, raw.ptr);
+        assert_eq!(module.body().first_operation(), Some(reinserted));
+        assert_eq!(
+            unsafe { mlir_sys::mlirOperationGetBlock(reinserted.to_raw()) }.ptr,
+            module.body().to_raw().ptr
+        );
+    }
 }
