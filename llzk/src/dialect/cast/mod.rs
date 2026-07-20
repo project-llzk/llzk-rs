@@ -6,15 +6,13 @@ use llzk_sys::{
     LlzkCastOverflowSemantics, llzkAttributeIsA_Cast_OverflowSemanticsAttr,
     llzkCast_FeltToIndexOpBuild, llzkCast_IntToFeltOpBuildWithType,
     llzkCast_OverflowSemanticsAttrGet, llzkCast_OverflowSemanticsAttrGetValue,
+    llzkOperationIsA_Cast_FeltToIndexOp, llzkOperationIsA_Cast_IntToFeltOp,
     mlirGetDialectHandle__llzk__cast__,
 };
 use melior::{
     Context,
     dialect::DialectHandle,
-    ir::{
-        Attribute, AttributeLike, Location, OperationRef, TypeLike, Value, ValueLike,
-        operation::OperationLike,
-    },
+    ir::{Attribute, AttributeLike, Location, OperationRef, TypeLike, Value, ValueLike},
 };
 use mlir_sys::MlirAttribute;
 use std::ptr::null_mut;
@@ -134,11 +132,7 @@ pub fn tofelt<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `cast.tofelt`.
-#[inline]
-pub fn is_cast_tofelt<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "cast.tofelt")
-}
+crate::macros::isa_fn!(cast, tofelt, llzkOperationIsA_Cast_IntToFeltOp);
 
 /// Creates a 'cast.toindex' operation.
 pub fn toindex<'c, 'a>(
@@ -161,8 +155,4 @@ pub fn toindex<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `cast.toindex`.
-#[inline]
-pub fn is_cast_toindex<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "cast.toindex")
-}
+crate::macros::isa_fn!(cast, toindex, llzkOperationIsA_Cast_FeltToIndexOp);

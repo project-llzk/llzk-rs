@@ -3,7 +3,7 @@
 pub mod attrs;
 pub mod ops;
 pub mod r#type;
-pub use ops::{is_pod_new, is_pod_read, is_pod_write};
+pub use ops::{is_new_op, is_read_op, is_write_op};
 pub use ops::{new, new_with_affine_init, read, write};
 
 use llzk_sys::mlirGetDialectHandle__llzk__pod__;

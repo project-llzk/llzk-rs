@@ -255,7 +255,7 @@ fn struct_readm_with_literal_offset() {
     )
     .unwrap();
 
-    assert!(dialect::r#struct::is_struct_readm(&readm_op));
+    assert!(dialect::r#struct::is_readm_op(&readm_op));
     assert!(readm_op.verify());
 }
 

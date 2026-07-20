@@ -12,9 +12,9 @@ pub use ops::{
     smod, sub, uintdiv, umod,
 };
 pub use ops::{
-    is_felt_add, is_felt_bit_and, is_felt_bit_not, is_felt_bit_or, is_felt_bit_xor, is_felt_const,
-    is_felt_div, is_felt_inv, is_felt_mul, is_felt_neg, is_felt_pow, is_felt_shl, is_felt_shr,
-    is_felt_sintdiv, is_felt_smod, is_felt_sub, is_felt_uintdiv, is_felt_umod,
+    is_add_op, is_bit_and_op, is_bit_not_op, is_bit_or_op, is_bit_xor_op, is_const_op, is_div_op,
+    is_inv_op, is_mul_op, is_neg_op, is_pow_op, is_shl_op, is_shr_op, is_sintdiv_op, is_smod_op,
+    is_sub_op, is_uintdiv_op, is_umod_op,
 };
 pub use r#type::{FeltType, is_felt_type};
 

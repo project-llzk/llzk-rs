@@ -8,9 +8,11 @@ use crate::{
     value_ext::{OwningValueRange, ValueRange},
 };
 use llzk_sys::{
+    llzkOperationIsA_Poly_ApplyMapOp, llzkOperationIsA_Poly_ConstReadOp,
     llzkOperationIsA_Poly_TemplateExprOp, llzkOperationIsA_Poly_TemplateOp,
-    llzkOperationIsA_Poly_TemplateParamOp, llzkOperationIsA_Poly_YieldOp,
-    llzkPoly_ApplyMapOpBuildWithAffineMap, llzkPoly_ConstReadOpBuild, llzkPoly_TemplateExprOpBuild,
+    llzkOperationIsA_Poly_TemplateParamOp, llzkOperationIsA_Poly_UnifiableCastOp,
+    llzkOperationIsA_Poly_YieldOp, llzkPoly_ApplyMapOpBuildWithAffineMap,
+    llzkPoly_ConstReadOpBuild, llzkPoly_TemplateExprOpBuild,
     llzkPoly_TemplateExprOpGetInitializerRegion, llzkPoly_TemplateExprOpGetType,
     llzkPoly_TemplateOpBuild, llzkPoly_TemplateOpGetBody, llzkPoly_TemplateOpGetBodyRegion,
     llzkPoly_TemplateOpGetConstExprNames, llzkPoly_TemplateOpGetConstParamNames,
@@ -181,11 +183,7 @@ where
     }
 }
 
-/// Return `true` iff the given op is `poly.template`.
-#[inline]
-pub fn is_template_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.template")
-}
+crate::macros::isa_fn!(poly, template, llzkOperationIsA_Poly_TemplateOp);
 
 //===----------------------------------------------------------------------===//
 // poly.param (TemplateParamOp*) & poly.expr (TemplateExprOp*)
@@ -498,11 +496,7 @@ pub fn param<'c, 'a>(
     .try_into()
 }
 
-/// Return `true` iff the given op is `poly.param`.
-#[inline]
-pub fn is_param_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.param")
-}
+crate::macros::isa_fn!(poly, param, llzkOperationIsA_Poly_TemplateParamOp);
 
 /// Creates a `poly.expr` op and fills its initializer region with operations produced by the callback.
 ///
@@ -543,11 +537,7 @@ where
     }
 }
 
-/// Return `true` iff the given op is `poly.expr`.
-#[inline]
-pub fn is_expr_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.expr")
-}
+crate::macros::isa_fn!(poly, expr, llzkOperationIsA_Poly_TemplateExprOp);
 
 //===----------------------------------------------------------------------===//
 // poly.yield (YieldOp)
@@ -571,11 +561,7 @@ pub fn r#yield<'c, 'a>(
     .try_into()
 }
 
-/// Return `true` iff the given op is `poly.yield`.
-#[inline]
-pub fn is_yield_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.yield")
-}
+crate::macros::isa_fn!(poly, yield, llzkOperationIsA_Poly_YieldOp);
 
 //===----------------------------------------------------------------------===//
 // poly.read_const
@@ -599,11 +585,7 @@ pub fn read_const<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `poly.read_const`.
-#[inline]
-pub fn is_read_const_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.read_const")
-}
+crate::macros::isa_fn!(poly, read_const, llzkOperationIsA_Poly_ConstReadOp);
 
 //===----------------------------------------------------------------------===//
 // poly.unifiable_cast
@@ -626,11 +608,7 @@ pub fn unifiable_cast<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `poly.unifiable_cast`.
-#[inline]
-pub fn is_unifiable_cast_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.unifiable_cast")
-}
+crate::macros::isa_fn!(poly, unifiable_cast, llzkOperationIsA_Poly_UnifiableCastOp);
 
 //===----------------------------------------------------------------------===//
 // poly.applymap
@@ -655,8 +633,4 @@ pub fn applymap<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `poly.applymap`.
-#[inline]
-pub fn is_applymap_op<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "poly.applymap")
-}
+crate::macros::isa_fn!(poly, applymap, llzkOperationIsA_Poly_ApplyMapOp);

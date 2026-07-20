@@ -7,8 +7,8 @@ pub use attrs::{CmpPredicate, CmpPredicateAttribute};
 use melior::ir::{Type, TypeLike};
 pub use ops::{and, assert, eq, exists, forall, ge, gt, le, lt, ne, not, or, xor, r#yield};
 pub use ops::{
-    is_bool_and, is_bool_assert, is_bool_cmp, is_bool_exists, is_bool_forall, is_bool_not,
-    is_bool_or, is_bool_xor, is_bool_yield,
+    is_and_op, is_assert_op, is_cmp_op, is_exists_op, is_forall_op, is_not_op, is_or_op, is_xor_op,
+    is_yield_op,
 };
 
 use crate::error::Error;

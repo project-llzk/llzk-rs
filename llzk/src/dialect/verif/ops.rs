@@ -1,10 +1,13 @@
 //! `verif` dialect ops.
 
 use llzk_sys::{
-    llzkOperationIsA_Verif_ContractOp, llzkOperationIsA_Verif_EnsureComputeOp,
+    llzkOperationIsA_Verif_ContractEndOp, llzkOperationIsA_Verif_ContractOp,
+    llzkOperationIsA_Verif_DecreasesOp, llzkOperationIsA_Verif_EnsureComputeOp,
     llzkOperationIsA_Verif_EnsureConstrainOp, llzkOperationIsA_Verif_IncludeOp,
-    llzkOperationIsA_Verif_InvariantOp, llzkOperationIsA_Verif_RequireComputeOp,
-    llzkOperationIsA_Verif_RequireConstrainOp, llzkVerif_ContractEndOpBuild,
+    llzkOperationIsA_Verif_IncreasesOp, llzkOperationIsA_Verif_InvariantOp,
+    llzkOperationIsA_Verif_OldOp, llzkOperationIsA_Verif_RequireComputeOp,
+    llzkOperationIsA_Verif_RequireConstrainOp, llzkOperationIsA_Verif_StepOp,
+    llzkOperationIsA_Verif_StepYieldOp, llzkVerif_ContractEndOpBuild,
     llzkVerif_ContractOpBuildFromTargetAttr, llzkVerif_ContractOpGetArgAttrs,
     llzkVerif_ContractOpGetBody, llzkVerif_ContractOpGetCallableRegion,
     llzkVerif_ContractOpGetFullyQualifiedName, llzkVerif_ContractOpGetFunctionType,
@@ -377,7 +380,7 @@ pub fn contract<'c, 'a, 'b>(
     }
 }
 
-isa_fn!(verif, contract);
+isa_fn!(verif, contract, llzkOperationIsA_Verif_ContractOp);
 
 //===----------------------------------------------------------------------===//
 // ContractEndOp
@@ -399,7 +402,7 @@ pub fn contract_end<'c, 'a>(
     }
 }
 
-isa_fn!(verif, contract_end);
+isa_fn!(verif, contract_end, llzkOperationIsA_Verif_ContractEndOp);
 
 //===----------------------------------------------------------------------===//
 // IncludeOpLike
@@ -618,7 +621,7 @@ pub fn include_with_map_operands_slice<'c, 'g, 'v, 'a>(
     )
 }
 
-isa_fn!(verif, include);
+isa_fn!(verif, include, llzkOperationIsA_Verif_IncludeOp);
 
 //===----------------------------------------------------------------------===//
 // ConditionOpLike
@@ -643,7 +646,7 @@ pub trait ConditionOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
 }
 
 macro_rules! impl_condition_op {
-    ($type:ident, $isa:ident, $name:literal, $build:path, $get:path, $set:path, $pred:ident, $ctor:ident) => {
+    ($type:ident, $isa:ident, $name:literal, $build:path, $get:path, $set:path, $ctor:ident) => {
         llzk_op_type!($type, $isa, $name);
 
         impl<'a, 'c: 'a> ConditionOpLike<'c, 'a> for $type<'c> {
@@ -695,11 +698,7 @@ macro_rules! impl_condition_op {
             }
         }
 
-        #[inline]
-        #[doc = concat!("Returns `true` iff the given op is `", $name, "`.")]
-        pub fn $pred<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-            crate::operation::isa(op, $name)
-        }
+        crate::macros::isa_fn!(verif, $ctor, $isa);
     };
 }
 
@@ -714,7 +713,6 @@ impl_condition_op!(
     llzkVerif_EnsureComputeOpBuild,
     llzkVerif_EnsureComputeOpGetCondition,
     llzkVerif_EnsureComputeOpSetCondition,
-    is_ensure_compute,
     ensure_compute
 );
 
@@ -725,7 +723,6 @@ impl_condition_op!(
     llzkVerif_EnsureConstrainOpBuild,
     llzkVerif_EnsureConstrainOpGetCondition,
     llzkVerif_EnsureConstrainOpSetCondition,
-    is_ensure_constrain,
     ensure_constrain
 );
 
@@ -736,7 +733,6 @@ impl_condition_op!(
     llzkVerif_RequireComputeOpBuild,
     llzkVerif_RequireComputeOpGetCondition,
     llzkVerif_RequireComputeOpSetCondition,
-    is_require_compute,
     require_compute
 );
 
@@ -747,7 +743,6 @@ impl_condition_op!(
     llzkVerif_RequireConstrainOpBuild,
     llzkVerif_RequireConstrainOpGetCondition,
     llzkVerif_RequireConstrainOpSetCondition,
-    is_require_constrain,
     require_constrain
 );
 
@@ -880,7 +875,7 @@ where
     build(builder, &arguments).map(|_| op)
 }
 
-isa_fn!(verif, invariant);
+isa_fn!(verif, invariant, llzkOperationIsA_Verif_InvariantOp);
 
 /// Creates an `verif.increases` operation.
 pub fn increases<'c, 'a>(
@@ -897,7 +892,7 @@ pub fn increases<'c, 'a>(
     }
 }
 
-isa_fn!(verif, increases);
+isa_fn!(verif, increases, llzkOperationIsA_Verif_IncreasesOp);
 
 /// Creates a `verif.decreases` operation.
 pub fn decreases<'c, 'a>(
@@ -914,7 +909,7 @@ pub fn decreases<'c, 'a>(
     }
 }
 
-isa_fn!(verif, decreases);
+isa_fn!(verif, decreases, llzkOperationIsA_Verif_DecreasesOp);
 
 /// Creates a `verif.step` operation.
 ///
@@ -953,7 +948,7 @@ where
     res.map(|_| op)
 }
 
-isa_fn!(verif, step);
+isa_fn!(verif, step, llzkOperationIsA_Verif_StepOp);
 
 /// Creates a `verif.step.yield` operation.
 ///
@@ -973,7 +968,12 @@ pub fn step_yield<'c, 'a>(
     }
 }
 
-isa_fn!(verif, step_yield, "step.yield");
+isa_fn!(
+    verif,
+    step_yield,
+    "step.yield",
+    llzkOperationIsA_Verif_StepYieldOp
+);
 
 /// Creates a `verif.old` operation.
 pub fn old<'c, 'a>(
@@ -990,4 +990,4 @@ pub fn old<'c, 'a>(
     }
 }
 
-isa_fn!(verif, old);
+isa_fn!(verif, old, llzkOperationIsA_Verif_OldOp);

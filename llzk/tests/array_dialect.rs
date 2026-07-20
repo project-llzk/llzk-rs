@@ -133,5 +133,5 @@ fn array_len() {
     let arr_dim = arr_dim_op.result(0).unwrap();
     let len = dialect::array::len(&builder, unknown, arr_ref.into(), arr_dim.into());
     assert!(len.verify(), "op {len} failed to verify");
-    assert!(dialect::array::is_array_len(&len));
+    assert!(dialect::array::is_len_op(&len));
 }

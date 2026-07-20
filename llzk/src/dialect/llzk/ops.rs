@@ -1,6 +1,6 @@
 use crate::builder::OpBuilderLike;
-use llzk_sys::llzkLlzk_NonDetOpBuild;
-use melior::ir::{Location, OperationRef, Type, TypeLike, operation::OperationLike};
+use llzk_sys::{llzkLlzk_NonDetOpBuild, llzkOperationIsA_Llzk_NonDetOp};
+use melior::ir::{Location, OperationRef, Type, TypeLike};
 
 /// Creates a new `llzk.nondet` operation.
 pub fn nondet<'c, 'a>(
@@ -17,8 +17,4 @@ pub fn nondet<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `llzk.nondet`.
-#[inline]
-pub fn is_nondet<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "llzk.nondet")
-}
+crate::macros::isa_fn!(llzk, nondet, llzkOperationIsA_Llzk_NonDetOp);

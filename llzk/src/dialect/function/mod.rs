@@ -14,7 +14,7 @@ pub use ops::{
     call, call_with_map_operands, call_with_template_params, def, def_with_signature_attrs,
     r#return,
 };
-pub use ops::{is_func_call, is_func_def, is_func_return};
+pub use ops::{is_call_op, is_def_op, is_return_op};
 
 /// Returns a handle to the `function` dialect.
 pub fn handle() -> DialectHandle {

@@ -3,13 +3,14 @@
 use crate::{builder::OpBuilderLike, symbol_ref::SymbolRefAttribute};
 use llzk_sys::{
     llzkGlobal_GlobalDefOpBuild, llzkGlobal_GlobalReadOpBuild, llzkGlobal_GlobalWriteOpBuild,
-    mlirGetDialectHandle__llzk__global__,
+    llzkOperationIsA_Global_GlobalDefOp, llzkOperationIsA_Global_GlobalReadOp,
+    llzkOperationIsA_Global_GlobalWriteOp, mlirGetDialectHandle__llzk__global__,
 };
 use melior::{
     dialect::DialectHandle,
     ir::{
         Attribute, AttributeLike, Identifier, Location, OperationRef, Type, TypeLike, Value,
-        ValueLike, attribute::TypeAttribute, operation::OperationLike,
+        ValueLike, attribute::TypeAttribute,
     },
 };
 use mlir_sys::MlirAttribute;
@@ -48,11 +49,7 @@ pub fn def<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `global.def`.
-#[inline]
-pub fn is_global_def<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "global.def")
-}
+crate::macros::isa_fn!(global, def, llzkOperationIsA_Global_GlobalDefOp);
 
 /// Constructs a 'global.read' operation.
 pub fn read<'c, 'a>(
@@ -71,11 +68,7 @@ pub fn read<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `global.read`.
-#[inline]
-pub fn is_global_read<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "global.read")
-}
+crate::macros::isa_fn!(global, read, llzkOperationIsA_Global_GlobalReadOp);
 
 /// Constructs a 'global.write' operation.
 pub fn write<'c, 'a>(
@@ -94,8 +87,4 @@ pub fn write<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `global.write`.
-#[inline]
-pub fn is_global_write<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "global.write")
-}
+crate::macros::isa_fn!(global, write, llzkOperationIsA_Global_GlobalWriteOp);

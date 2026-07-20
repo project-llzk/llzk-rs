@@ -3,11 +3,12 @@
 use crate::builder::OpBuilderLike;
 use llzk_sys::{
     llzkConstrain_EmitContainmentOpBuild, llzkConstrain_EmitEqualityOpBuild,
+    llzkOperationIsA_Constrain_EmitContainmentOp, llzkOperationIsA_Constrain_EmitEqualityOp,
     mlirGetDialectHandle__llzk__constrain__,
 };
 use melior::{
     dialect::DialectHandle,
-    ir::{Location, OperationRef, Value, ValueLike, operation::OperationLike},
+    ir::{Location, OperationRef, Value, ValueLike},
 };
 
 /// Returns a handle to the `constrain` dialect.
@@ -32,11 +33,7 @@ pub fn eq<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `constrain.eq`.
-#[inline]
-pub fn is_constrain_eq<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "constrain.eq")
-}
+crate::macros::isa_fn!(constrain, eq, llzkOperationIsA_Constrain_EmitEqualityOp);
 
 /// Creates a `constrain.in` operation.
 pub fn r#in<'c, 'a>(
@@ -55,8 +52,4 @@ pub fn r#in<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `constrain.in`.
-#[inline]
-pub fn is_constrain_in<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "constrain.in")
-}
+crate::macros::isa_fn!(constrain, in, llzkOperationIsA_Constrain_EmitContainmentOp);

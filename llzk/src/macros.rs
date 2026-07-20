@@ -341,35 +341,34 @@ macro_rules! llzk_op_type {
 
 pub(crate) use llzk_op_type;
 
-/// Defines a `is_$name` function that checks if the given operation matches the expected
-/// operation type.
-///
-/// If the dialect name is prefixed by the `prefixed` keyword then the function is defined as
-/// `is_$dialect_$name`.
+/// Defines an `is_$name_op` function that checks whether an operation has the expected type.
 macro_rules! isa_fn {
+    // CAPI-backed checks.
+    ($dialect:ident, $name:ident, $op_name:expr, $isa:path) => {
+        paste::paste! {
+            #[doc = concat!("Returns `true` iff the given op is `", stringify!($dialect), ".", $op_name, "`.")]
+            #[inline]
+            pub fn [<is_ $name _op>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
+                unsafe { $isa(::melior::ir::operation::OperationLike::to_raw(op)) }
+            }
+        }
+    };
+    ($dialect:ident, $name:ident, $isa:path) => {
+        $crate::macros::isa_fn!($dialect, $name, stringify!($name), $isa);
+    };
+    // String-name fallback for upstream MLIR ops that do not have LLZK CAPI wrappers,
+    // such as `scf.if`. LLZK dialect ops should use one of the CAPI-backed arms above.
     ($dialect:ident, $name:ident, $op_name:expr) => {
         paste::paste! {
             #[doc = concat!("Returns `true` iff the given op is `", stringify!($dialect), ".", $op_name, "`.")]
             #[inline]
-            pub fn [<is_ $name>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
+            pub fn [<is_ $name _op>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
                 crate::operation::isa(op, concat!(stringify!($dialect), ".", $op_name))
             }
         }
     };
     ($dialect:ident, $name:ident) => {
-        isa_fn!($dialect, $name, stringify!($name));
-    };
-    (prefixed $dialect:ident, $name:ident, $op_name:expr) => {
-        paste::paste! {
-            #[doc = concat!("Returns `true` iff the given op is `", stringify!($dialect), ".", $op_name, "`.")]
-            #[inline]
-            pub fn [<is_ $dialect _ $name>]<'c: 'a, 'a>(op: &impl ::melior::ir::operation::OperationLike<'c, 'a>) -> bool {
-                crate::operation::isa(op, concat!(stringify!($dialect), ".", $op_name))
-            }
-        }
-    };
-    (prefixed $dialect:ident, $name:ident) => {
-        isa_fn!(prefixed $dialect, $name, stringify!($name));
+        $crate::macros::isa_fn!($dialect, $name, stringify!($name));
     };
 }
 
@@ -381,11 +380,12 @@ macro_rules! dialect_op {
             $crate::macros::dialect_op!(
                 $arity $type_mode $dialect,
                 $name,
-                [<llzk $dialect:camel _ $name:camel $dialect:camel OpBuild>]
+                [<llzk $dialect:camel _ $name:camel $dialect:camel OpBuild>],
+                [<llzkOperationIsA_ $dialect:camel _ $name:camel $dialect:camel Op>]
             );
         }
     };
-    (binop untyped $dialect:ident, $name:ident, $build:ident) => {
+    (binop untyped $dialect:ident, $name:ident, $build:ident, $isa:path) => {
         #[doc = concat!("Creates a `", stringify!($dialect), ".", stringify!($name) ,"` operation.")]
         pub fn $name<'c, 'a>(
             builder: &impl $crate::builder::OpBuilderLike<'c>,
@@ -403,9 +403,9 @@ macro_rules! dialect_op {
             })
         }
 
-        $crate::macros::isa_fn!(prefixed $dialect, $name);
+        $crate::macros::isa_fn!($dialect, $name, $isa);
     };
-    (binop typed $dialect:ident, $name:ident, $build:ident) => {
+    (binop typed $dialect:ident, $name:ident, $build:ident, $isa:path) => {
         #[doc = concat!("Creates a `", stringify!($dialect), ".", stringify!($name) ,"` operation.")]
         pub fn $name<'c, 'a>(
             builder: &impl $crate::builder::OpBuilderLike<'c>,
@@ -425,9 +425,9 @@ macro_rules! dialect_op {
             })
         }
 
-        $crate::macros::isa_fn!(prefixed $dialect, $name);
+        $crate::macros::isa_fn!($dialect, $name, $isa);
     };
-    (unop untyped $dialect:ident, $name:ident, $build:ident) => {
+    (unop untyped $dialect:ident, $name:ident, $build:ident, $isa:path) => {
         #[doc = concat!("Creates a `", stringify!($dialect), ".", stringify!($name) ,"` operation.")]
         pub fn $name<'c, 'a>(
             builder: &impl $crate::builder::OpBuilderLike<'c>,
@@ -443,9 +443,9 @@ macro_rules! dialect_op {
             })
         }
 
-        $crate::macros::isa_fn!(prefixed $dialect, $name);
+        $crate::macros::isa_fn!($dialect, $name, $isa);
     };
-    (unop typed $dialect:ident, $name:ident, $build:ident) => {
+    (unop typed $dialect:ident, $name:ident, $build:ident, $isa:path) => {
         #[doc = concat!("Creates a `", stringify!($dialect), ".", stringify!($name) ,"` operation.")]
         pub fn $name<'c, 'a>(
             builder: &impl $crate::builder::OpBuilderLike<'c>,
@@ -463,7 +463,7 @@ macro_rules! dialect_op {
             })
         }
 
-        $crate::macros::isa_fn!(prefixed $dialect, $name);
+        $crate::macros::isa_fn!($dialect, $name, $isa);
     };
 }
 

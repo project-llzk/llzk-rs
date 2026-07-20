@@ -1,5 +1,5 @@
 use super::FeltConstAttribute;
-use crate::{builder::OpBuilderLike, error::Error, macros::isa_fn};
+use crate::{builder::OpBuilderLike, error::Error};
 use llzk_sys::{
     llzkFelt_AddFeltOpBuild, llzkFelt_AndFeltOpBuild, llzkFelt_DivFeltOpBuild,
     llzkFelt_FeltConstantOpBuild, llzkFelt_InvFeltOpBuild, llzkFelt_MulFeltOpBuild,
@@ -7,10 +7,17 @@ use llzk_sys::{
     llzkFelt_PowFeltOpBuild, llzkFelt_ShlFeltOpBuild, llzkFelt_ShrFeltOpBuild,
     llzkFelt_SignedIntDivFeltOpBuild, llzkFelt_SignedModFeltOpBuild, llzkFelt_SubFeltOpBuild,
     llzkFelt_UnsignedIntDivFeltOpBuild, llzkFelt_UnsignedModFeltOpBuild, llzkFelt_XorFeltOpBuild,
+    llzkOperationIsA_Felt_AddFeltOp, llzkOperationIsA_Felt_AndFeltOp,
+    llzkOperationIsA_Felt_DivFeltOp, llzkOperationIsA_Felt_FeltConstantOp,
+    llzkOperationIsA_Felt_InvFeltOp, llzkOperationIsA_Felt_MulFeltOp,
+    llzkOperationIsA_Felt_NegFeltOp, llzkOperationIsA_Felt_NotFeltOp,
+    llzkOperationIsA_Felt_OrFeltOp, llzkOperationIsA_Felt_PowFeltOp,
+    llzkOperationIsA_Felt_ShlFeltOp, llzkOperationIsA_Felt_ShrFeltOp,
+    llzkOperationIsA_Felt_SignedIntDivFeltOp, llzkOperationIsA_Felt_SignedModFeltOp,
+    llzkOperationIsA_Felt_SubFeltOp, llzkOperationIsA_Felt_UnsignedIntDivFeltOp,
+    llzkOperationIsA_Felt_UnsignedModFeltOp, llzkOperationIsA_Felt_XorFeltOp,
 };
-use melior::ir::{
-    AttributeLike as _, Location, OperationRef, TypeLike as _, operation::OperationLike,
-};
+use melior::ir::{AttributeLike as _, Location, OperationRef, TypeLike as _};
 
 macro_rules! op {
     ($arity:ident, $($args:tt)*) => {
@@ -25,16 +32,56 @@ op!(binop, mul);
 op!(binop, pow);
 op!(binop, shl);
 op!(binop, shr);
-op!(binop, sintdiv, llzkFelt_SignedIntDivFeltOpBuild);
-op!(binop, smod, llzkFelt_SignedModFeltOpBuild);
-op!(binop, uintdiv, llzkFelt_UnsignedIntDivFeltOpBuild);
-op!(binop, umod, llzkFelt_UnsignedModFeltOpBuild);
-op!(binop, bit_and, llzkFelt_AndFeltOpBuild);
-op!(binop, bit_or, llzkFelt_OrFeltOpBuild);
-op!(binop, bit_xor, llzkFelt_XorFeltOpBuild);
+op!(
+    binop,
+    sintdiv,
+    llzkFelt_SignedIntDivFeltOpBuild,
+    llzkOperationIsA_Felt_SignedIntDivFeltOp
+);
+op!(
+    binop,
+    smod,
+    llzkFelt_SignedModFeltOpBuild,
+    llzkOperationIsA_Felt_SignedModFeltOp
+);
+op!(
+    binop,
+    uintdiv,
+    llzkFelt_UnsignedIntDivFeltOpBuild,
+    llzkOperationIsA_Felt_UnsignedIntDivFeltOp
+);
+op!(
+    binop,
+    umod,
+    llzkFelt_UnsignedModFeltOpBuild,
+    llzkOperationIsA_Felt_UnsignedModFeltOp
+);
+op!(
+    binop,
+    bit_and,
+    llzkFelt_AndFeltOpBuild,
+    llzkOperationIsA_Felt_AndFeltOp
+);
+op!(
+    binop,
+    bit_or,
+    llzkFelt_OrFeltOpBuild,
+    llzkOperationIsA_Felt_OrFeltOp
+);
+op!(
+    binop,
+    bit_xor,
+    llzkFelt_XorFeltOpBuild,
+    llzkOperationIsA_Felt_XorFeltOp
+);
 op!(unop, inv);
 op!(unop, neg);
-op!(unop, bit_not, llzkFelt_NotFeltOpBuild);
+op!(
+    unop,
+    bit_not,
+    llzkFelt_NotFeltOpBuild,
+    llzkOperationIsA_Felt_NotFeltOp
+);
 
 /// Creates a `felt.const` operation.
 pub fn constant<'c, 'a>(
@@ -52,11 +99,7 @@ pub fn constant<'c, 'a>(
     })
 }
 
-/// Return `true` iff the given op is `felt.const`.
-#[inline]
-pub fn is_felt_const<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "felt.const")
-}
+crate::macros::isa_fn!(felt, const, llzkOperationIsA_Felt_FeltConstantOp);
 
 #[cfg(test)]
 mod tests {
@@ -93,6 +136,6 @@ mod tests {
             FeltConstAttribute::new(&ctx, value, None),
         )
         .unwrap();
-        assert!(is_felt_const(&op), "operation {op:?} failed isa test");
+        assert!(is_const_op(&op), "operation {op:?} failed isa test");
     }
 }

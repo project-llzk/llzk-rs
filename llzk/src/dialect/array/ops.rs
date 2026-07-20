@@ -5,10 +5,12 @@ use llzk_sys::{
     llzkArray_ArrayLengthOpBuild, llzkArray_CreateArrayOpBuildWithMapOperands,
     llzkArray_CreateArrayOpBuildWithValues, llzkArray_ExtractArrayOpBuild,
     llzkArray_InsertArrayOpBuild, llzkArray_ReadArrayOpBuild, llzkArray_WriteArrayOpBuild,
+    llzkOperationIsA_Array_ArrayLengthOp, llzkOperationIsA_Array_CreateArrayOp,
+    llzkOperationIsA_Array_ExtractArrayOp, llzkOperationIsA_Array_InsertArrayOp,
+    llzkOperationIsA_Array_ReadArrayOp, llzkOperationIsA_Array_WriteArrayOp,
 };
 use melior::ir::{
     Location, OperationRef, Type, TypeLike, Value, ValueLike, attribute::DenseI32ArrayAttribute,
-    operation::OperationLike,
 };
 use mlir_sys::MlirOperation;
 
@@ -101,11 +103,7 @@ pub fn new<'c, 'a>(
     unsafe { OperationRef::from_raw(ctor.build(builder, location, r#type)) }
 }
 
-/// Return `true` iff the given op is `array.new`.
-#[inline]
-pub fn is_array_new<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "array.new")
-}
+crate::macros::isa_fn!(array, new, llzkOperationIsA_Array_CreateArrayOp);
 
 fn read_like_op<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
@@ -153,11 +151,7 @@ pub fn read<'c, 'a>(
     )
 }
 
-/// Return `true` iff the given op is `array.read`.
-#[inline]
-pub fn is_array_read<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "array.read")
-}
+crate::macros::isa_fn!(array, read, llzkOperationIsA_Array_ReadArrayOp);
 
 /// Creates an 'array.extract' operation.
 pub fn extract<'c, 'a>(
@@ -177,11 +171,7 @@ pub fn extract<'c, 'a>(
     )
 }
 
-/// Return `true` iff the given op is `array.extract`.
-#[inline]
-pub fn is_array_extract<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "array.extract")
-}
+crate::macros::isa_fn!(array, extract, llzkOperationIsA_Array_ExtractArrayOp);
 
 fn write_like_op<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
@@ -229,11 +219,7 @@ pub fn write<'c, 'a>(
     )
 }
 
-/// Return `true` iff the given op is `array.write`.
-#[inline]
-pub fn is_array_write<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "array.write")
-}
+crate::macros::isa_fn!(array, write, llzkOperationIsA_Array_WriteArrayOp);
 
 /// Creates an 'array.insert' operation.
 pub fn insert<'c, 'a>(
@@ -253,11 +239,7 @@ pub fn insert<'c, 'a>(
     )
 }
 
-/// Return `true` iff the given op is `array.insert`.
-#[inline]
-pub fn is_array_insert<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "array.insert")
-}
+crate::macros::isa_fn!(array, insert, llzkOperationIsA_Array_InsertArrayOp);
 
 /// Creates an 'array.len' operation.
 pub fn len<'c, 'a>(
@@ -276,8 +258,4 @@ pub fn len<'c, 'a>(
     }
 }
 
-/// Return `true` iff the given op is `array.len`.
-#[inline]
-pub fn is_array_len<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> bool {
-    crate::operation::isa(op, "array.len")
-}
+crate::macros::isa_fn!(array, len, llzkOperationIsA_Array_ArrayLengthOp);

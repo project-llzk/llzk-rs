@@ -6,7 +6,10 @@ use crate::{
 };
 use llzk_sys::{
     llzkBool_AndBoolOpBuild, llzkBool_AssertOpBuild, llzkBool_CmpOpBuild, llzkBool_NotBoolOpBuild,
-    llzkBool_OrBoolOpBuild, llzkBool_XorBoolOpBuild,
+    llzkBool_OrBoolOpBuild, llzkBool_XorBoolOpBuild, llzkOperationIsA_Bool_AndBoolOp,
+    llzkOperationIsA_Bool_AssertOp, llzkOperationIsA_Bool_CmpOp, llzkOperationIsA_Bool_ExistsOp,
+    llzkOperationIsA_Bool_ForAllOp, llzkOperationIsA_Bool_NotBoolOp,
+    llzkOperationIsA_Bool_OrBoolOp, llzkOperationIsA_Bool_XorBoolOp, llzkOperationIsA_Bool_YieldOp,
 };
 use melior::ir::{
     AttributeLike as _, Block, Identifier, Location, OperationRef, RegionLike as _, Value,
@@ -57,7 +60,7 @@ cmp_binop!(le, CmpPredicate::Le);
 cmp_binop!(lt, CmpPredicate::Lt);
 cmp_binop!(ne, CmpPredicate::Ne);
 
-isa_fn!(prefixed bool, cmp);
+isa_fn!(bool, cmp, llzkOperationIsA_Bool_CmpOp);
 
 macro_rules! op {
     ($arity:ident, $($args:tt)*) => {
@@ -91,7 +94,7 @@ pub fn assert<'c, 'a>(
     })
 }
 
-isa_fn!(prefixed bool, assert);
+isa_fn!(bool, assert, llzkOperationIsA_Bool_AssertOp);
 
 /// Helper for creating a quantifier op.
 fn create_quantifier_body<'c, 'a>(
@@ -129,7 +132,7 @@ pub fn forall<'c, 'a>(
     create_quantifier_body(builder, location, domain, llzk_sys::llzkBool_ForAllOpBuild)
 }
 
-isa_fn!(prefixed bool, forall);
+isa_fn!(bool, forall, llzkOperationIsA_Bool_ForAllOp);
 
 /// Creates a `bool.exists` operation.
 ///
@@ -142,7 +145,7 @@ pub fn exists<'c, 'a>(
     create_quantifier_body(builder, location, domain, llzk_sys::llzkBool_ExistsOpBuild)
 }
 
-isa_fn!(prefixed bool, exists);
+isa_fn!(bool, exists, llzkOperationIsA_Bool_ExistsOp);
 
 /// Creates a `bool.yield` operation.
 pub fn r#yield<'c, 'a>(
@@ -159,4 +162,4 @@ pub fn r#yield<'c, 'a>(
     }
 }
 
-isa_fn!(prefixed bool, r#yield);
+isa_fn!(bool, yield, llzkOperationIsA_Bool_YieldOp);
