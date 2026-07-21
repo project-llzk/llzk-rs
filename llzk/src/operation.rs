@@ -1,5 +1,6 @@
 //! Functions related to operations.
 
+use crate::builder::OpBuilder;
 use crate::error::{DiagnosticError, Error};
 use core::ffi::c_void;
 use llzk_sys::mlirOperationWalkReverse;
@@ -14,8 +15,7 @@ use melior::{
     },
 };
 use mlir_sys::{MlirOperation, MlirWalkResult, mlirOperationWalk};
-
-use crate::builder::OpBuilder;
+use std::marker::PhantomData;
 
 /// Shared by non-owned operation reference wrapper types.
 pub trait OperationRefLike<'c: 'a, 'a> {
@@ -187,25 +187,33 @@ pub fn detach_owned_operation<'c: 'a, 'a>(op: impl OperationRefLike<'c, 'a>) -> 
 /// infer a concrete return lifetime for the closure, which can over-constrain captured
 /// values and produce spurious `'static` requirements.
 ///
-/// `LifetimeErasedOpRef` keeps the raw operation handle private while letting the callback
+/// `NoLifetimeOperationRef` keeps the raw operation handle private while letting the callback
 /// convert an inserted operation reference into a lifetime-free handoff value. The
 /// operation is detached immediately before the scratch block and builder are dropped.
 #[derive(Clone, Copy, Debug)]
-pub struct LifetimeErasedOpRef {
+pub struct NoLifetimeOperationRef<'ctx> {
     raw: MlirOperation,
+    _context: PhantomData<&'ctx Context>,
 }
 
-impl LifetimeErasedOpRef {
+impl<'ctx> NoLifetimeOperationRef<'ctx> {
     /// Create a handle from an operation reference returned by a builder API.
     #[inline]
-    pub fn from_operation<'c: 'a, 'a>(op: impl OperationRefLike<'c, 'a>) -> Self {
-        Self { raw: op.to_raw() }
+    pub fn from_operation<'a>(op: impl OperationRefLike<'ctx, 'a>) -> Self
+    where
+        'ctx: 'a,
+    {
+        Self {
+            raw: op.to_raw(),
+            _context: PhantomData,
+        }
     }
 }
 
-impl<'c: 'a, 'a, T> From<T> for LifetimeErasedOpRef
+impl<'ctx, 'a, T> From<T> for NoLifetimeOperationRef<'ctx>
 where
-    T: OperationRefLike<'c, 'a>,
+    T: OperationRefLike<'ctx, 'a>,
+    'ctx: 'a,
 {
     #[inline]
     fn from(op: T) -> Self {
@@ -219,7 +227,7 @@ where
 /// a handle to the operation that should be detached.
 pub fn build_owned_operation<'c, E>(
     context: &'c Context,
-    build: impl FnOnce(&OpBuilder<'c, '_>) -> Result<LifetimeErasedOpRef, E>,
+    build: impl FnOnce(&OpBuilder<'c, '_>) -> Result<NoLifetimeOperationRef<'c>, E>,
 ) -> Result<Operation<'c>, E> {
     let scratch = Block::new(&[]);
     let builder = OpBuilder::at_block_end(context, &scratch);
