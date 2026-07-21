@@ -82,6 +82,10 @@ jobs:
             echo "build failed or was cancelled"
             exit 1
           fi
+          if [[ "${{ needs.build-nix.result }}" != "success" ]]; then
+            echo "build-nix failed or was cancelled"
+            exit 1
+          fi
 
   # WARNING: do not change this job name. It is a required status check for PRs to `main`.
   asan:
