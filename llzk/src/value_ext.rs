@@ -167,7 +167,7 @@ pub fn replace_all_uses_in_block_with<'c>(
         }
 
         for owner in owners {
-            replace_uses_of_with(OperationRef::from_raw(owner), orig, replacement);
+            replace_uses_of_with(&OperationRef::from_raw(owner), orig, replacement);
         }
     }
 }

@@ -137,7 +137,7 @@ pub fn verify_operation_with_diags<'c: 'a, 'a>(
 /// Replace uses of 'of' value with the 'with' value inside the 'op' operation.
 #[inline]
 pub fn replace_uses_of_with<'c: 'a, 'a>(
-    op: impl OperationRefLike<'c, 'a>,
+    op: &impl OperationLike<'c, 'a>,
     of: impl ValueLike<'c> + Copy,
     with: impl ValueLike<'c> + Copy,
 ) {
