@@ -7,6 +7,28 @@ on:
       - main
 
 jobs:
+  build-nix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@9280e7aca88deada44c930f1e2c78e21c3ae3edd # v31.7.0
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.31.2/install
+          github_access_token: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Set Git credentials
+        run: |
+          git config --global 'url.https://api@github.com/'.insteadOf 'https://github.com/'
+          git config --global 'url.https://ssh@github.com/'.insteadOf 'ssh://git@github.com/'
+          git config --global 'url.https://git@github.com/'.insteadOf 'git@github.com:'
+      - uses: cachix/cachix-action@v17
+        with:
+          name: veridise-public
+          authToken: '${{ secrets.CACHIX_PUBLIC_TOKEN }}'
+      - name: Build and test
+        run: nix --print-build-logs build
+
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -50,7 +72,7 @@ jobs:
 
   # WARNING: do not change this job name. It is a required status check for PRs to `main`.
   build-result:
-    needs: build
+    needs: [build, build-nix]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
