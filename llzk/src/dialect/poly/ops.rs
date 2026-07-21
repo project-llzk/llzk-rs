@@ -342,6 +342,15 @@ impl<'c: 'a, 'a> OperationLike<'c, 'a> for TemplateSymbolBindingOpRef<'c, 'a> {
     }
 }
 
+impl<'c: 'a, 'a> crate::operation::OperationRefLike<'c, 'a> for TemplateSymbolBindingOpRef<'c, 'a> {
+    fn to_raw(self) -> mlir_sys::MlirOperation {
+        match self {
+            Self::Param(op) => op.to_raw(),
+            Self::Expr(op) => op.to_raw(),
+        }
+    }
+}
+
 impl<'c, 'a> From<TemplateParamOpRef<'c, 'a>> for TemplateSymbolBindingOpRef<'c, 'a> {
     fn from(op: TemplateParamOpRef<'c, 'a>) -> Self {
         Self::Param(op)

@@ -1,11 +1,10 @@
 //! Utilities related to symbol tables.
 
-use std::mem;
-
 use melior::ir::{
     Operation,
     operation::{OperationLike, OperationRef},
 };
+use std::mem;
 
 /// Insert a new symbol operation into the symbol table owned by `sym_table_op`.
 ///

@@ -1,5 +1,6 @@
 //! Functions related to operations.
 
+use crate::builder::OpBuilder;
 use crate::error::{DiagnosticError, Error};
 use core::ffi::c_void;
 use llzk_sys::mlirOperationWalkReverse;
@@ -7,13 +8,34 @@ use melior::{
     Context,
     diagnostic::DiagnosticSeverity,
     ir::{
-        Block, Operation, OperationRef, ValueLike,
-        operation::{OperationLike, OperationMutLike, OperationRefMut, WalkOrder, WalkResult},
+        Block, Operation, ValueLike,
+        operation::{
+            OperationLike, OperationMutLike, OperationRef, OperationRefMut, WalkOrder, WalkResult,
+        },
     },
 };
 use mlir_sys::{MlirOperation, MlirWalkResult, mlirOperationWalk};
+use std::marker::PhantomData;
 
-use crate::builder::OpBuilder;
+/// Shared by non-owned operation reference wrapper types.
+pub trait OperationRefLike<'c: 'a, 'a> {
+    /// Converts an operation reference into a raw object.
+    fn to_raw(self) -> MlirOperation;
+}
+
+impl<'c: 'a, 'a> OperationRefLike<'c, 'a> for OperationRef<'c, 'a> {
+    #[inline]
+    fn to_raw(self) -> MlirOperation {
+        OperationLike::to_raw(&self)
+    }
+}
+
+impl<'c: 'a, 'a> OperationRefLike<'c, 'a> for OperationRefMut<'c, 'a> {
+    #[inline]
+    fn to_raw(self) -> MlirOperation {
+        OperationLike::to_raw(&self)
+    }
+}
 
 /// Walk iterator over mutable operation.
 pub trait WalkOperationMutLike<'c: 'a, 'a> {
@@ -127,8 +149,8 @@ pub fn replace_uses_of_with<'c: 'a, 'a>(
 /// Moves the operation right after the reference op.
 #[inline]
 pub fn move_op_after<'c: 'a, 'a>(
-    reference: &impl OperationLike<'c, 'a>,
-    op: &impl OperationLike<'c, 'a>,
+    reference: impl OperationRefLike<'c, 'a>,
+    op: impl OperationRefLike<'c, 'a>,
 ) {
     unsafe { mlir_sys::mlirOperationMoveAfter(op.to_raw(), reference.to_raw()) }
 }
@@ -145,7 +167,7 @@ pub fn erase_op<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) {
 ///
 /// LLZK's builder APIs insert operations immediately. However, some users may need to
 /// hold an owned operation to be inserted at a later time.
-pub fn detach_owned_operation<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> Operation<'c> {
+pub fn detach_owned_operation<'c: 'a, 'a>(op: impl OperationRefLike<'c, 'a>) -> Operation<'c> {
     let raw = op.to_raw();
     // SAFETY: `raw` is a valid operation inserted in a scratch block. Removing it transfers
     // responsibility for destroying it to the owned `Operation` constructed below.
@@ -156,21 +178,73 @@ pub fn detach_owned_operation<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> Op
     }
 }
 
+/// Opaque handle to an operation created for [`build_owned_operation`].
+///
+/// This type intentionally erases the borrow lifetime carried by [`OperationRef`].
+/// `build_owned_operation` creates its scratch [`OpBuilder`] locally, so a callback
+/// cannot safely return an `OperationRef` whose borrow is tied to that local builder.
+/// Asking the callback to return `OperationRef<'_, '_>` directly also forces Rust to
+/// infer a concrete return lifetime for the closure, which can over-constrain captured
+/// values and produce spurious `'static` requirements.
+///
+/// `NoLifetimeOperationRef` keeps the raw operation handle private while letting the callback
+/// convert an inserted operation reference into a lifetime-free handoff value. The
+/// operation is detached immediately before the scratch block and builder are dropped.
+#[derive(Clone, Copy, Debug)]
+pub struct NoLifetimeOperationRef<'ctx> {
+    raw: MlirOperation,
+    _context: PhantomData<&'ctx Context>,
+}
+
+impl<'ctx> NoLifetimeOperationRef<'ctx> {
+    /// Create a handle from an operation reference returned by a builder API.
+    #[inline]
+    pub fn from_operation<'a>(op: impl OperationRefLike<'ctx, 'a>) -> Self
+    where
+        'ctx: 'a,
+    {
+        Self {
+            raw: op.to_raw(),
+            _context: PhantomData,
+        }
+    }
+}
+
+impl<'ctx, 'a, T> From<T> for NoLifetimeOperationRef<'ctx>
+where
+    T: OperationRefLike<'ctx, 'a>,
+    'ctx: 'a,
+{
+    #[inline]
+    fn from(op: T) -> Self {
+        Self::from_operation(op)
+    }
+}
+
 /// Build an owned operation that is not attached to any block.
+///
+/// The build closure should insert an operation with the provided builder and return
+/// a handle to the operation that should be detached.
 pub fn build_owned_operation<'c, E>(
     context: &'c Context,
-    build: impl for<'a> FnOnce(&'a OpBuilder<'c, '_>) -> Result<OperationRef<'c, 'a>, E>,
+    build: impl FnOnce(&OpBuilder<'c, '_>) -> Result<NoLifetimeOperationRef<'c>, E>,
 ) -> Result<Operation<'c>, E> {
     let scratch = Block::new(&[]);
     let builder = OpBuilder::at_block_end(context, &scratch);
-    let op = build(&builder)?;
-    Ok(detach_owned_operation(&op))
+    let raw = build(&builder)?.raw;
+    // SAFETY: `raw` is the operation inserted into the scratch block.
+    // Removing it transfers ownership to the returned `Operation`.
+    unsafe {
+        let mut op_ref = OperationRefMut::from_raw(raw);
+        op_ref.remove_from_parent();
+        Ok(Operation::from_raw(raw))
+    }
 }
 
 /// Detach the given operation from its parent block, then erase it.
 #[inline]
-pub fn detach_and_erase_op<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) {
-    erase_op(detach_owned_operation(&op));
+pub fn detach_and_erase_op<'c: 'a, 'a>(op: impl OperationRefLike<'c, 'a>) {
+    erase_op(detach_owned_operation(op));
 }
 
 /// Return `true` iff the given op is has the given name.
@@ -181,6 +255,13 @@ pub fn isa<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>, name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use crate::{
+        builder::{OpBuilder, OpBuilderLike as _},
+        context::LlzkContext,
+        dialect::poly,
+        operation::{build_owned_operation, detach_owned_operation},
+        test::ctx,
+    };
     use melior::{
         Context,
         dialect::arith,
@@ -190,12 +271,6 @@ mod tests {
         },
     };
     use rstest::rstest;
-
-    use crate::{
-        builder::{OpBuilder, OpBuilderLike as _},
-        operation::{build_owned_operation, detach_owned_operation},
-        test::ctx,
-    };
 
     fn index_constant<'c: 'a, 'a>(
         builder: &'a OpBuilder<'c, '_>,
@@ -216,7 +291,7 @@ mod tests {
         let location = Location::unknown(&ctx);
 
         let op = build_owned_operation(&ctx, |builder| {
-            Ok::<_, core::convert::Infallible>(index_constant(builder, location, 7))
+            Ok::<_, core::convert::Infallible>(index_constant(builder, location, 7).into())
         })
         .unwrap();
 
@@ -237,7 +312,7 @@ mod tests {
         let inserted = index_constant(&builder, location, 11);
         let raw = inserted.to_raw();
 
-        let op = detach_owned_operation(&inserted);
+        let op = detach_owned_operation(inserted);
 
         assert!(scratch.first_operation().is_none());
         assert_eq!(op.to_raw().ptr, raw.ptr);
@@ -256,5 +331,15 @@ mod tests {
             unsafe { mlir_sys::mlirOperationGetBlock(reinserted.to_raw()) }.ptr,
             module.body().to_raw().ptr
         );
+    }
+
+    #[test]
+    fn build_owned_operation_poly_param_lifetime_repro() {
+        let context = LlzkContext::new();
+        let location = Location::unknown(&context);
+
+        let _ = build_owned_operation(&context, |builder| {
+            poly::param(builder, location, "T", None).map(Into::into)
+        });
     }
 }
