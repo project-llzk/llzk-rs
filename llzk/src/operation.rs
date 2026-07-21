@@ -156,17 +156,52 @@ pub fn detach_owned_operation<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> Op
     }
 }
 
+/// Opaque handle to an operation created for [`build_owned_operation`].
+///
+/// This type intentionally erases the borrow lifetime carried by [`OperationRef`].
+/// `build_owned_operation` creates its scratch [`OpBuilder`] locally, so a callback
+/// cannot safely return an `OperationRef` whose borrow is tied to that local builder.
+/// Asking the callback to return `OperationRef<'_, '_>` directly also forces Rust to
+/// infer a concrete return lifetime for the closure, which can over-constrain captured
+/// values and produce spurious `'static` requirements.
+///
+/// `LifetimeErasedOpRef` keeps the raw operation handle private while letting the callback
+/// convert an inserted operation reference into a lifetime-free handoff value. The
+/// operation is detached immediately before the scratch block and builder are dropped.
+#[derive(Clone, Copy, Debug)]
+pub struct LifetimeErasedOpRef {
+    raw: MlirOperation,
+}
+
+impl LifetimeErasedOpRef {
+    /// Create a handle from an operation reference returned by a builder API.
+    #[inline]
+    pub fn from_operation<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) -> Self {
+        Self { raw: op.to_raw() }
+    }
+}
+
+impl<'c: 'a, 'a, T> From<T> for LifetimeErasedOpRef
+where
+    T: OperationLike<'c, 'a>,
+{
+    #[inline]
+    fn from(op: T) -> Self {
+        Self::from_operation(op)
+    }
+}
+
 /// Build an owned operation that is not attached to any block.
 ///
 /// The build closure should insert an operation with the provided builder and return
-/// that operation's raw handle.
+/// a handle to the operation that should be detached.
 pub fn build_owned_operation<'c, E>(
     context: &'c Context,
-    build: impl FnOnce(&OpBuilder<'c, '_>) -> Result<MlirOperation, E>,
+    build: impl FnOnce(&OpBuilder<'c, '_>) -> Result<LifetimeErasedOpRef, E>,
 ) -> Result<Operation<'c>, E> {
     let scratch = Block::new(&[]);
     let builder = OpBuilder::at_block_end(context, &scratch);
-    let raw = build(&builder)?;
+    let raw = build(&builder)?.raw;
     // SAFETY: `raw` is the operation inserted into the scratch block.
     // Removing it transfers ownership to the returned `Operation`.
     unsafe {
@@ -226,7 +261,7 @@ mod tests {
         let location = Location::unknown(&ctx);
 
         let op = build_owned_operation(&ctx, |builder| {
-            Ok::<_, core::convert::Infallible>(index_constant(builder, location, 7).to_raw())
+            Ok::<_, core::convert::Infallible>(index_constant(builder, location, 7).into())
         })
         .unwrap();
 
@@ -274,7 +309,7 @@ mod tests {
         let location = Location::unknown(&context);
 
         let _ = build_owned_operation(&context, |builder| {
-            poly::param(builder, location, "T", None).map(|op| op.to_raw())
+            poly::param(builder, location, "T", None).map(Into::into)
         });
     }
 }
