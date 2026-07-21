@@ -13,7 +13,8 @@ use llzk_sys::{
 use melior::{
     Context, ContextRef,
     ir::{
-        Block, BlockLike, BlockRef, Location, Operation, OperationRef, RegionRef, Value, ValueLike,
+        Block, BlockLike as _, BlockRef, Location, Operation, OperationRef, RegionRef, Value,
+        ValueLike,
     },
 };
 use mlir_sys::{MlirBlock, MlirOperation, MlirRegion};
@@ -30,14 +31,22 @@ pub trait OpBuilderLike<'c> {
     }
 
     /// Sets the insertion point to the start of the given block.
-    fn set_insertion_point_at_start<'a>(&self, block: impl BlockLike<'c, 'a>) {
+    fn set_insertion_point_at_start<'a>(&self, block: impl BlockInsertPointLike<'c, 'a>)
+    where
+        'c: 'a,
+    {
+        let block = block.to_block_ref();
         unsafe {
             mlirOpBuilderSetInsertionPointToStart(self.to_raw(), block.to_raw());
         }
     }
 
     /// Sets the insertion point to the end of the given block.
-    fn set_insertion_point_at_end<'a>(&self, block: impl BlockLike<'c, 'a>) {
+    fn set_insertion_point_at_end<'a>(&self, block: impl BlockInsertPointLike<'c, 'a>)
+    where
+        'c: 'a,
+    {
+        let block = block.to_block_ref();
         unsafe {
             mlirOpBuilderSetInsertionPointToEnd(self.to_raw(), block.to_raw());
         }
@@ -64,7 +73,7 @@ pub trait OpBuilderLike<'c> {
     }
 
     /// Sets the insertion point right after the given value is defined.
-    fn set_insertion_point_after_value(&self, value: impl ValueLike<'c>) {
+    fn set_insertion_point_after_value(&self, value: impl ValueLike<'c> + Copy) {
         unsafe {
             mlirOpBuilderSetInsertionPointAfterValue(self.to_raw(), value.to_raw());
         }
