@@ -41,7 +41,7 @@ fn insert_renames_symbols_on_collision() {
     let duplicate = unsafe { Operation::from_raw(llzk_sys::mlirOperationClone(first.to_raw())) };
 
     let module_op = module.as_operation();
-    let inserted = symbol_table::insert(&module_op, duplicate);
+    let inserted = symbol_table::insert(module_op, duplicate);
     let second = FuncDefOpRef::try_from(inserted).unwrap();
 
     assert_eq!(format!("{}", first.fully_qualified_name()), "@foo");

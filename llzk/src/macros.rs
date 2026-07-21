@@ -179,6 +179,12 @@ macro_rules! llzk_op_type {
                 }
             }
 
+            impl<'a, 'c: 'a> $crate::operation::OperationRefLike<'c, 'a> for [<$type Ref>]<'c, 'a> {
+                fn to_raw(self) -> mlir_sys::MlirOperation {
+                    self.raw
+                }
+            }
+
             impl<'c> std::ops::Deref for [<$type Ref>]<'c, '_> {
                 type Target = $type<'c>;
 
@@ -270,6 +276,12 @@ macro_rules! llzk_op_type {
 
             impl<'c, 'a> melior::ir::operation::OperationLike<'c, 'a> for [<$type RefMut>]<'c, 'a> {
                 fn to_raw(&self) -> mlir_sys::MlirOperation {
+                    self.raw
+                }
+            }
+
+            impl<'c, 'a> $crate::operation::OperationRefLike<'c, 'a> for [<$type RefMut>]<'c, 'a> {
+                fn to_raw(self) -> mlir_sys::MlirOperation {
                     self.raw
                 }
             }

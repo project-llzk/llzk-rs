@@ -8,12 +8,34 @@ use melior::{
     diagnostic::DiagnosticSeverity,
     ir::{
         Block, Operation, ValueLike,
-        operation::{OperationLike, OperationMutLike, OperationRefMut, WalkOrder, WalkResult},
+        operation::{
+            OperationLike, OperationMutLike, OperationRef, OperationRefMut, WalkOrder, WalkResult,
+        },
     },
 };
 use mlir_sys::{MlirOperation, MlirWalkResult, mlirOperationWalk};
 
 use crate::builder::OpBuilder;
+
+/// Shared by non-owned operation reference wrapper types.
+pub trait OperationRefLike<'c: 'a, 'a> {
+    /// Converts an operation reference into a raw object.
+    fn to_raw(self) -> MlirOperation;
+}
+
+impl<'c: 'a, 'a> OperationRefLike<'c, 'a> for OperationRef<'c, 'a> {
+    #[inline]
+    fn to_raw(self) -> MlirOperation {
+        OperationLike::to_raw(&self)
+    }
+}
+
+impl<'c: 'a, 'a> OperationRefLike<'c, 'a> for OperationRefMut<'c, 'a> {
+    #[inline]
+    fn to_raw(self) -> MlirOperation {
+        OperationLike::to_raw(&self)
+    }
+}
 
 /// Walk iterator over mutable operation.
 pub trait WalkOperationMutLike<'c: 'a, 'a> {
@@ -115,7 +137,7 @@ pub fn verify_operation_with_diags<'c: 'a, 'a>(
 /// Replace uses of 'of' value with the 'with' value inside the 'op' operation.
 #[inline]
 pub fn replace_uses_of_with<'c: 'a, 'a>(
-    op: &impl OperationLike<'c, 'a>,
+    op: impl OperationRefLike<'c, 'a>,
     of: impl ValueLike<'c> + Copy,
     with: impl ValueLike<'c> + Copy,
 ) {
@@ -127,8 +149,8 @@ pub fn replace_uses_of_with<'c: 'a, 'a>(
 /// Moves the operation right after the reference op.
 #[inline]
 pub fn move_op_after<'c: 'a, 'a>(
-    reference: &impl OperationLike<'c, 'a>,
-    op: &impl OperationLike<'c, 'a>,
+    reference: impl OperationRefLike<'c, 'a>,
+    op: impl OperationRefLike<'c, 'a>,
 ) {
     unsafe { mlir_sys::mlirOperationMoveAfter(op.to_raw(), reference.to_raw()) }
 }
@@ -145,7 +167,7 @@ pub fn erase_op<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) {
 ///
 /// LLZK's builder APIs insert operations immediately. However, some users may need to
 /// hold an owned operation to be inserted at a later time.
-pub fn detach_owned_operation<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> Operation<'c> {
+pub fn detach_owned_operation<'c: 'a, 'a>(op: impl OperationRefLike<'c, 'a>) -> Operation<'c> {
     let raw = op.to_raw();
     // SAFETY: `raw` is a valid operation inserted in a scratch block. Removing it transfers
     // responsibility for destroying it to the owned `Operation` constructed below.
@@ -176,14 +198,14 @@ pub struct LifetimeErasedOpRef {
 impl LifetimeErasedOpRef {
     /// Create a handle from an operation reference returned by a builder API.
     #[inline]
-    pub fn from_operation<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) -> Self {
+    pub fn from_operation<'c: 'a, 'a>(op: impl OperationRefLike<'c, 'a>) -> Self {
         Self { raw: op.to_raw() }
     }
 }
 
 impl<'c: 'a, 'a, T> From<T> for LifetimeErasedOpRef
 where
-    T: OperationLike<'c, 'a>,
+    T: OperationRefLike<'c, 'a>,
 {
     #[inline]
     fn from(op: T) -> Self {
@@ -213,8 +235,8 @@ pub fn build_owned_operation<'c, E>(
 
 /// Detach the given operation from its parent block, then erase it.
 #[inline]
-pub fn detach_and_erase_op<'c: 'a, 'a>(op: impl OperationLike<'c, 'a>) {
-    erase_op(detach_owned_operation(&op));
+pub fn detach_and_erase_op<'c: 'a, 'a>(op: impl OperationRefLike<'c, 'a>) {
+    erase_op(detach_owned_operation(op));
 }
 
 /// Return `true` iff the given op is has the given name.
@@ -282,7 +304,7 @@ mod tests {
         let inserted = index_constant(&builder, location, 11);
         let raw = inserted.to_raw();
 
-        let op = detach_owned_operation(&inserted);
+        let op = detach_owned_operation(inserted);
 
         assert!(scratch.first_operation().is_none());
         assert_eq!(op.to_raw().ptr, raw.ptr);

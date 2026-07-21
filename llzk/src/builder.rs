@@ -1,7 +1,6 @@
 //! Types and traits for working with operation builders.
 
-use std::{fmt, marker::PhantomData, os::raw::c_void, ptr::null_mut};
-
+use crate::operation::OperationRefLike;
 use llzk_sys::{
     MlirOpBuilder, MlirOpBuilderInsertPoint, MlirOpBuilderListener, mlirOpBuilderCreate,
     mlirOpBuilderCreateWithListener, mlirOpBuilderDestroy, mlirOpBuilderGetContext,
@@ -15,10 +14,10 @@ use melior::{
     Context, ContextRef,
     ir::{
         Block, BlockLike, BlockRef, Location, Operation, OperationRef, RegionRef, Value, ValueLike,
-        operation::OperationLike,
     },
 };
 use mlir_sys::{MlirBlock, MlirOperation, MlirRegion};
+use std::{fmt, marker::PhantomData, os::raw::c_void, ptr::null_mut};
 
 /// Defines the general functionality of a builder.
 pub trait OpBuilderLike<'c> {
@@ -45,7 +44,7 @@ pub trait OpBuilderLike<'c> {
     }
 
     /// Sets the insertion point right before the given operation.
-    fn set_insertion_point<'a>(&self, op: impl OperationLike<'c, 'a>)
+    fn set_insertion_point<'a>(&self, op: impl OperationRefLike<'c, 'a>)
     where
         'c: 'a,
     {
@@ -55,7 +54,7 @@ pub trait OpBuilderLike<'c> {
     }
 
     /// Sets the insertion point right after the given operation.
-    fn set_insertion_point_after<'a>(&self, op: impl OperationLike<'c, 'a>)
+    fn set_insertion_point_after<'a>(&self, op: impl OperationRefLike<'c, 'a>)
     where
         'c: 'a,
     {
@@ -539,7 +538,7 @@ mod tests {
 
     use melior::{
         dialect::arith,
-        ir::{Module, Type, attribute::IntegerAttribute},
+        ir::{Module, Type, attribute::IntegerAttribute, operation::OperationLike as _},
     };
     use rstest::rstest;
 

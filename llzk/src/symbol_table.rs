@@ -1,18 +1,18 @@
 //! Utilities related to symbol tables.
 
-use std::mem;
-
+use crate::operation::OperationRefLike;
 use melior::ir::{
     Operation,
     operation::{OperationLike, OperationRef},
 };
+use std::mem;
 
 /// Insert a new symbol operation into the symbol table owned by `sym_table_op`.
 ///
 /// The inserted symbol is renamed automatically if necessary to avoid collisions. Ownership of
 /// `new_symbol_op` is transferred to the symbol table.
 pub fn insert<'c: 'a, 'a>(
-    sym_table_op: &impl OperationLike<'c, 'a>,
+    sym_table_op: impl OperationRefLike<'c, 'a>,
     new_symbol_op: Operation<'c>,
 ) -> OperationRef<'c, 'a> {
     let raw = new_symbol_op.to_raw();
