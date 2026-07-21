@@ -7,7 +7,7 @@ use melior::{
     Context,
     diagnostic::DiagnosticSeverity,
     ir::{
-        Block, Operation, OperationRef, ValueLike,
+        Block, Operation, ValueLike,
         operation::{OperationLike, OperationMutLike, OperationRefMut, WalkOrder, WalkResult},
     },
 };
@@ -157,14 +157,23 @@ pub fn detach_owned_operation<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>) -> Op
 }
 
 /// Build an owned operation that is not attached to any block.
+///
+/// The build closure should insert an operation with the provided builder and return
+/// that operation's raw handle.
 pub fn build_owned_operation<'c, E>(
     context: &'c Context,
-    build: impl for<'a> FnOnce(&'a OpBuilder<'c, '_>) -> Result<OperationRef<'c, 'a>, E>,
+    build: impl FnOnce(&OpBuilder<'c, '_>) -> Result<MlirOperation, E>,
 ) -> Result<Operation<'c>, E> {
     let scratch = Block::new(&[]);
     let builder = OpBuilder::at_block_end(context, &scratch);
-    let op = build(&builder)?;
-    Ok(detach_owned_operation(&op))
+    let raw = build(&builder)?;
+    // SAFETY: `raw` is the operation inserted into the scratch block.
+    // Removing it transfers ownership to the returned `Operation`.
+    unsafe {
+        let mut op_ref = OperationRefMut::from_raw(raw);
+        op_ref.remove_from_parent();
+        Ok(Operation::from_raw(raw))
+    }
 }
 
 /// Detach the given operation from its parent block, then erase it.
@@ -181,6 +190,13 @@ pub fn isa<'c: 'a, 'a>(op: &impl OperationLike<'c, 'a>, name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use crate::{
+        builder::{OpBuilder, OpBuilderLike as _},
+        context::LlzkContext,
+        dialect::poly,
+        operation::{build_owned_operation, detach_owned_operation},
+        test::ctx,
+    };
     use melior::{
         Context,
         dialect::arith,
@@ -190,12 +206,6 @@ mod tests {
         },
     };
     use rstest::rstest;
-
-    use crate::{
-        builder::{OpBuilder, OpBuilderLike as _},
-        operation::{build_owned_operation, detach_owned_operation},
-        test::ctx,
-    };
 
     fn index_constant<'c: 'a, 'a>(
         builder: &'a OpBuilder<'c, '_>,
@@ -216,7 +226,7 @@ mod tests {
         let location = Location::unknown(&ctx);
 
         let op = build_owned_operation(&ctx, |builder| {
-            Ok::<_, core::convert::Infallible>(index_constant(builder, location, 7))
+            Ok::<_, core::convert::Infallible>(index_constant(builder, location, 7).to_raw())
         })
         .unwrap();
 
@@ -256,5 +266,15 @@ mod tests {
             unsafe { mlir_sys::mlirOperationGetBlock(reinserted.to_raw()) }.ptr,
             module.body().to_raw().ptr
         );
+    }
+
+    #[test]
+    fn build_owned_operation_poly_param_lifetime_repro() {
+        let context = LlzkContext::new();
+        let location = Location::unknown(&context);
+
+        let _ = build_owned_operation(&context, |builder| {
+            poly::param(builder, location, "T", None).map(|op| op.to_raw())
+        });
     }
 }
