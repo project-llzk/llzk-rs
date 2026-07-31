@@ -217,6 +217,7 @@ impl<'c> From<FeltConstAttribute<'c>> for Attribute<'c> {
 ///  - `grumpkin`
 ///  - `koalabear`
 ///  - `mersenne31`
+#[derive(Clone, Copy)]
 pub struct FieldSpecAttribute<'c> {
     inner: Attribute<'c>,
 }

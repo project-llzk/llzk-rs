@@ -32,17 +32,24 @@ pub mod module {
         os::raw::c_void,
     };
 
-    use llzk_sys::{LLZK_FIELD_ATTR_NAME, LLZK_LANG_ATTR_NAME};
-    use melior::ir::{
-        Location, Module,
-        attribute::{Attribute, StringAttribute},
-        operation::{OperationLike, OperationMutLike as _, OperationRefMut},
+    use llzk_sys::{LANG_ATTR_NAME, LLZK_FIELD_ATTR_NAME, LLZK_LANG_ATTR_NAME, MAIN_ATTR_NAME};
+    use melior::{
+        Context,
+        ir::{
+            Location, Module,
+            attribute::{Attribute, StringAttribute, TypeAttribute},
+            operation::{OperationLike, OperationMutLike as _, OperationRefMut},
+        },
     };
     use mlir_sys::{MlirModule, MlirStringRef, mlirModuleGetOperation, mlirOperationWriteBytecode};
 
-    use crate::{attributes::array::ArrayAttribute, prelude::FieldSpecAttribute};
+    use crate::{
+        attributes::array::ArrayAttribute,
+        prelude::{FieldSpecAttribute, StructType},
+    };
 
     /// Creates a new `builtin.module` operation preconfigured to meet LLZK's specifications.
+    #[deprecated(note = "Use LlzkModuleBuilder::create() instead")]
     pub fn llzk_module<'c>(location: Location<'c>, lang: Option<&str>) -> Module<'c> {
         let mut module = Module::new(location);
         let mut op = module.as_operation_mut();
@@ -56,6 +63,118 @@ pub mod module {
         );
         op.set_attribute(attr_name, attr_value);
         module
+    }
+
+    /// Builder for creating modules that satisfy LLZK's requirements.
+    ///
+    /// By default the location is set to unknown, the lang property is set to an empty attribute,
+    /// and none of the other properties are set.
+    ///
+    /// You can use the `create` method for quickly creating modules.
+    #[derive(Debug)]
+    pub struct LlzkModuleBuilder<'c, 'l> {
+        location: Location<'c>,
+        lang: Option<&'l str>,
+        main: Option<StructType<'c>>,
+        fields: Vec<FieldSpecAttribute<'c>>,
+    }
+
+    impl<'c, 'l> LlzkModuleBuilder<'c, 'l> {
+        /// Creates a new builder.
+        pub fn new(context: &'c Context) -> Self {
+            Self {
+                location: Location::unknown(context),
+                lang: None,
+                main: None,
+                fields: Default::default(),
+            }
+        }
+
+        /// Creates a new `builtin.module` operation preconfigured to meet LLZK's specifications.
+        pub fn create(location: Location<'c>, lang: Option<&str>) -> Module<'c> {
+            let ctx = location.context();
+            let mut builder = Self::new(unsafe { ctx.to_ref() });
+            if let Some(lang) = lang {
+                builder.with_language(lang);
+            }
+            builder.with_location(location).build()
+        }
+
+        /// Creates the module.
+        pub fn build(&mut self) -> Module<'c> {
+            let mut module = Module::new(self.location);
+            let mut op = module.as_operation_mut();
+            let ctx = self.location.context();
+            let attr_value = self.lang.map_or_else(
+                || Attribute::unit(unsafe { ctx.to_ref() }),
+                |s| StringAttribute::new(unsafe { ctx.to_ref() }, s).into(),
+            );
+            op.set_attribute(LANG_ATTR_NAME.as_ref(), attr_value);
+            if let Some(main) = self.main {
+                module.add_main(main);
+            }
+            for field in &self.fields {
+                module.add_field_spec(*field);
+            }
+            module
+        }
+
+        /// Sets the location.
+        pub fn with_location(&mut self, location: Location<'c>) -> &mut Self {
+            self.location = location;
+            self
+        }
+
+        /// Sets the location to unknown.
+        pub fn no_location(&mut self) -> &mut Self {
+            let ctx = self.location.context();
+            self.location = Location::unknown(unsafe { ctx.to_ref() });
+            self
+        }
+
+        /// Sets the main struct of the module.
+        pub fn with_main(&mut self, main: StructType<'c>) -> &mut Self {
+            self.main = Some(main);
+            self
+        }
+
+        /// Removes the main struct annotation.
+        pub fn no_main(&mut self) -> &mut Self {
+            self.main = None;
+            self
+        }
+
+        /// Sets the name of the source language of the module.
+        pub fn with_language(&mut self, lang: &'l str) -> &mut Self {
+            self.lang = Some(lang);
+            self
+        }
+
+        /// Removes the source language annotation.
+        pub fn no_language(&mut self) -> &mut Self {
+            self.lang = None;
+            self
+        }
+
+        /// Adds a field spec attribute to the module.
+        pub fn add_field_spec(&mut self, spec: FieldSpecAttribute<'c>) -> &mut Self {
+            self.add_field_specs(std::iter::once(spec))
+        }
+
+        /// Adds field spec attributes to the module.
+        pub fn add_field_specs(
+            &mut self,
+            specs: impl IntoIterator<Item = FieldSpecAttribute<'c>>,
+        ) -> &mut Self {
+            self.fields.extend(specs);
+            self
+        }
+
+        /// Removes all field specs.
+        pub fn clear_field_specs(&mut self) -> &mut Self {
+            self.fields.clear();
+            self
+        }
     }
 
     /// Extension methods for [`Module`].
@@ -88,6 +207,18 @@ pub mod module {
             }
 
             wrap.1
+        }
+
+        /// Sets the main struct attribute.
+        fn add_main(&mut self, main: StructType<'c>) {
+            let mut op = unsafe {
+                let op = mlirModuleGetOperation(self.to_raw());
+                OperationRefMut::from_raw(op)
+            };
+            op.set_attribute(
+                MAIN_ATTR_NAME.as_ref(),
+                TypeAttribute::new(main.into()).into(),
+            );
         }
 
         /// Adds the spec attribute to the module, creating the `llzk.fields` attribute if
