@@ -144,11 +144,16 @@ fn make_empty_struct<'c, 'a>(
 ) -> StructDefOpRef<'c, 'a> {
     let loc = Location::unknown(context);
     let typ = StructType::from_str(context, name);
-    dialect::r#struct::def(builder, loc, name, |builder| {
-        dialect::r#struct::helpers::compute_fn(builder, loc, typ, &[], None)?;
-        dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &[], None)?;
-        Ok(())
-    })
+    dialect::r#struct::def(
+        builder,
+        loc,
+        name,
+        |builder| -> Result<(), llzk::error::Error> {
+            dialect::r#struct::helpers::compute_fn(builder, loc, typ, &[], None)?;
+            dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &[], None)?;
+            Ok(())
+        },
+    )
     .unwrap()
 }
 
@@ -159,10 +164,15 @@ fn make_product_struct<'c, 'a>(
 ) -> StructDefOpRef<'c, 'a> {
     let loc = Location::unknown(context);
     let typ = StructType::from_str(context, name);
-    dialect::r#struct::def(builder, loc, name, |builder| {
-        dialect::r#struct::helpers::product_fn(builder, loc, typ, &[], None)?;
-        Ok(())
-    })
+    dialect::r#struct::def(
+        builder,
+        loc,
+        name,
+        |builder| -> Result<(), llzk::error::Error> {
+            dialect::r#struct::helpers::product_fn(builder, loc, typ, &[], None)?;
+            Ok(())
+        },
+    )
     .unwrap()
 }
 

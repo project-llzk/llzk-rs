@@ -395,14 +395,15 @@ impl<'a, 'c: 'a> MemberDefOpLike<'c, 'a> for MemberDefOpRefMut<'c, 'a> {}
 ///
 /// Use [`crate::dialect::empty_region`] as the `fill` callback to leave the body empty so contents
 /// can be added later.
-pub fn def<'c, 'a, B>(
+pub fn def<'c, 'a, B, E>(
     builder: &B,
     location: Location<'c>,
     name: &str,
-    fill: impl FnOnce(&B) -> Result<(), Error>,
-) -> Result<StructDefOpRef<'c, 'a>, Error>
+    fill: impl FnOnce(&B) -> Result<(), E>,
+) -> Result<StructDefOpRef<'c, 'a>, E>
 where
     B: OpBuilderLike<'c>,
+    E: From<Error>,
 {
     let ctx = location.context();
     let op = unsafe {

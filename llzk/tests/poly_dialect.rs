@@ -251,15 +251,25 @@ fn empty_struct_with_one_param() {
         &[FlatSymbolRefAttribute::new(&context, "T").into()],
     );
 
-    let tmpl = template(&builder, loc, "tmpl", |builder| {
-        param(builder, loc, "T", None)?;
-        dialect::r#struct::def(builder, loc, "empty", |builder| {
-            dialect::r#struct::helpers::compute_fn(builder, loc, typ, &[], None)?;
-            dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &[], None)?;
+    let tmpl = template(
+        &builder,
+        loc,
+        "tmpl",
+        |builder| -> Result<(), llzk::error::Error> {
+            param(builder, loc, "T", None)?;
+            dialect::r#struct::def(
+                builder,
+                loc,
+                "empty",
+                |builder| -> Result<(), llzk::error::Error> {
+                    dialect::r#struct::helpers::compute_fn(builder, loc, typ, &[], None)?;
+                    dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &[], None)?;
+                    Ok(())
+                },
+            )?;
             Ok(())
-        })?;
-        Ok(())
-    })
+        },
+    )
     .unwrap();
 
     assert_test!(tmpl, module, @file "expected/empty_struct_with_one_param.mlir");
