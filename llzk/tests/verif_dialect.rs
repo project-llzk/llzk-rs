@@ -79,11 +79,16 @@ fn make_struct_target<'c>(
     let felt_type: Type = FeltType::new(context).into();
     let inputs = [(felt_type, loc)];
     let builder = OpBuilder::at_block_end(context, module.body());
-    dialect::r#struct::def(&builder, loc, name, |builder| {
-        dialect::r#struct::helpers::compute_fn(builder, loc, typ, &inputs, arg_attrs)?;
-        dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &inputs, arg_attrs)?;
-        Ok(())
-    })
+    dialect::r#struct::def(
+        &builder,
+        loc,
+        name,
+        |builder| -> Result<(), llzk::error::Error> {
+            dialect::r#struct::helpers::compute_fn(builder, loc, typ, &inputs, arg_attrs)?;
+            dialect::r#struct::helpers::constrain_fn(builder, loc, typ, &inputs, arg_attrs)?;
+            Ok(())
+        },
+    )
     .unwrap()
 }
 

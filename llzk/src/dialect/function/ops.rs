@@ -643,17 +643,18 @@ fn prepare_arg_attrs<'c>(
 ///
 /// Use [`crate::dialect::empty_region`] as the `fill` callback to leave the body
 /// empty so contents can be added later.
-pub fn def<'c, 'a, B>(
+pub fn def<'c, 'a, B, E>(
     builder: &B,
     location: Location<'c>,
     name: &str,
     r#type: FunctionType<'c>,
     attrs: &[NamedAttribute<'c>],
     arg_attrs: Option<&[Vec<NamedAttribute<'c>>]>,
-    fill: impl FnOnce(&B) -> Result<(), Error>,
-) -> Result<FuncDefOpRef<'c, 'a>, Error>
+    fill: impl FnOnce(&B) -> Result<(), E>,
+) -> Result<FuncDefOpRef<'c, 'a>, E>
 where
     B: OpBuilderLike<'c>,
+    E: From<Error>,
 {
     let ctx = location.context();
     let name = StringRef::new(name);
@@ -689,7 +690,8 @@ where
         None => {
             let block_args = (0..r#type.input_count())
                 .map(|idx| r#type.input(idx).map(|ty| (ty, location)))
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(Error::Melior)?;
             region.append_block(Block::new(&block_args))
         }
     };

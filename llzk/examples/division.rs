@@ -49,35 +49,40 @@ fn main() -> Result<()> {
     // Members can have three extra annotations: signal, column, and public.
     // The signal annotation makes the field a witness-stored constraint variable.
     // The public annotation makes the field an output of the circuit.
-    dialect::r#struct::def(&builder, location, MAIN_STRUCT_NAME, |builder| {
-        let is_signal = true;
-        let is_column = false;
-        let is_public = true;
-        dialect::r#struct::member(
-            builder,
-            location,
-            out_field_name,
-            felt_type,
-            is_signal,
-            is_column,
-            is_public,
-        )?;
-        gen_witness(
-            builder,
-            &context,
-            location,
-            felt_type.into(),
-            out_field_name,
-        )?;
-        gen_constrain(
-            builder,
-            &context,
-            location,
-            felt_type.into(),
-            out_field_name,
-        )?;
-        Ok(())
-    })?;
+    dialect::r#struct::def(
+        &builder,
+        location,
+        MAIN_STRUCT_NAME,
+        |builder| -> Result<()> {
+            let is_signal = true;
+            let is_column = false;
+            let is_public = true;
+            dialect::r#struct::member(
+                builder,
+                location,
+                out_field_name,
+                felt_type,
+                is_signal,
+                is_column,
+                is_public,
+            )?;
+            gen_witness(
+                builder,
+                &context,
+                location,
+                felt_type.into(),
+                out_field_name,
+            )?;
+            gen_constrain(
+                builder,
+                &context,
+                location,
+                felt_type.into(),
+                out_field_name,
+            )?;
+            Ok(())
+        },
+    )?;
 
     // Now that we have filled out the struct we can verify it and print it.
     // For verifying and printing we need get a reference to the `builtin.module` op

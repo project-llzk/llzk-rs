@@ -143,23 +143,28 @@ fn empty_struct_with_pub_inputs() {
     let inputs = vec![(FeltType::new(&context).into(), Location::unknown(&context))];
     let arg_attrs = vec![vec![PublicAttribute::new_named_attr(&context)]];
     let builder = OpBuilder::at_block_begin(&context, module.body());
-    let s = dialect::r#struct::def(&builder, loc, name, |builder| {
-        dialect::r#struct::helpers::compute_fn(
-            builder,
-            loc,
-            typ,
-            inputs.as_slice(),
-            Some(arg_attrs.as_slice()),
-        )?;
-        dialect::r#struct::helpers::constrain_fn(
-            builder,
-            loc,
-            typ,
-            inputs.as_slice(),
-            Some(arg_attrs.as_slice()),
-        )?;
-        Ok(())
-    })
+    let s = dialect::r#struct::def(
+        &builder,
+        loc,
+        name,
+        |builder| -> Result<(), llzk::error::Error> {
+            dialect::r#struct::helpers::compute_fn(
+                builder,
+                loc,
+                typ,
+                inputs.as_slice(),
+                Some(arg_attrs.as_slice()),
+            )?;
+            dialect::r#struct::helpers::constrain_fn(
+                builder,
+                loc,
+                typ,
+                inputs.as_slice(),
+                Some(arg_attrs.as_slice()),
+            )?;
+            Ok(())
+        },
+    )
     .unwrap();
 
     assert_test!(s, module, @file "expected/empty_struct_with_pub_inputs.mlir");
