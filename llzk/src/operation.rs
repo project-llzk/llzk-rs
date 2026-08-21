@@ -244,7 +244,7 @@ pub fn build_owned_operation<'c, E>(
 /// Detach the given operation from its parent block, then erase it.
 #[inline]
 pub fn detach_and_erase_op<'c: 'a, 'a>(op: impl OperationRefLike<'c, 'a>) {
-    erase_op(detach_owned_operation(op));
+    drop(detach_owned_operation(op));
 }
 
 /// Return `true` iff the given op is has the given name.
