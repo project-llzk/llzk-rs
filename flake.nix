@@ -54,7 +54,7 @@
               final.llzk-llvmPackages.mlir.dev
               final.llzk-llvmPackages.mlir.lib
             ];
-            nativeBuildInputs = final.lib.optionals final.stdenv.isDarwin [
+            nativeBuildInputs = final.lib.optionals final.stdenv.hostPlatform.isDarwin [
               final.rcodesign
             ];
             postBuild = ''
@@ -70,7 +70,7 @@
               # original and sign the new file in place.
               cp -L "$llvm_config" "$llvm_config_original"
               rm "$llvm_config"
-              ${final.lib.optionalString final.stdenv.isDarwin ''
+              ${final.lib.optionalString final.stdenv.hostPlatform.isDarwin ''
                 chmod +w "$llvm_config_original"
                 rcodesign sign "$llvm_config_original"
               ''}
@@ -84,7 +84,7 @@
               # Replace the MLIR dynamic library from the LLVM build with a dummy static library
               # to avoid duplicate symbol issues when linking with both LLVM and MLIR since the
               # MLIR build generated individual static libraries for each component.
-              rm -f "$out/lib/libMLIR.${if final.stdenv.isDarwin then "dylib" else "so"}"
+              rm -f "$out/lib/libMLIR.${if final.stdenv.hostPlatform.isDarwin then "dylib" else "so"}"
               ${final.stdenv.cc}/bin/ar -r "$out/lib/libMLIR.a"
             '';
           };
