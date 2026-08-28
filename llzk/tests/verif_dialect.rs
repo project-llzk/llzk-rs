@@ -589,3 +589,51 @@ fn include_map_operand_setter_roundtrip() {
     assert_eq!(include.map_operand_count(), 1);
     assert_eq!(include.map_operand_at(0), arg0);
 }
+
+#[test]
+fn prove_det_op() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context), None);
+    let target = make_function_target(&context, &module, "callee_fn", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let contract_a = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "contract",
+        target.fully_qualified_name(),
+    )
+    .unwrap();
+
+    let body = contract_a.body().unwrap().first_block().unwrap();
+    let arg = body.argument(0).unwrap();
+    let builder = OpBuilder::at_block_begin(&context, body);
+    let _ = dialect::verif::prove_det(&builder, Location::unknown(&context), arg.into());
+
+    verify_operation_with_diags(&contract_a).unwrap();
+}
+
+#[test]
+fn assume_det_op() {
+    common::setup();
+    let context = LlzkContext::new();
+    let module = llzk_module(Location::unknown(&context), None);
+    let target = make_function_target(&context, &module, "callee_fn", None);
+    let builder = OpBuilder::at_block_begin(&context, module.body());
+
+    let contract_a = dialect::verif::contract(
+        &builder,
+        Location::unknown(&context),
+        "contract",
+        target.fully_qualified_name(),
+    )
+    .unwrap();
+
+    let body = contract_a.body().unwrap().first_block().unwrap();
+    let arg = body.argument(0).unwrap();
+    let builder = OpBuilder::at_block_begin(&context, body);
+    let _ = dialect::verif::assume_det(&builder, Location::unknown(&context), arg.into());
+
+    verify_operation_with_diags(&contract_a).unwrap();
+}
