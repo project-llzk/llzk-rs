@@ -16,7 +16,7 @@ mod common;
 fn empty_function() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
@@ -53,7 +53,7 @@ fn empty_function() {
 fn function_call() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let builder = OpBuilder::at_block_begin(&context, module.body());
@@ -93,7 +93,7 @@ fn function_call() {
 fn function_call_with_map_operands() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
     let builder = OpBuilder::at_block_begin(&context, module.body());
@@ -180,7 +180,7 @@ fn make_product_struct<'c, 'a>(
 fn func_def_op_self_value_of_compute() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let module_body = module.body();
 
     let builder = OpBuilder::at_block_begin(&context, module_body);
@@ -209,7 +209,7 @@ fn func_def_op_self_value_of_compute() {
 fn func_def_op_self_value_of_constrain() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let module_body = module.body();
 
     let builder = OpBuilder::at_block_begin(&context, module_body);
@@ -233,7 +233,7 @@ fn func_def_op_self_value_of_constrain() {
 fn call_op_self_value_of_compute() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let module_body = module.body();
 
     let builder = OpBuilder::at_block_begin(&context, module_body);
@@ -273,7 +273,7 @@ fn call_op_self_value_of_compute() {
 fn call_op_product_classifiers() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let module_body = module.body();
 
     let builder = OpBuilder::at_block_begin(&context, module_body);
@@ -541,7 +541,7 @@ fn func_def_op_signature_name_accessors_return_out_of_bounds() {
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
     let felt_type: Type = FeltType::new(&context).into();
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::function::def(
         &builder,
