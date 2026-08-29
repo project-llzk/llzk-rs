@@ -991,3 +991,47 @@ pub fn old<'c, 'a>(
 }
 
 isa_fn!(verif, old, llzkOperationIsA_Verif_OldOp);
+
+/// Creates a `verif.det.prove` operation.
+pub fn prove_det<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    value: Value<'c, '_>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzk_sys::llzkVerif_ProveDetOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            value.to_raw(),
+        ))
+    }
+}
+
+isa_fn!(
+    verif,
+    prove_det,
+    "det.prove",
+    llzk_sys::llzkOperationIsA_Verif_ProveDetOp
+);
+
+/// Creates a `verif.det.assume` operation.
+pub fn assume_det<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    value: Value<'c, '_>,
+) -> OperationRef<'c, 'a> {
+    unsafe {
+        OperationRef::from_raw(llzk_sys::llzkVerif_AssumeDetOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            value.to_raw(),
+        ))
+    }
+}
+
+isa_fn!(
+    verif,
+    assume_det,
+    "det.assume",
+    llzk_sys::llzkOperationIsA_Verif_AssumeDetOp
+);

@@ -117,10 +117,13 @@ pub mod dialect {
     /// Exports functions from the 'verif' dialect
     pub mod verif {
         pub use crate::dialect::verif::{
-            contract, ensure_compute, ensure_constrain, include, include_with_map_operands,
-            include_with_map_operands_slice, is_contract_op, is_ensure_compute_op,
-            is_ensure_constrain_op, is_include_op, is_require_compute_op, is_require_constrain_op,
-            require_compute, require_constrain,
+            assume_det, contract, contract_end, decreases, ensure_compute, ensure_constrain,
+            include, include_with_map_operands, include_with_map_operands_slice, increases,
+            invariant, invariant_build, is_assume_det_op, is_contract_end_op, is_contract_op,
+            is_decreases_op, is_ensure_compute_op, is_ensure_constrain_op, is_include_op,
+            is_increases_op, is_invariant_op, is_old_op, is_prove_det_op, is_require_compute_op,
+            is_require_constrain_op, is_step_op, is_step_yield_op, old, prove_det, require_compute,
+            require_constrain, step, step_build, step_yield,
         };
     }
 }
