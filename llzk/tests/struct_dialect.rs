@@ -50,7 +50,7 @@ fn empty_struct() {
     common::setup();
     let name = "empty";
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let typ = StructType::from_str(&context, name);
     assert_eq!(typ.name().to_string(), format!("@{}", name));
@@ -69,7 +69,7 @@ fn struct_with_one_member() {
     common::setup();
     let name = "one_member";
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let typ = StructType::from_str_params(&context, name, &[]);
     assert_eq!(typ.name().to_string(), format!("@{}", name));
@@ -135,7 +135,7 @@ fn empty_struct_with_pub_inputs() {
     common::setup();
     let name = "empty";
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let typ = StructType::from_str_params(&context, name, &[]);
     assert_eq!(typ.name().to_string(), format!("@{}", name));
@@ -175,7 +175,7 @@ fn struct_readm() {
     common::setup();
     let name = "read_member";
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let typ = StructType::from_str_params(&context, name, &[]);
 
@@ -218,7 +218,7 @@ fn struct_readm_with_literal_offset() {
     common::setup();
     let name = "read_member_offset";
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let typ = StructType::from_str_params(&context, name, &[]);
 
@@ -269,7 +269,7 @@ fn product_only_struct_product_func() {
     common::setup();
     let name = "product_only";
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let loc = Location::unknown(&context);
     let typ = StructType::from_str_params(&context, name, &[]);
 

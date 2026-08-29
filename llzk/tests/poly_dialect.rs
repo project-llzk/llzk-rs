@@ -41,7 +41,7 @@ fn create_read_const() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::poly::read_const(&builder, loc, "A", FeltType::new(&context).into());
 
@@ -56,7 +56,7 @@ fn is_read_const() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = dialect::poly::read_const(&builder, loc, "C", IntegerType::new(&context, 64).into());
 
@@ -68,7 +68,7 @@ fn create_param() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let tmpl = template(&builder, loc, "tmpl", |builder| {
@@ -95,7 +95,7 @@ fn create_param() {
 fn create_template_with_param_and_expr() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let loc = Location::unknown(&context);
 
@@ -148,7 +148,7 @@ fn template_const_ops() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let tmpl = template(&builder, loc, "tmpl", |builder| {
@@ -204,7 +204,7 @@ fn set_type_restriction_adds_type() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let op = param(&builder, loc, "T", None).unwrap();
@@ -223,7 +223,7 @@ fn set_type_restriction_clears_type() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let op = param(
@@ -243,7 +243,7 @@ fn set_type_restriction_clears_type() {
 fn empty_struct_with_one_param() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let loc = Location::unknown(&context);
     let typ = StructType::new(
@@ -279,7 +279,7 @@ fn empty_struct_with_one_param() {
 fn create_expr_and_get_type() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let loc = Location::unknown(&context);
     let tmpl = template(&builder, loc, "tmpl", |builder| {
@@ -319,7 +319,7 @@ fn create_yield() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let block = module.body();
     let c3 = arith::constant(
@@ -378,7 +378,7 @@ fn create_applymap(#[case] affine_map: &str, #[case] ops: &[i64], #[case] expect
 
     let affine_map =
         Attribute::parse(&context, affine_map).expect("could not parse affine_map attribute");
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let block = module.body();
     let operands = ops
@@ -398,7 +398,7 @@ fn create_unifiable_cast() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
     let block = module.body();
     let builder = OpBuilder::at_block_begin(&context, block);
 
@@ -438,7 +438,7 @@ fn owned_binding_op_param_name_and_type() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = TemplateSymbolBindingOpRef::Param(
         param(
@@ -463,7 +463,7 @@ fn owned_binding_op_expr_name_and_type() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = TemplateSymbolBindingOpRef::Expr(
         expr(&builder, loc, "N", |builder| {
@@ -498,7 +498,7 @@ fn param_type_restriction_some() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = param(
         &builder,
@@ -518,7 +518,7 @@ fn param_type_restriction_none() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = param(&builder, loc, "T", None).unwrap();
     assert!(op.type_restriction().is_none());
@@ -531,7 +531,7 @@ fn sym_name_attr_value() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let op = param(&builder, loc, "MyParam", None).unwrap();
     // sym_name_attr() returns the underlying StringAttribute
@@ -548,7 +548,7 @@ fn body_region_and_body() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let tmpl = template(&builder, loc, "tmpl", |builder| {
         param(builder, loc, "T", None)?;
@@ -574,7 +574,7 @@ fn has_const_named_negative() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let tmpl = template(&builder, loc, "tmpl", |builder| {
         param(builder, loc, "T", None)?;
@@ -592,7 +592,7 @@ fn has_const_ops_false() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     // Template with only params — has_const_expr_ops must be false
@@ -632,7 +632,7 @@ fn const_names_content() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let tmpl = template(&builder, loc, "tmpl", |builder| {
         param(builder, loc, "T", None)?;
@@ -675,7 +675,7 @@ fn const_binding_ops_empty_template() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let tmpl = template(&builder, loc, "empty", llzk::dialect::empty_region).unwrap();
     assert!(tmpl.const_binding_ops().is_empty());
@@ -690,7 +690,7 @@ fn display_template_symbol_binding_op() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let op_ref = TemplateSymbolBindingOpRef::Param(param(&builder, loc, "T", None).unwrap());
@@ -706,7 +706,7 @@ fn from_conversions_for_binding_op_ref() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let tmpl = template(&builder, loc, "tmpl", |builder| {
         param(builder, loc, "T", None)?;

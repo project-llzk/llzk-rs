@@ -106,7 +106,7 @@ fn bool_constant<'c>(context: &'c LlzkContext, value: bool) -> Operation<'c> {
 fn contract_from_function_target() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(
         &context,
         &module,
@@ -168,7 +168,7 @@ fn contract_from_function_target() {
 fn contract_from_struct_target() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let arg_attrs = [vec![
         PublicAttribute::new_named_attr(&context),
         dialect::function::arg_name_attr(&context, "input"),
@@ -216,7 +216,7 @@ fn contract_from_struct_target() {
 fn include_flat() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "callee_fn", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
@@ -307,7 +307,7 @@ fn function_res_name_attr_helper() {
 fn include_with_map_operands_empty_groups() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "map_callee_fn", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
@@ -361,7 +361,7 @@ fn include_with_map_operands_empty_groups() {
 fn include_flat_no_arg_operands() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_zero_arg_function_target(&context, &module, "empty_callee_fn");
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
@@ -402,7 +402,7 @@ fn include_flat_no_arg_operands() {
 fn require_compute_op() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "cond_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
@@ -441,7 +441,7 @@ fn require_compute_op() {
 fn require_constrain_op() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "cond_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
@@ -480,7 +480,7 @@ fn require_constrain_op() {
 fn ensure_compute_op() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "cond_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
@@ -519,7 +519,7 @@ fn ensure_compute_op() {
 fn ensure_constrain_op() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "cond_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(
@@ -558,7 +558,7 @@ fn ensure_constrain_op() {
 fn include_map_operand_setter_roundtrip() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "setter_target", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let contract = dialect::verif::contract(

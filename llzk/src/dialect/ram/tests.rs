@@ -4,7 +4,7 @@ use crate::{
     dialect::{
         felt::{FeltConstAttribute, FeltType},
         function::FuncDefOpLike,
-        module::llzk_module,
+        module::LlzkModuleBuilder,
     },
     test::ctx,
 };
@@ -120,7 +120,7 @@ fn build_store<'c: 'a, 'a>(
 #[rstest]
 fn op_load(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
 
     witness_fn_passes(&module, &ctx, location, |builder| {
         let load = build_load(builder, location);
@@ -131,7 +131,7 @@ fn op_load(ctx: Context) {
 #[rstest]
 fn op_store(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
 
     witness_fn_passes(&module, &ctx, location, |builder| {
         let store = build_store(builder, &ctx, location);
@@ -142,7 +142,7 @@ fn op_store(ctx: Context) {
 #[rstest]
 fn op_load_with_specified_field(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
 
     witness_fn_passes(&module, &ctx, location, |builder| {
         let addr = build_addr(builder, location, 42);
@@ -155,7 +155,7 @@ fn op_load_with_specified_field(ctx: Context) {
 #[rstest]
 fn op_load_rejected_in_constraint_fn(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
 
     constraint_fn_rejected(&module, &ctx, location, |builder| {
         build_load(builder, location);
@@ -165,7 +165,7 @@ fn op_load_rejected_in_constraint_fn(ctx: Context) {
 #[rstest]
 fn op_store_rejected_in_constraint_fn(ctx: Context) {
     let location = Location::unknown(&ctx);
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
 
     constraint_fn_rejected(&module, &ctx, location, |builder| {
         build_store(builder, &ctx, location);

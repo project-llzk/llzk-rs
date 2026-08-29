@@ -16,7 +16,7 @@ fn array_new_empty() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
     let index_type = Type::index(&context);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(
@@ -59,7 +59,7 @@ fn array_new_affine_map() {
     common::setup();
     let context = LlzkContext::new();
     let location = Location::unknown(&context);
-    let module = llzk_module(location, None);
+    let module = LlzkModuleBuilder::create(location, None);
     let index_type = Type::index(&context);
     let builder = OpBuilder::at_block_begin(&context, module.body());
     let f = dialect::function::def(

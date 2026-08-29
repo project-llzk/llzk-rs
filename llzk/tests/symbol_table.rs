@@ -2,7 +2,7 @@
 //! Integration tests for symbol table behavior.
 
 use llzk::builder::{OpBuilder, OpBuilderLike};
-use llzk::dialect::module::llzk_module;
+use llzk::dialect::module::LlzkModuleBuilder;
 use llzk::prelude::{
     FuncDefOpLike as _, FuncDefOpRef, FunctionType, LlzkContext, Location, Operation, dialect,
 };
@@ -34,7 +34,7 @@ fn insert_renames_symbols_on_collision() {
     common::setup();
     let context = LlzkContext::new();
     let loc = Location::unknown(&context);
-    let module = llzk_module(loc, None);
+    let module = LlzkModuleBuilder::create(loc, None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
     let first = make_empty_func(&builder, &context, loc, "foo");
