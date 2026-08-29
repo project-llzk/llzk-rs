@@ -594,7 +594,7 @@ fn include_map_operand_setter_roundtrip() {
 fn prove_det_op() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "callee_fn", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
@@ -618,7 +618,7 @@ fn prove_det_op() {
 fn assume_det_op() {
     common::setup();
     let context = LlzkContext::new();
-    let module = llzk_module(Location::unknown(&context), None);
+    let module = LlzkModuleBuilder::create(Location::unknown(&context), None);
     let target = make_function_target(&context, &module, "callee_fn", None);
     let builder = OpBuilder::at_block_begin(&context, module.body());
 
