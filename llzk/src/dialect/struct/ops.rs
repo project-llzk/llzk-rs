@@ -132,7 +132,8 @@ pub trait StructDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
                 let block = region
                     .first_block()
                     .unwrap_or_else(|| region.append_block(Block::new(&[])));
-                let builder = OpBuilder::at_block_end(unsafe { self.context().to_ref() }, block);
+                let context = self.context();
+                let builder = OpBuilder::at_block_end(unsafe { context.to_ref() }, block);
                 build_member_def(&builder)
             }
         }
