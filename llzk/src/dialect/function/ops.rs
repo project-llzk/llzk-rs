@@ -30,14 +30,16 @@ use llzk_sys::{
     llzkFunction_FuncDefOpGetSelfValueFromConstrain,
     llzkFunction_FuncDefOpGetSingleResultTypeOfCompute, llzkFunction_FuncDefOpGetSymName,
     llzkFunction_FuncDefOpHasAllowConstraintAttr,
-    llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
+    llzkFunction_FuncDefOpHasAllowNonNativeFieldOpsAttr,
+    llzkFunction_FuncDefOpHasAllowVerifOpsAttr, llzkFunction_FuncDefOpHasAllowWitnessAttr,
     llzkFunction_FuncDefOpHasArgName, llzkFunction_FuncDefOpHasArgPublicAttr,
     llzkFunction_FuncDefOpHasResName, llzkFunction_FuncDefOpIsDeclaration,
     llzkFunction_FuncDefOpIsInStruct, llzkFunction_FuncDefOpIsStructCompute,
     llzkFunction_FuncDefOpIsStructConstrain, llzkFunction_FuncDefOpIsStructProduct,
     llzkFunction_FuncDefOpNameIsCompute, llzkFunction_FuncDefOpNameIsConstrain,
     llzkFunction_FuncDefOpNameIsProduct, llzkFunction_FuncDefOpSetAllowConstraintAttr,
-    llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
+    llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr,
+    llzkFunction_FuncDefOpSetAllowVerifOpsAttr, llzkFunction_FuncDefOpSetAllowWitnessAttr,
     llzkFunction_FuncDefOpSetArgAttrs, llzkFunction_FuncDefOpSetArgName,
     llzkFunction_FuncDefOpSetArgNameAttr, llzkFunction_FuncDefOpSetFunctionType,
     llzkFunction_FuncDefOpSetResAttrs, llzkFunction_FuncDefOpSetResName,
@@ -141,6 +143,16 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Sets the allow_non_native_field_ops attribute in the FuncDefOp operation.
     fn set_allow_non_native_field_ops_attr(&self, value: bool) {
         unsafe { llzkFunction_FuncDefOpSetAllowNonNativeFieldOpsAttr(self.to_raw(), value) }
+    }
+
+    /// Returns true if the FuncDefOp has the allow_verif_ops attribute.
+    fn has_allow_verif_ops_attr(&self) -> bool {
+        unsafe { llzkFunction_FuncDefOpHasAllowVerifOpsAttr(self.to_raw()) }
+    }
+
+    /// Sets the allow_verif_ops attribute in the FuncDefOp operation.
+    fn set_allow_verif_ops_attr(&self, value: bool) {
+        unsafe { llzkFunction_FuncDefOpSetAllowVerifOpsAttr(self.to_raw(), value) }
     }
 
     /// Returns true if the `idx`-th argument has the Pub attribute.
