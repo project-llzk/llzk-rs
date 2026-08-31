@@ -1,6 +1,6 @@
 [package]
 name = "llzk-sys-build-support"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 keywords = ["llzk", "mlir"]
 categories = ["development-tools::build-utils"]
