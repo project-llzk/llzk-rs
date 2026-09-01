@@ -2,7 +2,7 @@
 module attributes {llzk.lang} {
   // Input struct is defined in LLZK since we can't write pcl by hand from the rust bindings.
   struct.def @Test {
-    struct.member @out : !F
+    struct.member @out : !F {llzk.pub}
     function.def @compute(%arg0: !F) -> !struct.type<@Test> {
       %self = struct.new : <@Test>
       function.return %self : !struct.type<@Test>
