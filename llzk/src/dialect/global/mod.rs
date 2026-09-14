@@ -56,14 +56,23 @@ pub fn read<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     name: SymbolRefAttribute<'c>,
+    constant: bool,
     result: Type<'c>,
 ) -> OperationRef<'c, 'a> {
+    let ctx = location.context();
+    let null_attr = MlirAttribute { ptr: null_mut() };
+    let constant = if constant {
+        Attribute::unit(unsafe { ctx.to_ref() }).to_raw()
+    } else {
+        null_attr
+    };
     unsafe {
         OperationRef::from_raw(llzkGlobal_GlobalReadOpBuild(
             builder.to_raw(),
             location.to_raw(),
             result.to_raw(),
             name.to_raw(),
+            constant,
         ))
     }
 }
