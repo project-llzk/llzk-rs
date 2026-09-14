@@ -71,8 +71,8 @@ pub fn read<'c, 'a>(
             builder.to_raw(),
             location.to_raw(),
             result.to_raw(),
-            name.to_raw(),
             constant,
+            name.to_raw(),
         ))
     }
 }
