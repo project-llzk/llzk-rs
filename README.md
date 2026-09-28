@@ -27,13 +27,13 @@ We include some optional functionality guarded by feature flags. We currently ha
 
 ### Prerequisites
 
-Install LLVM 20 and note the installation path. While building your project the build scripts will look for LLVM using `llvm-config`.
-If you don't have that tool in your `PATH` or it doesn't point to an LLVM 20 installation set the following environment variables
-to the path where LLVM is installed and the build scripts will then use `$MLIR_SYS_200_PREFIX/bin/llvm-config` instead.
+Install LLVM 23 and note the installation path. While building your project the build scripts will look for LLVM using `llvm-config`.
+If you don't have that tool in your `PATH` or it doesn't point to an LLVM 23 installation set the following environment variables
+to the path where LLVM is installed and the build scripts will then use `$MLIR_SYS_230_PREFIX/bin/llvm-config` instead.
 
 ```text
-export MLIR_SYS_200_PREFIX=/path/to/llvm/20/
-export TABLEGEN_200_PREFIX=/path/to/llvm/20/
+export MLIR_SYS_230_PREFIX=/path/to/llvm/23/
+export TABLEGEN_230_PREFIX=/path/to/llvm/23/
 ```
 
 ### Building LLZK
@@ -50,15 +50,15 @@ pip install lit
 git clone https://github.com/project-llzk/llzk-lib.git
 cmake -B llzk-lib/out/build -S llzk-lib \
   -DCMAKE_INSTALL_PREFIX=$(pwd)/llzk-lib/out \
-  -DCMAKE_PREFIX_PATH="$MLIR_SYS_200_PREFIX"
+  -DCMAKE_PREFIX_PATH="$MLIR_SYS_230_PREFIX"
 cmake --build llzk-lib/out/build
 cmake --install llzk-lib/out/build
 ```
 
-Then set the `LLZK_SYS_10_PREFIX` environment variable to point to the install location:
+Then set the `LLZK_SYS_30_PREFIX` environment variable to point to the install location:
 
 ```text
-export LLZK_SYS_10_PREFIX=/path/to/llzk-lib/out
+export LLZK_SYS_30_PREFIX=/path/to/llzk-lib/out
 ```
 
 ### Adding the crates to your project
@@ -72,14 +72,14 @@ llzk = { git = "https://github.com/project-llzk/llzk-rs" }
 
 ### Building tips
 
-If you are using homebrew in macos you can access MLIR 20 by installing `llvm@20` with homebrew.
+If you are using homebrew in macos you can access MLIR 23 by installing `llvm@23` with homebrew.
 Setting the following environment variables configures the build system with the correct versions of MLIR and its dependencies.
 Depending on the version of your default C++ compiler you may need to set `CXX` and `CC` to a compiler that supports C++ 20.
 
 ```text
-export MLIR_SYS_200_PREFIX=$(brew --prefix llvm@20)
-export TABLEGEN_200_PREFIX=$(brew --prefix llvm@20)
-export LIBCLANG_PATH=$(brew --prefix llvm@20)/lib
+export MLIR_SYS_230_PREFIX=$(brew --prefix llvm@23)
+export TABLEGEN_230_PREFIX=$(brew --prefix llvm@23)
+export LIBCLANG_PATH=$(brew --prefix llvm@23)/lib
 export CXX=clang++
 export CC=clang
 export RUSTFLAGS='-L /opt/homebrew/lib/'

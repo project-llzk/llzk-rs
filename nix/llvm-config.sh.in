@@ -12,16 +12,28 @@ error_and_quit() {
        "to be used with https://github.com/mlir-rs/mlir-sys. It is not" \
        "guaranteed to support anything beyond the specific option" \
        "combinations used by mlir-sys." >&2
-  echo "Usage: llvm-config --link-static [option]" >&2
+  echo "Usage: llvm-config [--link-static [--ignore-libllvm]] [option]" >&2
   exit 1
 }
 
-# mlir-sys always uses '--link-static' as first argument
+# The merged prefix is necessary only for static MLIR linking.  Other clients
+# (for example, tblgen) use ordinary llvm-config queries and can use the
+# native tool unchanged.
 if [ "$1" != "--link-static" ]; then
-  error_and_quit "Expected --link-static as first argument"
+  exec "@originalTool@" "$@"
 fi
 
-case "$2" in
+# mlir-sys 230 passes --ignore-libllvm between --link-static and the queried
+# option.  Consume it before dispatching, while retaining it for options that
+# are delegated to the native llvm-config.
+ignore_libllvm=
+option="$2"
+if [ "$option" = "--ignore-libllvm" ]; then
+  ignore_libllvm=true
+  option="$3"
+fi
+
+case "$option" in
   --prefix)
     echo "@out@"
     ;;
@@ -36,19 +48,19 @@ case "$2" in
     ;;
   --libs)
     # static library file names with -l prefix instead of lib*.a
-    find "@out@/lib" -name "lib*.a" | \
+    find "@out@/lib" -name "lib*.a" ${ignore_libllvm:+! -name libLLVM.a} | \
     sed -e 's|.*/||' -e 's|\.a$||' -e 's|^lib|-l|' | \
     tr '\n' ' '
     echo
     ;;
   --libnames)
     # Just the static library file names
-    find "@out@/lib" -name "lib*.a" | \
+    find "@out@/lib" -name "lib*.a" ${ignore_libllvm:+! -name libLLVM.a} | \
     sed 's|.*/||' | \
     tr '\n' ' '
     echo
     ;;
   *)
-    @originalTool@ --link-static $2
+    exec "@originalTool@" "$@"
     ;;
 esac

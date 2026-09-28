@@ -17,7 +17,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const LLZK_MAJOR_VERSION: u8 = 1;
+const LLZK_MAJOR_VERSION: u8 = 3;
 
 /// Default configuration of the build process.
 ///
@@ -57,6 +57,8 @@ fn create_default_cfg() -> DefaultConfig<'static> {
             "OpBuilderListener",
             "Notify(Operation|Block)Inserted",
             "(Op|Block)BuilderInsertPoint",
+            "OpOperand",
+            "IRMapping",
             "ValueRange",
         ],
     )
@@ -84,6 +86,7 @@ fn run() -> Result<()> {
 /// - `pub fn mlir*`: tablegen-generated dialect/pass registration functions.
 /// - `pub type Llzk* = c_uint/i*_t/u*_t`: enum typedef aliases emitted by bindgen from the CAPI's
 ///   `typedef enum ... Name;` pattern, where bindgen documents the constants but not the alias.
+/// - `pub struct MlirOpOperand` / `MlirIRMapping`: opaque MLIR C API handle types.
 /// - `pub struct <name>` where the name contains "bindgen": anonymous types emitted by bindgen.
 /// - `impl <type>` where the type contains "bindgen": impl blocks for bindgen types (e.g.
 ///   `impl<T> __BindgenUnionField<T>`).
@@ -116,6 +119,10 @@ fn suppress_missing_docs(source: &str) -> String {
                                 | "::std::os::raw::c_longlong"
                         )
                 })
+            || matches!(
+                trimmed,
+                "pub struct MlirOpOperand {" | "pub struct MlirIRMapping {"
+            )
             || (trimmed.starts_with("impl") && trimmed.to_ascii_lowercase().contains("bindgen"))
             || trimmed
                 .strip_prefix("pub struct ")

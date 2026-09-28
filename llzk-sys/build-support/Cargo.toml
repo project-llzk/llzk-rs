@@ -10,8 +10,8 @@ readme = "README.md"
 license = "Apache-2.0"
 
 [dependencies]
-bindgen = "0.71.1"
-anyhow = "1.0.98"
+bindgen = "0.73"
+anyhow = "1.0"
 cc = "^1.1"
 
 [dev-dependencies]
