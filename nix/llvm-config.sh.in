@@ -16,9 +16,31 @@ error_and_quit() {
   exit 1
 }
 
-# The merged prefix is necessary only for static MLIR linking.  Other clients
-# (for example, tblgen) use ordinary llvm-config queries and can use the
-# native tool unchanged.
+# Clients such as tblgen obtain the static archive list and library directory
+# in separate calls.  Always report locations in the merged prefix so a
+# preceding `--link-static --libs` query cannot be paired with the native
+# LLVM library directory.
+case "$1" in
+  --prefix)
+    echo "@out@"
+    exit 0
+    ;;
+  --bindir)
+    echo "@out@/bin"
+    exit 0
+    ;;
+  --includedir)
+    echo "@out@/include"
+    exit 0
+    ;;
+  --libdir)
+    echo "@out@/lib"
+    exit 0
+    ;;
+esac
+
+# The merged archive list is necessary only for static MLIR linking. Delegate
+# all other llvm-config queries to the native tool.
 if [ "$1" != "--link-static" ]; then
   exec "@originalTool@" "$@"
 fi
