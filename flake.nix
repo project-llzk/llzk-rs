@@ -1,6 +1,6 @@
 {
   inputs = {
-    llzk-pkgs.url = "github:project-llzk/llzk-nix-pkgs/th/llvm_23";
+    llzk-pkgs.url = "github:project-llzk/llzk-nix-pkgs";
     nixpkgs.follows = "llzk-pkgs/nixpkgs";
     flake-utils.follows = "llzk-pkgs/flake-utils";
     rust-overlay = {
@@ -10,7 +10,7 @@
       };
     };
     llzk-lib = {
-      url = "github:project-llzk/llzk-lib/th/llvm23";
+      url = "github:project-llzk/llzk-lib";
       inputs = {
         nixpkgs.follows = "llzk-pkgs/nixpkgs";
         flake-utils.follows = "llzk-pkgs/flake-utils";
