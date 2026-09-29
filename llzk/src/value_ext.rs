@@ -1,9 +1,11 @@
 //! Extensions for working with MLIR values.
 
 use crate::error::Error;
-use crate::prelude::replace_uses_of_with;
 use llzk_sys::MlirValueRange;
-use melior::ir::{BlockRef, OperationRef, Value, ValueLike};
+use melior::ir::{
+    BlockRef, OperationRef, Value, ValueLike,
+    operation::{OperationMutLike, OperationRefMut},
+};
 use mlir_sys::MlirValue;
 use std::{collections::HashSet, marker::PhantomData, num::TryFromIntError};
 
@@ -167,7 +169,10 @@ pub fn replace_all_uses_in_block_with<'c>(
         }
 
         for owner in owners {
-            replace_uses_of_with(&OperationRef::from_raw(owner), orig, replacement);
+            OperationRefMut::from_raw(owner).replace_uses_of_with(
+                Value::from_raw(orig.to_raw()),
+                Value::from_raw(replacement.to_raw()),
+            );
         }
     }
 }

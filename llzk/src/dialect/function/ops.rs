@@ -1,8 +1,5 @@
 use crate::{
-    attributes::{
-        NamedAttribute, array::ArrayAttribute, empty_dictionary_attr,
-        named_attributes_to_dictionary_attr, tuple_to_raw_named_attr,
-    },
+    attributes::{NamedAttribute, tuple_to_raw_named_attr},
     builder::OpBuilderLike,
     dialect::r#struct::StructType,
     error::Error,
@@ -52,7 +49,7 @@ use melior::{
     ir::{
         Attribute, AttributeLike, Block, BlockLike as _, Location, OperationRef, RegionLike as _,
         RegionRef, Type, TypeLike, Value, ValueLike,
-        attribute::{StringAttribute, TypeAttribute},
+        attribute::{ArrayAttribute, DictionaryAttribute, StringAttribute, TypeAttribute},
         block::BlockArgument,
         operation::{OperationLike, OperationMutLike},
         r#type::FunctionType,
@@ -94,7 +91,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         let raw = unsafe { llzkFunction_FuncDefOpGetArgAttrs(self.to_raw()) };
         let attr = unsafe { Attribute::from_option_raw(raw) }
             .ok_or_else(|| Error::AttributeNotFound("function.def argument attributes".into()))?;
-        ArrayAttribute::try_from(attr)
+        ArrayAttribute::try_from(attr).map_err(Into::into)
     }
 
     /// Sets the argument attribute array.
@@ -107,7 +104,7 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         let raw = unsafe { llzkFunction_FuncDefOpGetResAttrs(self.to_raw()) };
         let attr = unsafe { Attribute::from_option_raw(raw) }
             .ok_or_else(|| Error::AttributeNotFound("function.def result attributes".into()))?;
-        ArrayAttribute::try_from(attr)
+        ArrayAttribute::try_from(attr).map_err(Into::into)
     }
 
     /// Sets the result attribute array.
@@ -323,7 +320,8 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_FuncDefOpNameIsCompute(self.to_raw()) }
     }
 
-    /// Returns true if the function's name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN).
+    /// Returns true if the function's name is
+    /// [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN).
     fn name_is_constrain(&self) -> bool {
         unsafe { llzkFunction_FuncDefOpNameIsConstrain(self.to_raw()) }
     }
@@ -353,8 +351,9 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_FuncDefOpIsStructProduct(self.to_raw()) }
     }
 
-    /// If the function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE), return the "self"
-    /// value (i.e. the return value) from the function. Otherwise, return Err(ExpectedFunctionName).
+    /// If the function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE), return the
+    /// "self" value (i.e. the return value) from the function. Otherwise, return
+    /// Err(ExpectedFunctionName).
     fn self_value_of_compute(&self) -> Result<Value<'c, 'a>, Error> {
         if self.name_is_compute() {
             Ok(unsafe {
@@ -365,8 +364,9 @@ pub trait FuncDefOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
     }
 
-    /// If the function name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN), return the "self"
-    /// value (i.e. the first parameter) from the function. Otherwise, return Err(ExpectedFunctionName).
+    /// If the function name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN), return the
+    /// "self" value (i.e. the first parameter) from the function. Otherwise, return
+    /// Err(ExpectedFunctionName).
     fn self_value_of_constrain(&self) -> Result<Value<'c, 'a>, Error> {
         if self.name_is_constrain() {
             Ok(unsafe {
@@ -479,7 +479,8 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_CallOpCalleeIsCompute(self.to_raw()) }
     }
 
-    /// Returns true if the call target name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN).
+    /// Returns true if the call target name is
+    /// [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN).
     fn callee_is_constrain(&self) -> bool {
         unsafe { llzkFunction_CallOpCalleeIsConstrain(self.to_raw()) }
     }
@@ -489,23 +490,27 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         unsafe { llzkFunction_CallOpCalleeIsProduct(self.to_raw()) }
     }
 
-    /// Return `true` iff the callee function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE) within a StructDefOp.
+    /// Return `true` iff the callee function name is
+    /// [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE) within a StructDefOp.
     fn callee_is_struct_compute(&self) -> bool {
         unsafe { llzkFunction_CallOpCalleeIsStructCompute(self.to_raw()) }
     }
 
-    /// Return `true` iff the callee function name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN) within a StructDefOp.
+    /// Return `true` iff the callee function name is
+    /// [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN) within a StructDefOp.
     fn callee_is_struct_constrain(&self) -> bool {
         unsafe { llzkFunction_CallOpCalleeIsStructConstrain(self.to_raw()) }
     }
 
-    /// Return `true` iff the callee function name is [`FUNC_NAME_PRODUCT`](llzk_sys::FUNC_NAME_PRODUCT) within a StructDefOp.
+    /// Return `true` iff the callee function name is
+    /// [`FUNC_NAME_PRODUCT`](llzk_sys::FUNC_NAME_PRODUCT) within a StructDefOp.
     fn callee_is_struct_product(&self) -> bool {
         unsafe { llzkFunction_CallOpCalleeIsStructProduct(self.to_raw()) }
     }
 
-    /// If the function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE), return the "self"
-    /// value (i.e. the return value) from the callee function. Otherwise, return Err(ExpectedFunctionName).
+    /// If the function name is [`FUNC_NAME_COMPUTE`](llzk_sys::FUNC_NAME_COMPUTE), return the
+    /// "self" value (i.e. the return value) from the callee function. Otherwise, return
+    /// Err(ExpectedFunctionName).
     fn self_value_of_compute(&self) -> Result<Value<'c, 'a>, Error> {
         if self.callee_is_compute() {
             Ok(unsafe {
@@ -516,8 +521,9 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         }
     }
 
-    /// If the function name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN), return the "self"
-    /// value (i.e. the first parameter) from the callee function. Otherwise, return Err(ExpectedFunctionName).
+    /// If the function name is [`FUNC_NAME_CONSTRAIN`](llzk_sys::FUNC_NAME_CONSTRAIN), return the
+    /// "self" value (i.e. the first parameter) from the callee function. Otherwise, return
+    /// Err(ExpectedFunctionName).
     fn self_value_of_constrain(&self) -> Result<Value<'c, 'a>, Error> {
         if self.callee_is_constrain() {
             Ok(unsafe {
@@ -592,7 +598,9 @@ pub trait CallOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
         if raw.ptr.is_null() {
             Ok(None)
         } else {
-            ArrayAttribute::try_from(unsafe { Attribute::from_raw(raw) }).map(Some)
+            ArrayAttribute::try_from(unsafe { Attribute::from_raw(raw) })
+                .map(Some)
+                .map_err(Into::into)
         }
     }
 
@@ -638,13 +646,13 @@ fn prepare_arg_attrs<'c>(
 ) -> Vec<MlirAttribute> {
     log::debug!("prepare_arg_attrs(\n{arg_attrs:?},\n{input_count},\n{ctx:?})");
     let Some(arg_attrs) = arg_attrs else {
-        return vec![empty_dictionary_attr(ctx).to_raw(); input_count];
+        return vec![DictionaryAttribute::new(ctx, &[]).to_raw(); input_count];
     };
 
     assert_eq!(arg_attrs.len(), input_count);
     arg_attrs
         .iter()
-        .map(|arg_attr| named_attributes_to_dictionary_attr(ctx, arg_attr).to_raw())
+        .map(|arg_attr| DictionaryAttribute::new(ctx, arg_attr).to_raw())
         .collect()
 }
 
