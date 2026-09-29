@@ -34,7 +34,7 @@ exclude = [
 mlir-sys = { workspace = true }
 
 [build-dependencies]
-llzk-sys-build-support = { path = "./build-support/" }
+llzk-sys-build-support = { version = "1.0.2", path = "./build-support/" }
 anyhow = "1"
 
 [dev-dependencies]
