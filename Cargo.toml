@@ -14,7 +14,7 @@ mlir-sys = "230.0.2"
 ff = "0.14"
 
 # Temporary upstream fix for bindgen's incompatible syn/prettyplease ranges.
-# Remove this after a crates.io release includes rust-bindgen#3506.
+# Return to crates.io after a release includes rust-bindgen#3506.
 [patch.crates-io]
 bindgen = { git = "https://github.com/tamird/rust-bindgen", rev = "86a8a5e774b5c4fcab9f86caa2767549dec2a97e" }
 

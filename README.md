@@ -65,9 +65,18 @@ export LLZK_SYS_30_PREFIX=/path/to/llzk-lib/out
 
 In your rust project, add the crates to your Cargo.toml:
 
-```text
+```toml
+[dependencies]
 llzk-sys = { git = "https://github.com/project-llzk/llzk-rs" }
 llzk = { git = "https://github.com/project-llzk/llzk-rs" }
+```
+
+Until a crates.io release of `bindgen` includes [rust-bindgen#3506](https://github.com/rust-lang/rust-bindgen/pull/3506),
+also add this patch to your project's **workspace root** `Cargo.toml`:
+
+```toml
+[patch.crates-io]
+bindgen = { git = "https://github.com/tamird/rust-bindgen", rev = "86a8a5e774b5c4fcab9f86caa2767549dec2a97e" }
 ```
 
 ### Building tips
