@@ -10,9 +10,8 @@ readme = "README.md"
 license = "Apache-2.0"
 
 [dependencies]
-# Temporary upstream fix for bindgen's incompatible syn/prettyplease ranges.
-# Return to crates.io after a release includes rust-bindgen#3506.
-bindgen = { git = "https://github.com/tamird/rust-bindgen", rev = "86a8a5e774b5c4fcab9f86caa2767549dec2a97e" }
+# Keep bindgen's syn/prettyplease pair compatible in Cargo.lock; see the root README.
+bindgen = "0.73.2"
 anyhow = "1.0"
 cc = "^1.1"
 

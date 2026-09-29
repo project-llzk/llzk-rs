@@ -26,7 +26,8 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 [[package]]
 name = "bindgen"
 version = "0.73.2"
-source = "git+https://github.com/tamird/rust-bindgen?rev=86a8a5e774b5c4fcab9f86caa2767549dec2a97e#86a8a5e774b5c4fcab9f86caa2767549dec2a97e"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "787ef8ef523575546b106a58213d6e6b06198a05c2f757258c68a74273670cfa"
 dependencies = [
  "bitflags",
  "cexpr",
@@ -38,7 +39,7 @@ dependencies = [
  "regex",
  "rustc-hash",
  "shlex",
- "syn 3.0.6",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -534,12 +535,12 @@ checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 
 [[package]]
 name = "prettyplease"
-version = "0.3.0"
+version = "0.2.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bfe0f4c752e450fc2faf62654f1c134747922825d5b04ca717b8874f41a40c0"
+checksum = "479ca8adacdd7ce8f1fb39ce9ecccbfe93a3f1344b3d0d97f20bc0196208f62b"
 dependencies = [
  "proc-macro2",
- "syn 3.0.6",
+ "syn 2.0.119",
 ]
 
 [[package]]

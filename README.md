@@ -71,13 +71,27 @@ llzk-sys = { git = "https://github.com/project-llzk/llzk-rs" }
 llzk = { git = "https://github.com/project-llzk/llzk-rs" }
 ```
 
-Until a crates.io release of `bindgen` includes [rust-bindgen#3506](https://github.com/rust-lang/rust-bindgen/pull/3506),
-also add this patch to your project's **workspace root** `Cargo.toml`:
+If `bindgen 0.73.2` fails to compile because of a `syn`/`prettyplease` version
+conflict ([upstream issue](https://github.com/rust-lang/rust-bindgen/pull/3506)),
+run these commands in your project's workspace:
 
-```toml
-[patch.crates-io]
-bindgen = { git = "https://github.com/tamird/rust-bindgen", rev = "86a8a5e774b5c4fcab9f86caa2767549dec2a97e" }
+```sh
+cargo update -p prettyplease --precise 0.2.37
+cargo tree -p bindgen@0.73.2 --depth 1
 ```
+
+Bindgen should use `prettyplease 0.2.37` and `syn 2.x`. If it still uses `syn 3.x`,
+edit only bindgen's dependency list in `Cargo.lock` to use the same `syn 2.x`
+entry as prettyplease (for example, `"syn 2.0.119"`). Then run:
+
+```sh
+cargo tree -p bindgen@0.73.2 --depth 1
+cargo build --locked
+```
+
+Commit `Cargo.lock`; repeat this workaround if a dependency update reintroduces
+the conflict. If Cargo reports multiple `prettyplease` versions, qualify the
+update command with the version used by bindgen, such as `-p prettyplease@0.3.0`.
 
 ### Building tips
 
