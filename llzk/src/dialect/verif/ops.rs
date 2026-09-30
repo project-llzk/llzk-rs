@@ -42,7 +42,7 @@ use melior::{
     ir::{
         Attribute, AttributeLike, BlockLike as _, BlockRef, Identifier, Location, OperationRef,
         RegionLike as _, RegionRef, Type, TypeLike, Value, ValueLike,
-        attribute::{DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
+        attribute::{ArrayAttribute, DenseI32ArrayAttribute, StringAttribute, TypeAttribute},
         block::{Block, BlockArgument},
         operation::OperationLike,
         r#type::FunctionType,
@@ -50,7 +50,7 @@ use melior::{
 };
 
 use crate::{
-    attributes::{array::ArrayAttribute, null_attr, rebuild_array_attr},
+    attributes::null_attr,
     builder::OpBuilderLike,
     error::Error,
     macros::{isa_fn, llzk_op_type},
@@ -248,7 +248,7 @@ pub trait ContractOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
     /// Returns the argument attribute array.
     fn arg_attrs(&self) -> Result<ArrayAttribute<'c>, Error> {
         let attr = unsafe { Attribute::from_raw(llzkVerif_ContractOpGetArgAttrs(self.to_raw())) };
-        Ok(rebuild_array_attr(unsafe { self.context().to_ref() }, attr))
+        Ok(ArrayAttribute::try_from(attr)?)
     }
 
     /// Sets the argument attribute array.
@@ -772,7 +772,8 @@ pub trait InvariantOpLike<'c: 'a, 'a>: OperationLike<'c, 'a> {
             Attribute::from_raw(llzkVerif_InvariantOpGetLoopArgTypes(self.to_raw()))
         })
         .unwrap();
-        arr.into_iter()
+        (0..arr.len())
+            .map(|idx| arr.element(idx).unwrap())
             .map(|a| TypeAttribute::try_from(a).unwrap().value())
             .collect()
     }

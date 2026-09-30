@@ -1,144 +1,14 @@
-//! High-level representation of an array attribute with any kind of attributes.
-//!
-//! [Melior's version](melior::ir::attribute::array::ArrayAttribute) only wraps
-//! dense arrays of i64. The version in this file wraps a type erased attribute.
+//! Array attributes and extensions for affine map attributes.
+
+pub use melior::ir::attribute::ArrayAttribute;
 
 use melior::{
     Context,
-    ir::{Attribute, AttributeLike},
+    ir::{AffineMap, Attribute, AttributeLike},
 };
-use mlir_sys::{MlirAttribute, mlirAffineMapAttrGet, mlirAffineMapMultiDimIdentityGet};
+use mlir_sys::{MlirAttribute, mlirAffineMapAttrGet};
 
 use crate::error::Error;
-
-/// An attribute that contains an array of other attributes. These attributes can be on any type.
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub struct ArrayAttribute<'c> {
-    inner: Attribute<'c>,
-}
-
-impl<'c> ArrayAttribute<'c> {
-    /// Creates a new array attribute.
-    pub fn new(context: &'c Context, attrs: &[Attribute<'c>]) -> Self {
-        let raw_attrs: Vec<_> = attrs.iter().map(|a| a.to_raw()).collect();
-        Self::try_from(unsafe {
-            Attribute::from_raw(mlir_sys::mlirArrayAttrGet(
-                context.to_raw(),
-                isize::try_from(attrs.len()).expect("attribute count too large"),
-                raw_attrs.as_ptr(),
-            ))
-        })
-        .expect("newly created atribute must be an array attribute")
-    }
-
-    /// Returns the length of the array.
-    pub fn len(&self) -> usize {
-        usize::try_from(unsafe { mlir_sys::mlirArrayAttrGetNumElements(self.to_raw()) })
-            .expect("array length is negative or too large")
-    }
-
-    /// Returns true if the array has no elements.
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Gets the idx-th element of the array.
-    ///
-    /// Returns None if the index is out of bounds.
-    pub fn get(&self, idx: usize) -> Option<Attribute<'c>> {
-        (idx < self.len()).then(|| unsafe {
-            Attribute::from_raw(mlir_sys::mlirArrayAttrGetElement(
-                self.to_raw(),
-                isize::try_from(idx).expect("index too large"),
-            ))
-        })
-    }
-}
-
-impl std::fmt::Debug for ArrayAttribute<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(&self.inner, f)
-    }
-}
-
-impl std::fmt::Display for ArrayAttribute<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Display::fmt(&self.inner, f)
-    }
-}
-
-impl<'c> PartialEq<Attribute<'c>> for ArrayAttribute<'c> {
-    fn eq(&self, other: &Attribute<'c>) -> bool {
-        self.inner == *other
-    }
-}
-
-impl<'c> AttributeLike<'c> for ArrayAttribute<'c> {
-    fn to_raw(&self) -> MlirAttribute {
-        self.inner.to_raw()
-    }
-}
-
-impl<'c> TryFrom<Attribute<'c>> for ArrayAttribute<'c> {
-    type Error = Error;
-
-    fn try_from(inner: Attribute<'c>) -> Result<Self, Self::Error> {
-        if unsafe { mlir_sys::mlirAttributeIsAArray(inner.to_raw()) } {
-            Ok(ArrayAttribute { inner })
-        } else {
-            Err(Error::AttributeExpected("array", format!("{inner}")))
-        }
-    }
-}
-
-impl<'c> From<ArrayAttribute<'c>> for Attribute<'c> {
-    fn from(value: ArrayAttribute<'c>) -> Self {
-        value.inner
-    }
-}
-
-impl<'c> IntoIterator for ArrayAttribute<'c> {
-    type Item = Attribute<'c>;
-
-    type IntoIter = ArrayAttributeIter<'c>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        ArrayAttributeIter {
-            array: self,
-            current: 0,
-        }
-    }
-}
-
-impl<'c> IntoIterator for &ArrayAttribute<'c> {
-    type Item = Attribute<'c>;
-
-    type IntoIter = ArrayAttributeIter<'c>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        ArrayAttributeIter {
-            array: *self,
-            current: 0,
-        }
-    }
-}
-
-/// Iterator of an [`ArrayAttribute`].
-#[derive(Debug)]
-pub struct ArrayAttributeIter<'c> {
-    array: ArrayAttribute<'c>,
-    current: usize,
-}
-
-impl<'c> Iterator for ArrayAttributeIter<'c> {
-    type Item = Attribute<'c>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let idx = self.current;
-        self.current += 1;
-        self.array.get(idx)
-    }
-}
 
 /// Represents an affine map attribute in MLIR.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -151,16 +21,7 @@ impl<'ctx> AffineMapAttribute<'ctx> {
     /// Creates an identity map with the given number of dimensions
     /// (i.e. for 1 creates `(d0)[] -> (d0)`.)
     pub fn identity(context: &'ctx Context, dims: usize) -> Self {
-        let raw_map = unsafe {
-            mlirAffineMapMultiDimIdentityGet(
-                context.to_raw(),
-                isize::try_from(dims).expect("dims too large"),
-            )
-        };
-        let raw_attr = unsafe { mlirAffineMapAttrGet(raw_map) };
-        Self {
-            inner: unsafe { Attribute::from_option_raw(raw_attr) }.unwrap(),
-        }
+        AffineMap::multi_dim_identity(context, dims).into()
     }
 
     /// Create an [AffineMapAttribute] from a string definition.
@@ -171,6 +32,14 @@ impl<'ctx> AffineMapAttribute<'ctx> {
             ));
         };
         Self::try_from(a)
+    }
+}
+
+impl<'ctx> From<AffineMap<'ctx>> for AffineMapAttribute<'ctx> {
+    fn from(map: AffineMap<'ctx>) -> Self {
+        Self {
+            inner: unsafe { Attribute::from_raw(mlirAffineMapAttrGet(map.to_raw())) },
+        }
     }
 }
 
@@ -201,6 +70,20 @@ impl<'ctx> From<AffineMapAttribute<'ctx>> for Attribute<'ctx> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn melior_affine_map_converts_to_attribute() {
+        use crate::affine::AffineExprExt;
+        use melior::ir::AffineExpr;
+
+        let context = Context::new();
+        let dim = AffineExpr::dim(&context, 0);
+        let symbol = AffineExpr::symbol(&context, 0);
+        let map = AffineMap::new(&context, 1, 1, &[dim.sub(symbol)]);
+        let attr: Attribute = AffineMapAttribute::from(map).into();
+        let expected = Attribute::parse(&context, "affine_map<(d0)[s0] -> (d0 - s0)>").unwrap();
+        assert_eq!(attr, expected);
+    }
 
     #[test]
     fn parse_affine_map_attribute() {

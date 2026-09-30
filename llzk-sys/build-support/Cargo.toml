@@ -10,8 +10,9 @@ readme = "README.md"
 license = "Apache-2.0"
 
 [dependencies]
-bindgen = "0.71.1"
-anyhow = "1.0.98"
+# Keep bindgen's syn/prettyplease pair compatible in Cargo.lock; see the root README.
+bindgen = "0.73.2"
+anyhow = "1.0"
 cc = "^1.1"
 
 [dev-dependencies]

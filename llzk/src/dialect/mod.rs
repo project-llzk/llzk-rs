@@ -37,16 +37,13 @@ pub mod module {
         Context,
         ir::{
             Location, Module,
-            attribute::{Attribute, StringAttribute, TypeAttribute},
+            attribute::{ArrayAttribute, Attribute, StringAttribute, TypeAttribute},
             operation::{OperationLike, OperationMutLike as _, OperationRefMut},
         },
     };
     use mlir_sys::{MlirModule, MlirStringRef, mlirModuleGetOperation, mlirOperationWriteBytecode};
 
-    use crate::{
-        attributes::array::ArrayAttribute,
-        prelude::{FieldSpecAttribute, StructType},
-    };
+    use crate::prelude::{FieldSpecAttribute, StructType};
 
     /// Creates a new `builtin.module` operation preconfigured to meet LLZK's specifications.
     #[deprecated(note = "Use LlzkModuleBuilder::create() instead")]
@@ -237,8 +234,8 @@ pub mod module {
                 .unwrap();
             let elts = if op.has_attribute(attr_name) {
                 let array = ArrayAttribute::try_from(op.attribute(attr_name).unwrap()).unwrap();
-                array
-                    .into_iter()
+                (0..array.len())
+                    .map(|idx| array.element(idx).unwrap())
                     .chain(std::iter::once(spec.into()))
                     .collect::<Vec<_>>()
             } else {

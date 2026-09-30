@@ -11,7 +11,7 @@ use std::{
 
 use super::config_traits::{bindgen::BindgenConfig, cc::CCConfig};
 
-const LLVM_MAJOR_VERSION: usize = 20;
+const LLVM_MAJOR_VERSION: usize = 23;
 
 /// Configuration specific to linking MLIR and LLVM.
 #[derive(Debug, Clone)]

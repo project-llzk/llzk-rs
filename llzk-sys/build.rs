@@ -13,11 +13,12 @@ use llzk_sys_build_support::{
     wrap_static_fns::WrapStaticFns,
 };
 use std::{
+    collections::BTreeSet,
     env, fs,
     path::{Path, PathBuf},
 };
 
-const LLZK_MAJOR_VERSION: u8 = 1;
+const LLZK_MAJOR_VERSION: u8 = 3;
 
 /// Default configuration of the build process.
 ///
@@ -57,6 +58,8 @@ fn create_default_cfg() -> DefaultConfig<'static> {
             "OpBuilderListener",
             "Notify(Operation|Block)Inserted",
             "(Op|Block)BuilderInsertPoint",
+            "OpOperand",
+            "IRMapping",
             "ValueRange",
         ],
     )
@@ -84,62 +87,96 @@ fn run() -> Result<()> {
 /// - `pub fn mlir*`: tablegen-generated dialect/pass registration functions.
 /// - `pub type Llzk* = c_uint/i*_t/u*_t`: enum typedef aliases emitted by bindgen from the CAPI's
 ///   `typedef enum ... Name;` pattern, where bindgen documents the constants but not the alias.
+/// - `pub struct MlirOpOperand` / `MlirIRMapping`: opaque MLIR C API handle types.
 /// - `pub struct <name>` where the name contains "bindgen": anonymous types emitted by bindgen.
 /// - `impl <type>` where the type contains "bindgen": impl blocks for bindgen types (e.g.
 ///   `impl<T> __BindgenUnionField<T>`).
 /// - `pub <field>:` where the field name contains "bindgen": padding/bitfield fields emitted by
 ///   bindgen (e.g. `__bindgen_padding_0`).
 fn suppress_missing_docs(source: &str) -> String {
-    let mut result = String::with_capacity(source.len());
-    for line in source.lines() {
-        let trimmed = line.trim_start();
-        let indent = &line[..line.len() - trimmed.len()];
-        let needs_allow = trimmed.starts_with("pub fn mlir")
-            || trimmed
-                .strip_prefix("pub type ")
-                .and_then(|rest| rest.split_once('='))
-                .is_some_and(|(name, ty)| {
-                    let name = name.trim();
-                    let ty = ty.trim().trim_end_matches(';');
-                    name.starts_with("Llzk")
-                        && matches!(
-                            ty,
-                            "::std::os::raw::c_uint"
-                                | "::std::os::raw::c_int"
-                                | "::std::os::raw::c_uchar"
-                                | "::std::os::raw::c_ushort"
-                                | "::std::os::raw::c_ulong"
-                                | "::std::os::raw::c_ulonglong"
-                                | "::std::os::raw::c_schar"
-                                | "::std::os::raw::c_short"
-                                | "::std::os::raw::c_long"
-                                | "::std::os::raw::c_longlong"
-                        )
-                })
-            || (trimmed.starts_with("impl") && trimmed.to_ascii_lowercase().contains("bindgen"))
-            || trimmed
-                .strip_prefix("pub struct ")
-                .and_then(|rest| rest.split_whitespace().next())
-                .is_some_and(|name| name.to_ascii_lowercase().contains("bindgen"))
-            || trimmed
-                .strip_prefix("pub ")
-                .and_then(|rest| {
-                    let colon = rest.find(':')?;
-                    let ident = &rest[..colon];
-                    // exclude `pub fn` / `pub unsafe fn` / tuple-struct fields (no space, no paren)
-                    if ident.contains(' ') || ident.contains('(') {
-                        return None;
-                    }
-                    Some(ident.to_ascii_lowercase().contains("bindgen"))
-                })
-                .unwrap_or(false);
-        if needs_allow {
-            result.push_str(indent);
-            result.push_str("#[allow(missing_docs)]\n");
-        }
-        result.push_str(line);
-        result.push('\n');
+    let mut allow_positions = BTreeSet::new();
+
+    for (position, _) in source.match_indices("pub fn mlir") {
+        allow_positions.insert(position);
     }
+
+    for (position, _) in source.match_indices("pub type ") {
+        let Some(statement) = source[position + "pub type ".len()..].split_once(';') else {
+            continue;
+        };
+        let normalized = statement.0.split_whitespace().collect::<String>();
+        let Some((name, ty)) = normalized.split_once('=') else {
+            continue;
+        };
+        if name.starts_with("Llzk")
+            && matches!(
+                ty,
+                "::std::os::raw::c_uint"
+                    | "::std::os::raw::c_int"
+                    | "::std::os::raw::c_uchar"
+                    | "::std::os::raw::c_ushort"
+                    | "::std::os::raw::c_ulong"
+                    | "::std::os::raw::c_ulonglong"
+                    | "::std::os::raw::c_schar"
+                    | "::std::os::raw::c_short"
+                    | "::std::os::raw::c_long"
+                    | "::std::os::raw::c_longlong"
+            )
+        {
+            allow_positions.insert(position);
+        }
+    }
+
+    for (position, _) in source.match_indices("pub struct ") {
+        let name_start = position + "pub struct ".len();
+        let name_end = name_start
+            + source[name_start..]
+                .bytes()
+                .take_while(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+                .count();
+        let name = &source[name_start..name_end];
+        if matches!(name, "MlirOpOperand" | "MlirIRMapping")
+            || name.to_ascii_lowercase().contains("bindgen")
+        {
+            allow_positions.insert(position);
+        }
+    }
+
+    for (position, _) in source.match_indices("impl") {
+        let before = source[..position].chars().next_back();
+        let after = source[position + "impl".len()..].chars().next();
+        if before.is_some_and(|character| character.is_ascii_alphanumeric() || character == '_')
+            || after.is_some_and(|character| character.is_ascii_alphanumeric() || character == '_')
+        {
+            continue;
+        }
+        let Some((header, _)) = source[position..].split_once('{') else {
+            continue;
+        };
+        if header.to_ascii_lowercase().contains("bindgen") {
+            allow_positions.insert(position);
+        }
+    }
+
+    for (position, _) in source.match_indices("pub ") {
+        let field_start = position + "pub ".len();
+        let Some(colon) = source[field_start..].find(':') else {
+            continue;
+        };
+        let name = source[field_start..field_start + colon].trim();
+        if !name.contains(char::is_whitespace) && name.to_ascii_lowercase().contains("bindgen") {
+            allow_positions.insert(position);
+        }
+    }
+
+    let mut result = String::with_capacity(source.len());
+    let mut source_start = 0;
+    for position in allow_positions {
+        result.push_str(&source[source_start..position]);
+        result.push_str("#[allow(missing_docs)] ");
+        source_start = position;
+    }
+    result.push_str(&source[source_start..]);
     result
 }
 

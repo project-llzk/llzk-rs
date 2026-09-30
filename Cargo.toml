@@ -8,10 +8,10 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-melior-macro = "0.18.0"
-melior = "0.25"
-mlir-sys = "0.5.0"
-ff = "0.13"
+melior-macro = "0.28.2"
+melior = "0.28.2"
+mlir-sys = "230.0.2"
+ff = "0.14"
 
 [workspace.lints.rust]
 missing_debug_implementations = "deny"

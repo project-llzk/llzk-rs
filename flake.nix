@@ -110,9 +110,9 @@
             env = {
               CC = "clang";
               CXX = "clang++";
-              MLIR_SYS_200_PREFIX = "${mlir-with-llvm}";
-              TABLEGEN_200_PREFIX = "${mlir-with-llvm}";
-              LLZK_SYS_10_PREFIX = "${final.llzk}";
+              MLIR_SYS_230_PREFIX = "${mlir-with-llvm}";
+              TABLEGEN_230_PREFIX = "${mlir-with-llvm}";
+              LLZK_SYS_30_PREFIX = "${final.llzk}";
               LIBCLANG_PATH = "${final.llzk-llvmPackages.libclang.lib}/lib";
               RUST_BACKTRACE = "1";
             };

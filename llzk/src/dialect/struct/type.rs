@@ -1,7 +1,6 @@
 //! Implementation of `!struct.type` type.
 
 use crate::{
-    attributes::array::ArrayAttribute,
     error::Error,
     symbol_lookup::SymbolLookupResult,
     symbol_ref::{SymbolRefAttrLike, SymbolRefAttribute},
@@ -14,7 +13,8 @@ use llzk_sys::{
 use melior::{
     Context,
     ir::{
-        Attribute, AttributeLike as _, Module, Type, TypeLike, attribute::FlatSymbolRefAttribute,
+        Attribute, AttributeLike as _, Module, Type, TypeLike,
+        attribute::{ArrayAttribute, FlatSymbolRefAttribute},
         operation::OperationLike,
     },
 };
@@ -76,7 +76,10 @@ impl<'c> StructType<'c> {
 
     /// Get the struct's params as a vector of attributes.
     pub fn params_vec(&self) -> Vec<Attribute<'c>> {
-        self.params().into_iter().flatten().collect()
+        self.params()
+            .into_iter()
+            .flat_map(|params| (0..params.len()).map(move |idx| params.element(idx).unwrap()))
+            .collect()
     }
 
     /// Actual implementation of the [`lookup_definition`](Self::lookup_definition) and
