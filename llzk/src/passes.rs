@@ -1,6 +1,7 @@
 //! LLZK passes.
 
 use llzk_macro::passes;
+use melior::dialect::DialectRegistry;
 
 passes!(
     "LLZKTransformation",
@@ -34,15 +35,39 @@ passes!(
     [mlirCreateLLZKValidationMemberWriteValidatorPass]
 );
 
-/// Registers all the available LLZK passes.
-pub fn register_all_llzk_passes() {
-    register_llzk_transformation_passes();
-    #[cfg(feature = "pcl-backend")]
-    register_pcl_conversion_passes();
-    register_llzk_array_transformation_passes();
-    register_llzk_include_transformation_passes();
-    register_llzk_polymorphic_transformation_passes();
-    register_llzk_validation_passes();
+// Contexts can be created concurrently, but MLIR's global pass registry is not thread-safe.
+static REGISTRATION_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Registers all core LLZK passes and pipelines.
+pub fn register_core_llzk_passes(registry: &DialectRegistry) {
+    let _guard = REGISTRATION_LOCK.lock().unwrap();
+    unsafe { llzk_sys::llzkRegisterCorePasses(registry.to_raw()) }
+}
+
+/// Registers R1CS backend passes and pipelines.
+pub fn register_r1cs_passes(registry: &DialectRegistry) {
+    let _guard = REGISTRATION_LOCK.lock().unwrap();
+    unsafe { llzk_sys::llzkRegisterR1CSPasses(registry.to_raw()) }
+}
+
+/// Registers PCL backend passes and pipelines.
+///
+/// Does nothing if LLZK was compiled without the PCL backend.
+pub fn register_pcl_passes(registry: &DialectRegistry) {
+    let _guard = REGISTRATION_LOCK.lock().unwrap();
+    unsafe { llzk_sys::llzkRegisterPCLPasses(registry.to_raw()) }
+}
+
+/// Registers ZKLean backend conversion passes.
+pub fn register_zklean_passes(registry: &DialectRegistry) {
+    let _guard = REGISTRATION_LOCK.lock().unwrap();
+    unsafe { llzk_sys::llzkRegisterZKLeanPasses(registry.to_raw()) }
+}
+
+/// Registers SMT backend conversion passes.
+pub fn register_smt_passes(registry: &DialectRegistry) {
+    let _guard = REGISTRATION_LOCK.lock().unwrap();
+    unsafe { llzk_sys::llzkRegisterSMTPasses(registry.to_raw()) }
 }
 
 #[cfg(test)]

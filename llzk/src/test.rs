@@ -5,12 +5,12 @@ use melior::{
 };
 use rstest::fixture;
 
-use crate::register_all_llzk_dialects;
+use crate::register_core_llzk_dialects;
 
 pub fn load_all_dialects(context: &Context) {
     let registry = DialectRegistry::new();
     register_all_dialects(&registry);
-    register_all_llzk_dialects(&registry);
+    register_core_llzk_dialects(&registry);
     context.append_dialect_registry(&registry);
     context.load_all_available_dialects();
 }

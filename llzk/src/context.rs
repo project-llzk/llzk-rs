@@ -16,10 +16,10 @@ use crate::{
         BoolAttribute, FeltConstAttribute, FeltType, FlatSymbolRefAttribute, IntegerAttribute,
         Location, Operation, PodRecordAttribute, PodType, TVarType,
     },
-    register_all_llzk_dialects,
+    register_core_llzk_dialects,
 };
 
-/// A batteries-included MLIR context that automatically loads all the LLZK dialects.
+/// A batteries-included MLIR context that automatically loads all core LLZK dialects.
 pub struct LlzkContext {
     ctx: Context,
     diagnostics_handler: Option<DiagnosticHandlerId>,
@@ -28,7 +28,7 @@ pub struct LlzkContext {
 }
 
 impl LlzkContext {
-    /// Creates a new [`LlzkContext`] with all LLZK dialects loaded and the diagnostics engine
+    /// Creates a new [`LlzkContext`] with all core LLZK dialects loaded and the diagnostics engine
     /// configured to emit diagnostics to the global [`Log`].
     ///
     /// To create a context that does not set logging see [`LlzkContext::new_no_log`].
@@ -38,14 +38,14 @@ impl LlzkContext {
         llzk
     }
 
-    /// Creates a new [`LlzkContext`] with all LLZK dialects loaded.
+    /// Creates a new [`LlzkContext`] with all core LLZK dialects loaded.
     ///
     /// To create a context that enables logging by default see [`LlzkContext::new`].
     pub fn new_no_log() -> Self {
         let ctx = Context::new();
         let registry = DialectRegistry::new();
 
-        register_all_llzk_dialects(&registry);
+        register_core_llzk_dialects(&registry);
         ctx.append_dialect_registry(&registry);
         ctx.load_all_available_dialects();
         Self {
