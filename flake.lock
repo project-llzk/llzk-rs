@@ -32,15 +32,16 @@
         "release-helpers": "release-helpers"
       },
       "locked": {
-        "lastModified": 1790863309,
-        "narHash": "sha256-5IMZaH8fwT4L1WPCKYMMz3izIF7em4Y3radMRmz28ao=",
+        "lastModified": 1790905759,
+        "narHash": "sha256-Gib05s/sds1k5arJ9B8VtpfB4/6PsDGRB/iUeksY+wQ=",
         "owner": "project-llzk",
         "repo": "llzk-lib",
-        "rev": "ff16893e8ac7c8b8fecb9240dc188c5043dfdcfd",
+        "rev": "2cb0a3e10275757818cd487ebe7af3007d5ee1cc",
         "type": "github"
       },
       "original": {
         "owner": "project-llzk",
+        "ref": "th/fix_clean_init",
         "repo": "llzk-lib",
         "type": "github"
       }

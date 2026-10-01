@@ -10,7 +10,7 @@
       };
     };
     llzk-lib = {
-      url = "github:project-llzk/llzk-lib";
+      url = "github:project-llzk/llzk-lib/th/fix_clean_init";
       inputs = {
         nixpkgs.follows = "llzk-pkgs/nixpkgs";
         flake-utils.follows = "llzk-pkgs/flake-utils";
