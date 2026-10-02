@@ -2,7 +2,7 @@ use mlir_sys::*;
 use rstest::{fixture, rstest};
 use std::ffi::CString;
 
-use crate::{LlzkAffineMapOperandsBuilder, llzkRegisterAllDialects};
+use crate::{LlzkAffineMapOperandsBuilder, llzkRegisterCoreDialects};
 
 mod builder;
 mod constants;
@@ -84,7 +84,7 @@ pub fn load_llzk_dialects<Ctx: AsRef<MlirContext>>(ctx: &Ctx) {
         let registry = mlirDialectRegistryCreate();
         let ctx = *ctx.as_ref();
         mlirRegisterAllDialects(registry);
-        llzkRegisterAllDialects(registry);
+        llzkRegisterCoreDialects(registry);
         mlirContextAppendDialectRegistry(ctx, registry);
 
         mlirContextLoadAllAvailableDialects(ctx);

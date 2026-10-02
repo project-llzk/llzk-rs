@@ -1,10 +1,10 @@
 use rstest::rstest;
 
-use crate::llzkRegisterAllDialects;
+use crate::llzkRegisterCoreDialects;
 
 use super::{TestRegistry, registry};
 
 #[rstest]
-fn test_llzk_register_all_dialects(registry: TestRegistry) {
-    unsafe { llzkRegisterAllDialects(registry.registry) }
+fn test_llzk_register_core_dialects(registry: TestRegistry) {
+    unsafe { llzkRegisterCoreDialects(registry.registry) }
 }
