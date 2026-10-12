@@ -1,11 +1,9 @@
 use super::FeltType;
 use llzk_sys::{
     llzkAttributeIsA_Felt_FeltConstAttr, llzkAttributeIsA_Felt_FieldSpecAttr,
-    llzkFelt_FeltConstAttrGet, llzkFelt_FeltConstAttrGetFromParts,
-    llzkFelt_FeltConstAttrGetFromPartsUnspecified, llzkFelt_FeltConstAttrGetFromString,
-    llzkFelt_FeltConstAttrGetFromStringUnspecified, llzkFelt_FeltConstAttrGetType,
-    llzkFelt_FeltConstAttrGetUnspecified, llzkFelt_FeltConstAttrGetWithBits,
-    llzkFelt_FeltConstAttrGetWithBitsUnspecified, llzkFelt_FieldSpecAttrGetFromParts,
+    llzkFelt_FeltConstAttrGetFromParts, llzkFelt_FeltConstAttrGetFromPartsUnspecified,
+    llzkFelt_FeltConstAttrGetFromString, llzkFelt_FeltConstAttrGetFromStringUnspecified,
+    llzkFelt_FeltConstAttrGetType, llzkFelt_FieldSpecAttrGetFromParts,
     llzkFelt_FieldSpecAttrGetFromString,
 };
 use melior::{
@@ -31,97 +29,47 @@ impl<'c> FeltConstAttribute<'c> {
         }
     }
 
-    /// Creates a [`FeltConstAttribute`] with a bitwidth of 64 and optional field specification
-    /// from an unsigned integer value.
-    ///
-    /// # Panics
-    ///
-    /// If `value` is greater than `i64::MAX`. This is a limitation of the underlying C API.
+    /// Creates a [`FeltConstAttribute`] from an unsigned integer with an optional field
+    /// specification. The full range of `u64` is supported.
     pub fn new(ctx: &'c Context, value: u64, field: Option<&str>) -> Self {
-        match field {
-            Some(field) => unsafe {
-                Self::from_raw(llzkFelt_FeltConstAttrGet(
-                    ctx.to_raw(),
-                    i64::try_from(value).expect("value is too large"),
-                    FeltType::with_field(ctx, field).to_raw(),
-                ))
-            },
-            None => unsafe {
-                Self::from_raw(llzkFelt_FeltConstAttrGetUnspecified(
-                    ctx.to_raw(),
-                    i64::try_from(value).expect("value is too large"),
-                ))
-            },
-        }
+        // The extra zero limb keeps the value positive even when bit 63 is set.
+        Self::from_parts(ctx, &[value, 0], field)
     }
 
-    /// Creates a [`FeltConstAttribute`] with the given bitwidth and optional field specification
-    /// from an unsigned integer value.
+    /// Creates a [`FeltConstAttribute`] from a signed base-10 integer of arbitrary precision
+    /// with an optional field specification.
     ///
     /// # Panics
     ///
-    /// If `value` is greater than `i64::MAX`. This is a limitation of the underlying C API.
-    pub fn new_with_bitlen(ctx: &'c Context, bitlen: u32, value: u64, field: Option<&str>) -> Self {
-        match field {
-            Some(field) => unsafe {
-                Self::from_raw(llzkFelt_FeltConstAttrGetWithBits(
-                    ctx.to_raw(),
-                    bitlen,
-                    i64::try_from(value).expect("value is too large"),
-                    FeltType::with_field(ctx, field).to_raw(),
-                ))
-            },
-            None => unsafe {
-                Self::from_raw(llzkFelt_FeltConstAttrGetWithBitsUnspecified(
-                    ctx.to_raw(),
-                    bitlen,
-                    i64::try_from(value).expect("value is too large"),
-                ))
-            },
-        }
-    }
-
-    /// Creates a [`FeltConstAttribute`] with the given bitwidth and optional field specification
-    /// from a base 10 string representation.
-    pub fn parse(ctx: &'c Context, bitlen: u32, value: &str, field: Option<&str>) -> Self {
+    /// If `value` is not a valid decimal integer.
+    pub fn parse(ctx: &'c Context, value: &str, field: Option<&str>) -> Self {
         let value = StringRef::new(value);
-        match field {
+        let attr = match field {
             Some(field) => unsafe {
-                Self::from_raw(llzkFelt_FeltConstAttrGetFromString(
+                llzkFelt_FeltConstAttrGetFromString(
                     ctx.to_raw(),
-                    bitlen,
                     value.to_raw(),
                     FeltType::with_field(ctx, field).to_raw(),
-                ))
+                )
             },
             None => unsafe {
-                Self::from_raw(llzkFelt_FeltConstAttrGetFromStringUnspecified(
-                    ctx.to_raw(),
-                    bitlen,
-                    value.to_raw(),
-                ))
+                llzkFelt_FeltConstAttrGetFromStringUnspecified(ctx.to_raw(), value.to_raw())
             },
-        }
+        };
+        assert!(!attr.ptr.is_null(), "invalid decimal felt constant");
+        unsafe { Self::from_raw(attr) }
     }
 
-    /// Creates a [`FeltConstAttribute`] with the given bitwidth and optional field specification
-    /// from a slice of bigint parts in LSB order.
+    /// Creates a [`FeltConstAttribute`] from signed two's-complement 64-bit parts in LSB
+    /// order with an optional field specification. An empty slice represents zero.
     ///
-    /// # Notes
-    ///
-    /// If the number represented by the parts is unsigned, set the bit length to at least one more
-    /// than the minimum number of bits required to represent the value. Otherwise the number will
-    /// be interpreted as signed and may cause unexpected behaviors.
-    pub fn from_parts(ctx: &'c Context, bitlen: u32, parts: &[u64], field: Option<&str>) -> Self {
-        // Special case for empty parts array
-        if parts.is_empty() {
-            return Self::new_with_bitlen(ctx, bitlen, 0, field);
-        }
+    /// The highest bit of the last part is the sign bit. Append a zero part to represent
+    /// an unsigned value whose highest bit is set.
+    pub fn from_parts(ctx: &'c Context, parts: &[u64], field: Option<&str>) -> Self {
         match field {
             Some(field) => unsafe {
                 Self::from_raw(llzkFelt_FeltConstAttrGetFromParts(
                     ctx.to_raw(),
-                    bitlen,
                     parts.as_ptr(),
                     isize::try_from(parts.len()).expect("part count too large"),
                     FeltType::with_field(ctx, field).to_raw(),
@@ -130,7 +78,6 @@ impl<'c> FeltConstAttribute<'c> {
             None => unsafe {
                 Self::from_raw(llzkFelt_FeltConstAttrGetFromPartsUnspecified(
                     ctx.to_raw(),
-                    bitlen,
                     parts.as_ptr(),
                     isize::try_from(parts.len()).expect("part count too large"),
                 ))
@@ -140,20 +87,16 @@ impl<'c> FeltConstAttribute<'c> {
 
     /// Creates a [`FeltConstAttribute`] with the optional field specification from a
     /// [`num_bigint::BigUint`].
-    ///
-    /// # Panics
-    ///
-    /// If the number of bits required to represent the BigUint exceeds `u32::MAX - 1`.
     #[cfg(feature = "bigint")]
     pub fn from_biguint(
         ctx: &'c Context,
         value: &num_bigint::BigUint,
         field: Option<&str>,
     ) -> Self {
-        // Increase by one to ensure the value is kept unsigned.
-        let bitlen = value.bits() + 1;
-        let parts = value.to_u64_digits();
-        Self::from_parts(ctx, bitlen.try_into().unwrap(), &parts, field)
+        let mut parts = value.to_u64_digits();
+        // The C API interprets the highest bit as the sign bit.
+        parts.push(0);
+        Self::from_parts(ctx, &parts, field)
     }
 
     /// Returns the felt type of the attribute.
@@ -233,47 +176,55 @@ impl<'c> FieldSpecAttribute<'c> {
     }
 
     /// Creates a `llzk::felt::FieldSpecAttr` from a base-10 representation of the prime.
-    pub fn new(ctx: &'c Context, name: &str, bitlen: u32, prime: &str) -> Self {
-        unsafe {
-            Self::from_raw(llzkFelt_FieldSpecAttrGetFromString(
-                ctx.to_raw(),
-                Identifier::new(ctx, name).to_raw(),
-                bitlen,
-                StringRef::new(prime).to_raw(),
-            ))
-        }
-    }
-
-    /// Creates a `llzk::felt::FieldSpecAttr` from an array of big-integer parts in LSB order representing
-    /// the prime.
     ///
     /// # Panics
     ///
-    /// If the parts slice is empty.
-    pub fn from_parts(ctx: &'c Context, name: &str, bitlen: u32, parts: &[u64]) -> Self {
-        assert!(!parts.is_empty());
-        unsafe {
-            Self::from_raw(llzkFelt_FieldSpecAttrGetFromParts(
+    /// If `prime` is not a valid decimal integer or is less than two.
+    pub fn new(ctx: &'c Context, name: &str, prime: &str) -> Self {
+        let attr = unsafe {
+            llzkFelt_FieldSpecAttrGetFromString(
                 ctx.to_raw(),
                 Identifier::new(ctx, name).to_raw(),
-                bitlen,
+                StringRef::new(prime).to_raw(),
+            )
+        };
+        assert!(!attr.ptr.is_null(), "invalid field modulus");
+        unsafe { Self::from_raw(attr) }
+    }
+
+    /// Creates a `llzk::felt::FieldSpecAttr` from signed two's-complement 64-bit parts in
+    /// LSB order representing the prime.
+    ///
+    /// The highest bit of the last part is the sign bit. Append a zero part to represent
+    /// an unsigned value whose highest bit is set.
+    ///
+    /// # Panics
+    ///
+    /// If the represented modulus is less than two, including an empty slice (zero).
+    pub fn from_parts(ctx: &'c Context, name: &str, parts: &[u64]) -> Self {
+        let attr = unsafe {
+            llzkFelt_FieldSpecAttrGetFromParts(
+                ctx.to_raw(),
+                Identifier::new(ctx, name).to_raw(),
                 parts.as_ptr(),
                 isize::try_from(parts.len()).expect("part count too large"),
-            ))
-        }
+            )
+        };
+        assert!(!attr.ptr.is_null(), "invalid field modulus");
+        unsafe { Self::from_raw(attr) }
     }
 
     /// Creates a `llzk::felt::FieldSpecAttr` from a [`num_bigint::BigUint`].
     ///
     /// # Panics
     ///
-    /// If the number of bits required to represent the BigUint exceeds `u32::MAX - 1`.
+    /// If the modulus is less than two.
     #[cfg(feature = "bigint")]
     pub fn from_biguint(ctx: &'c Context, name: &str, value: &num_bigint::BigUint) -> Self {
-        // Increase by one to ensure the value is kept unsigned.
-        let bitlen = value.bits() + 1;
-        let parts = value.to_u64_digits();
-        Self::from_parts(ctx, name, bitlen.try_into().unwrap(), &parts)
+        let mut parts = value.to_u64_digits();
+        // The C API interprets the highest bit as the sign bit.
+        parts.push(0);
+        Self::from_parts(ctx, name, &parts)
     }
 }
 
@@ -348,18 +299,22 @@ mod tests {
 
     #[quickcheck]
     fn felt_const_attr_new(value: u64, field: FieldArg) {
-        // ensure value fits in i64, which is what's internally used by FeltConstAttribute
-        let value = value % (i64::MAX as u64 + 1);
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
         let f = FeltConstAttribute::new(&ctx, value, field.as_deref());
         assert_ne!(f.to_raw().ptr, null());
+        assert_eq!(
+            Attribute::from(f),
+            Attribute::from(FeltConstAttribute::parse(
+                &ctx,
+                &value.to_string(),
+                field.as_deref()
+            ))
+        );
     }
 
     #[quickcheck]
     fn felt_const_attr_conversion(value: u64, field: FieldArg) {
-        // ensure value fits in i64, which is what's internally used by FeltConstAttribute
-        let value = value % (i64::MAX as u64 + 1);
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
         let f = FeltConstAttribute::new(&ctx, value, field.as_deref());
@@ -387,20 +342,99 @@ mod tests {
     fn felt_const_attr_parse_from_u64(value: u64, field: FieldArg) {
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let ctx = LlzkContext::new();
-        let f = FeltConstAttribute::parse(&ctx, 64, &value.to_string(), field.as_deref());
+        let f = FeltConstAttribute::parse(&ctx, &value.to_string(), field.as_deref());
         assert_ne!(f.to_raw().ptr, null());
+    }
+
+    #[test]
+    fn signed_parts_preserve_values_and_field() {
+        let ctx = LlzkContext::new();
+        let cases: &[(&[u64], &str)] = &[
+            (&[], "0"),
+            (&[0, 0], "0"),
+            (&[u64::MAX], "-1"),
+            (&[1 << 63], "-9223372036854775808"),
+            (&[u64::MAX, u64::MAX - 1], "-18446744073709551617"),
+            (&[u64::MAX, 0], "18446744073709551615"),
+            (
+                &[u64::MAX, u64::MAX, 0],
+                "340282366920938463463374607431768211455",
+            ),
+        ];
+        for field in [None, Some("mersenne31")] {
+            for &(parts, decimal) in cases {
+                let attr = FeltConstAttribute::from_parts(&ctx, parts, field);
+                let expected = FeltConstAttribute::parse(&ctx, decimal, field);
+                assert_eq!(Attribute::from(attr), Attribute::from(expected));
+                assert_eq!(attr.r#type(), expected.r#type());
+            }
+        }
+    }
+
+    #[test]
+    fn context_helpers_preserve_unsigned_values() {
+        let mut ctx = LlzkContext::new();
+        ctx.set_field("mersenne31");
+        let expected = FeltConstAttribute::parse(&ctx, "18446744073709551615", ctx.field());
+        for attr in [
+            ctx.felt_attr(u64::MAX),
+            ctx.felt_attr_from_str("18446744073709551615"),
+            ctx.felt_attr_from_parts(&[u64::MAX, 0]),
+        ] {
+            assert_eq!(Attribute::from(attr), Attribute::from(expected));
+            assert_eq!(attr.r#type(), FeltType::with_field(&ctx, "mersenne31"));
+        }
+    }
+
+    #[rstest::rstest]
+    fn malformed_felt_decimal_panics(#[values("", "12x", "--1")] value: &str) {
+        let ctx = LlzkContext::new();
+        for field in [None, Some("mersenne31")] {
+            assert!(
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    FeltConstAttribute::parse(&ctx, value, field)
+                }))
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn field_spec_preserves_large_prime() {
+        let ctx = LlzkContext::new();
+        // The goldilocks prime has its highest data bit set.
+        let expected = FieldSpecAttribute::new(&ctx, "custom", "18446744069414584321");
+        let attr = FieldSpecAttribute::from_parts(&ctx, "custom", &[0xffffffff00000001, 0]);
+        assert_eq!(Attribute::from(attr), Attribute::from(expected));
+    }
+
+    #[rstest::rstest]
+    #[should_panic(expected = "invalid field modulus")]
+    fn field_spec_rejects_invalid_parts(#[values(&[], &[0], &[1], &[u64::MAX])] parts: &[u64]) {
+        let ctx = LlzkContext::new();
+        FieldSpecAttribute::from_parts(&ctx, "custom", parts);
+    }
+
+    #[rstest::rstest]
+    #[should_panic(expected = "invalid field modulus")]
+    fn field_spec_rejects_invalid_decimal(#[values("", "12x", "-1", "0", "1")] value: &str) {
+        let ctx = LlzkContext::new();
+        FieldSpecAttribute::new(&ctx, "custom", value);
     }
 
     #[cfg(feature = "bigint")]
     mod bigint {
-        use crate::{context::LlzkContext, prelude::FeltConstAttribute};
+        use crate::{
+            context::LlzkContext,
+            prelude::{Attribute, FeltConstAttribute, FieldSpecAttribute},
+        };
         use num_bigint::BigUint;
         use rstest::rstest;
         use std::str::FromStr as _;
 
         #[rstest]
         fn felt_const_attr_new_from_bigint(
-            #[values(BigUint::from(0u8), BigUint::from(1u8), BigUint::from_str("21888242871839275222246405745257275088548364400416034343698204186575808495616").unwrap())]
+            #[values(BigUint::from(0u8), BigUint::from(1u8), BigUint::from(u64::MAX), BigUint::from(u128::MAX), BigUint::from_str("21888242871839275222246405745257275088548364400416034343698204186575808495616").unwrap())]
             value: BigUint,
         ) {
             use log::LevelFilter;
@@ -412,6 +446,19 @@ mod tests {
             let ctx = LlzkContext::new();
             let f = FeltConstAttribute::from_biguint(&ctx, &value, None);
             assert_ne!(f.to_raw().ptr, null());
+            assert_eq!(
+                Attribute::from(f),
+                Attribute::from(FeltConstAttribute::parse(&ctx, &value.to_string(), None))
+            );
+        }
+
+        #[test]
+        fn field_spec_from_biguint_preserves_positive_sign() {
+            let ctx = LlzkContext::new();
+            let value = BigUint::from(0xffffffff00000001u64);
+            let attr = FieldSpecAttribute::from_biguint(&ctx, "custom", &value);
+            let expected = FieldSpecAttribute::new(&ctx, "custom", &value.to_string());
+            assert_eq!(Attribute::from(attr), Attribute::from(expected));
         }
     }
 }

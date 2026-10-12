@@ -147,64 +147,50 @@ impl LlzkContext {
         BoolAttribute::new(self, val)
     }
 
-    /// Returns a [`FeltConstAttribute`] with the given value and bitwidth, using the default prime
-    /// field. If the bitwidth is not specified, it defaults to 64 bits.
+    /// Returns a [`FeltConstAttribute`] with the given unsigned value using the default prime
+    /// field.
     ///
-    /// To create one with a field other than the default, use [`FeltConstAttribute::new`] or
-    /// [`FeltConstAttribute::new_with_bitlen`] instead.
-    ///
-    /// # Panics
-    ///
-    /// If `val` is greater than `i64::MAX`.
+    /// To create one with a field other than the default, use [`FeltConstAttribute::new`].
     #[inline]
-    pub fn felt_attr<T>(&self, bitlen: Option<u32>, val: T) -> FeltConstAttribute<'_>
+    pub fn felt_attr<T>(&self, val: T) -> FeltConstAttribute<'_>
     where
         T: Into<u64>,
     {
-        match bitlen {
-            Some(b) => FeltConstAttribute::new_with_bitlen(self, b, val.into(), self.field()),
-            None => FeltConstAttribute::new(self, val.into(), self.field()),
-        }
+        FeltConstAttribute::new(self, val.into(), self.field())
     }
 
-    /// Returns a [`FeltConstAttribute`] with the given bitwidth, from a base 10 string
-    /// representation using the default prime field.
+    /// Returns a [`FeltConstAttribute`] from a signed base-10 integer of arbitrary precision
+    /// using the default prime field.
     ///
-    /// To create one with a field other than the default, use [`FeltConstAttribute::parse`]
-    /// instead.
+    /// To create one with a field other than the default, use [`FeltConstAttribute::parse`].
+    ///
+    /// # Panics
+    ///
+    /// If `val` is not a valid decimal integer.
     #[inline]
-    pub fn felt_attr_from_str<T>(&self, bitlen: u32, val: T) -> FeltConstAttribute<'_>
+    pub fn felt_attr_from_str<T>(&self, val: T) -> FeltConstAttribute<'_>
     where
         T: AsRef<str>,
     {
-        FeltConstAttribute::parse(self, bitlen, val.as_ref(), self.field())
+        FeltConstAttribute::parse(self, val.as_ref(), self.field())
     }
 
-    /// Returns a [`FeltConstAttribute`] with the given bitwidth, from a slice of bigint parts in
-    /// LSB order using the default prime field.
+    /// Returns a [`FeltConstAttribute`] from signed two's-complement 64-bit parts in LSB
+    /// order using the default prime field. An empty slice represents zero.
     ///
-    /// To create one with a field other than the default, use [`FeltConstAttribute::from_parts`]
-    /// instead.
+    /// To create one with a field other than the default, use [`FeltConstAttribute::from_parts`].
     ///
-    /// # Notes
-    ///
-    /// If the number represented by the parts is unsigned, set the bit length to at least one more
-    /// than the minimum number of bits required to represent the value. Otherwise the number will
-    /// be interpreted as signed and may cause unexpected behaviors.
+    /// The highest bit of the last part is the sign bit. Append a zero part to represent
+    /// an unsigned value whose highest bit is set.
     #[inline]
-    pub fn felt_attr_from_parts(&self, bitlen: u32, val_parts: &[u64]) -> FeltConstAttribute<'_> {
-        FeltConstAttribute::from_parts(self, bitlen, val_parts, self.field())
+    pub fn felt_attr_from_parts(&self, val_parts: &[u64]) -> FeltConstAttribute<'_> {
+        FeltConstAttribute::from_parts(self, val_parts, self.field())
     }
 
     /// Returns a [`FeltConstAttribute`] created from a [`num_bigint::BigUint`] using the default
     /// prime field.
     ///
-    /// To create one with a field other than the default, use [`FeltConstAttribute::from_biguint`]
-    /// instead.
-    ///
-    /// # Panics
-    ///
-    /// If the number of bits required to represent the BigUint exceeds `u32::MAX - 1`.
+    /// To create one with a field other than the default, use [`FeltConstAttribute::from_biguint`].
     #[inline]
     #[cfg(feature = "bigint")]
     pub fn felt_attr_from_biguint(&self, value: &num_bigint::BigUint) -> FeltConstAttribute<'_> {
