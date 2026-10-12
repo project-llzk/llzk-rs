@@ -4,7 +4,7 @@ use llzk_sys::{
     llzkLlzk_LoopBoundsAttrGet, llzkLlzk_PublicAttrGet,
 };
 use melior::{
-    Context,
+    Context, StringRef,
     ir::{Attribute, AttributeLike, Identifier},
 };
 use mlir_sys::MlirAttribute;
@@ -92,7 +92,25 @@ impl<'c> LoopBoundsAttribute<'c> {
 
     /// Creates a new attribute.
     pub fn new(ctx: &'c Context, begin: i64, end: i64, step: i64) -> Self {
-        unsafe { Self::from_raw(llzkLlzk_LoopBoundsAttrGet(ctx.to_raw(), begin, end, step)) }
+        Self::parse(ctx, &begin.to_string(), &end.to_string(), &step.to_string())
+    }
+
+    /// Creates loop bounds from signed base-10 integers of arbitrary precision.
+    ///
+    /// # Panics
+    ///
+    /// If any bound or the step is not a valid decimal integer.
+    pub fn parse(ctx: &'c Context, begin: &str, end: &str, step: &str) -> Self {
+        let attr = unsafe {
+            llzkLlzk_LoopBoundsAttrGet(
+                ctx.to_raw(),
+                StringRef::new(begin).to_raw(),
+                StringRef::new(end).to_raw(),
+                StringRef::new(step).to_raw(),
+            )
+        };
+        assert!(!attr.ptr.is_null(), "invalid decimal loop bounds");
+        unsafe { Self::from_raw(attr) }
     }
 }
 
