@@ -20,9 +20,9 @@ mod sys {
         MlirAffineExpr, MlirAffineMap, MlirAsmState, MlirAttribute, MlirBlock,
         MlirBytecodeWriterConfig, MlirContext, MlirDialectHandle, MlirDialectRegistry,
         MlirIdentifier, MlirLocation, MlirLogicalResult, MlirModule, MlirNamedAttribute,
-        MlirOpPrintingFlags, MlirOperation, MlirOperationState, MlirOperationWalkCallback,
-        MlirPass, MlirRegion, MlirStringCallback, MlirStringRef, MlirType, MlirTypeID, MlirValue,
-        MlirWalkOrder,
+        MlirOpPassManager, MlirOpPrintingFlags, MlirOperation, MlirOperationState,
+        MlirOperationWalkCallback, MlirPass, MlirRegion, MlirStringCallback, MlirStringRef,
+        MlirType, MlirTypeID, MlirValue, MlirWalkOrder,
     };
     include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
