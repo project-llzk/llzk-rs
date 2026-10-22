@@ -1,33 +1,47 @@
 //! `cast` dialect.
 
-use crate::builder::OpBuilderLike;
-use crate::prelude::FeltType;
+use crate::{
+    builder::{OpBuilder, OpBuilderLike},
+    operation::detach_owned_operation,
+    prelude::FeltType,
+};
 use llzk_sys::{
     LlzkCastOverflowSemantics, llzkAttributeIsA_Cast_OverflowSemanticsAttr,
     llzkCast_FeltToIndexOpBuild, llzkCast_IntToFeltOpBuildWithType,
-    llzkCast_OverflowSemanticsAttrGet, llzkCast_OverflowSemanticsAttrGetValue,
-    llzkOperationIsA_Cast_FeltToIndexOp, llzkOperationIsA_Cast_IntToFeltOp,
-    mlirGetDialectHandle__llzk__cast__,
+    llzkCast_IntToFeltOpSetOverflow, llzkCast_OverflowSemanticsAttrGet,
+    llzkCast_OverflowSemanticsAttrGetValue, llzkOperationIsA_Cast_FeltToIndexOp,
+    llzkOperationIsA_Cast_IntToFeltOp, mlirGetDialectHandle__llzk__cast__,
 };
 use melior::{
     Context,
     dialect::DialectHandle,
-    ir::{Attribute, AttributeLike, Location, OperationRef, TypeLike, Value, ValueLike},
+    ir::{Attribute, AttributeLike, Block, Location, OperationRef, TypeLike, Value, ValueLike},
 };
 use mlir_sys::MlirAttribute;
 use std::ptr::null_mut;
 
 /// Overflow behavior for cast operations.
+///
+/// The safe range is `[0, p-1]` for a felt target with prime `p`, and
+/// `[0, 2^(N-1)-1]` for an index target with bit width `N`. Boolean (`i1`)
+/// inputs represent zero or one; index inputs are signed. Felt inputs are
+/// reduced to their canonical field representatives before conversion.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u32)]
 pub enum OverflowSemantics {
-    /// Assert that the input fits.
+    /// Fail if the input is outside the safe range.
+    /// Potentially failing assertions remain observable even if the result is unused.
     Assert = llzk_sys::LlzkCastOverflowSemantics_LlzkCastOverflowSemantics_ASSERT,
-    /// Saturate overflowing values.
+    /// Clamp the input to the safe range.
     Saturate = llzk_sys::LlzkCastOverflowSemantics_LlzkCastOverflowSemantics_SATURATE,
-    /// Wrap overflowing values.
+    /// Reduce modulo `p` for a felt target, or modulo `2^(N-1)` for an index target,
+    /// using a nonnegative remainder.
     Wrap = llzk_sys::LlzkCastOverflowSemantics_LlzkCastOverflowSemantics_WRAP,
-    /// Truncate overflowing values.
+    /// Keep the low `bitwidth(p)` bits, then reduce modulo `p` for a felt target.
+    /// For an index target, keep the low `N-1` bits, clearing the sign bit.
+    ///
+    /// This differs from wrapping for felt targets: with `p = 7`, truncating `-1`
+    /// yields `0`, while wrapping yields `6`.
     Truncate = llzk_sys::LlzkCastOverflowSemantics_LlzkCastOverflowSemantics_TRUNCATE,
 }
 
@@ -114,6 +128,11 @@ pub fn handle() -> DialectHandle {
 
 /// Creates a 'cast.tofelt' operation with the given target `FeltType` or the
 /// default "unspecified prime" `FeltType` if `None` is provided.
+///
+/// Uses the upstream LLZK default overflow semantics. Use [`tofelt_with_overflow`]
+/// to select a mode explicitly. Boolean (`i1`) inputs map to zero or one; index inputs
+/// are signed. Boolean casts are always infallible.
+/// Constant folding defers until the target field is specified.
 pub fn tofelt<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
@@ -132,25 +151,80 @@ pub fn tofelt<'c, 'a>(
     }
 }
 
+/// Creates a 'cast.tofelt' operation with explicit overflow semantics.
+///
+/// As with [`tofelt`], `None` selects an unspecified target field. See
+/// [`OverflowSemantics`] for the safe ranges and behavior of each mode.
+/// Non-assert modes are side-effect-free and speculatable. Constant folding
+/// defers when the target field is unspecified or an assertion would fail.
+pub fn tofelt_with_overflow<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    val: Value<'c, '_>,
+    out_type: Option<FeltType<'c>>,
+    overflow: OverflowSemantics,
+) -> OperationRef<'c, 'a> {
+    builder.insert(location, |ctx, location| {
+        // The upstream typed builder does not accept overflow semantics. Configure the
+        // operation in a scratch block so insertion listeners see the final attributes.
+        let block = Block::new(&[]);
+        let scratch = OpBuilder::at_block_end(ctx, &block);
+        let op = tofelt(&scratch, location, val, out_type);
+        unsafe {
+            llzkCast_IntToFeltOpSetOverflow(
+                op.to_raw(),
+                OverflowSemanticsAttribute::new(ctx, overflow).to_raw(),
+            );
+        }
+        detach_owned_operation(op)
+    })
+}
+
 crate::macros::isa_fn!(cast, tofelt, llzkOperationIsA_Cast_IntToFeltOp);
 
 /// Creates a 'cast.toindex' operation.
+///
+/// Uses the upstream LLZK default overflow semantics. Use [`toindex_with_overflow`]
+/// to select a mode explicitly. The input is reduced in its field before applying the
+/// overflow mode to the index safe range `[0, 2^(N-1)-1]`.
+/// Constant folding defers if the field is unspecified or an assertion would fail.
+/// An assertion remains observable even if the result is unused, unless the source
+/// field's entire canonical range fits in the index safe range.
 pub fn toindex<'c, 'a>(
     builder: &impl OpBuilderLike<'c>,
     location: Location<'c>,
     val: Value<'c, '_>,
-    overflow: Option<OverflowSemantics>,
 ) -> OperationRef<'c, 'a> {
-    let ctx = location.context();
-    let overflow = overflow
-        .map(|overflow| OverflowSemanticsAttribute::new(unsafe { ctx.to_ref() }, overflow).to_raw())
-        .unwrap_or(MlirAttribute { ptr: null_mut() });
     unsafe {
         OperationRef::from_raw(llzkCast_FeltToIndexOpBuild(
             builder.to_raw(),
             location.to_raw(),
             val.to_raw(),
-            overflow,
+            MlirAttribute { ptr: null_mut() },
+        ))
+    }
+}
+
+/// Creates a 'cast.toindex' operation with explicit overflow semantics.
+///
+/// As with [`toindex`], the input is reduced in its field before conversion. See
+/// [`OverflowSemantics`] for the safe ranges and behavior of each mode.
+/// Non-assert modes are side-effect-free and speculatable. Constant folding
+/// defers when the source field is unspecified or an assertion would fail.
+pub fn toindex_with_overflow<'c, 'a>(
+    builder: &impl OpBuilderLike<'c>,
+    location: Location<'c>,
+    val: Value<'c, '_>,
+    overflow: OverflowSemantics,
+) -> OperationRef<'c, 'a> {
+    let ctx = location.context();
+    let overflow = OverflowSemanticsAttribute::new(unsafe { ctx.to_ref() }, overflow);
+    unsafe {
+        OperationRef::from_raw(llzkCast_FeltToIndexOpBuild(
+            builder.to_raw(),
+            location.to_raw(),
+            val.to_raw(),
+            overflow.to_raw(),
         ))
     }
 }
