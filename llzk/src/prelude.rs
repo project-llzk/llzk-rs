@@ -45,7 +45,10 @@ pub mod dialect {
 
     /// Exports functions from the 'cast' dialect
     pub mod cast {
-        pub use crate::dialect::cast::{is_tofelt_op, is_toindex_op, tofelt, toindex};
+        pub use crate::dialect::cast::{
+            OverflowSemantics, OverflowSemanticsAttribute, is_tofelt_op, is_toindex_op, tofelt,
+            tofelt_with_overflow, toindex, toindex_with_overflow,
+        };
     }
 
     /// Exports functions from the 'constrain' dialect
