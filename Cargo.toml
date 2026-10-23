@@ -11,6 +11,11 @@ resolver = "2"
 melior = "0.28.2"
 mlir-sys = "230.0.2"
 
+[patch.crates-io]
+# Keep bindgen's syn/prettyplease versions compatible until an upstream release includes
+# https://github.com/rust-lang/rust-bindgen/pull/3506. Downstream users must repeat this patch.
+bindgen = { git = "https://github.com/tamird/rust-bindgen", rev = "86a8a5e774b5c4fcab9f86caa2767549dec2a97e" }
+
 [workspace.lints.rust]
 missing_debug_implementations = "deny"
 unused_must_use = "deny"
