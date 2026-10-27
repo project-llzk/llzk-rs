@@ -71,6 +71,13 @@ impl<'c> From<PublicAttribute<'c>> for Attribute<'c> {
 }
 
 /// Represents the `llzk.loopbounds` attribute.
+///
+/// A trusted annotation of a loop variable's lower bound (inclusive), upper bound
+/// (exclusive), and nonzero step. Positive and negative steps are allowed; a zero
+/// step is a verification error.
+///
+/// The producer must ensure these values agree with the loop's behavior, since
+/// the bounds are trusted unconditionally.
 #[derive(Clone, Copy, Debug)]
 pub struct LoopBoundsAttribute<'c> {
     inner: Attribute<'c>,
@@ -90,12 +97,17 @@ impl<'c> LoopBoundsAttribute<'c> {
         }
     }
 
-    /// Creates a new attribute.
+    /// Creates loop bounds with an inclusive `begin` and exclusive `end`.
+    ///
+    /// `step` must be nonzero and may be positive or negative.
     pub fn new(ctx: &'c Context, begin: i64, end: i64, step: i64) -> Self {
         Self::parse(ctx, &begin.to_string(), &end.to_string(), &step.to_string())
     }
 
     /// Creates loop bounds from signed base-10 integers of arbitrary precision.
+    ///
+    /// `begin` is inclusive and `end` is exclusive. `step` must represent a
+    /// nonzero integer and may be positive or negative.
     ///
     /// # Panics
     ///
